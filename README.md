@@ -12,7 +12,7 @@ TradeMatch adalah aplikasi barter modern yang memungkinkan pengguna untuk saling
 | Firman Karunia Naibaho | 231402074 |
 | Alfathin suwailim | 231402096 |
 | Muhammad Ilyas Hasibuan | 231402106 |
-| Rifki Reysaad Bangun | 231402074 |
+| Rifki Reysaad Bangun | 2314020109 |
 
 ---
 
