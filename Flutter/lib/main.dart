@@ -1,3 +1,5 @@
+import 'package:Flutter/chat/chat_list.dart';
+import 'package:Flutter/screens/explore_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:Flutter/chat/chat_list.dart';
 import 'package:Flutter/profile/profile.dart';
@@ -15,6 +17,8 @@ class MyApp extends StatelessWidget {
       title: 'TradeMatch',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
+        primarySwatch: Colors.orange,
+        scaffoldBackgroundColor: Colors.grey[50],
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         fontFamily: "Sk-Modernist",
       ),
@@ -35,7 +39,7 @@ class _MainPageState extends State<MainPage> {
 
   final List<Widget> _pages = [
 
-    ChatListScreen(),
+    ExploreScreen(),
     ChatListScreen(),
     ChatListScreen(),
     ProfilePage(),
@@ -81,4 +85,5 @@ class _MainPageState extends State<MainPage> {
     );
   }
 }
+
 
