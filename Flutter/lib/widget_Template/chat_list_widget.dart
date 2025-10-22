@@ -15,7 +15,7 @@ Widget ChatList({
 
           Row(
             children: [
-              const SizedBox(width: 48),
+              const SizedBox(width: 10),
               ClipRRect(
                 borderRadius: BorderRadius.circular(24),
                 child: Image.asset(
@@ -58,7 +58,7 @@ Widget ChatList({
             ],
           ),
           Padding(
-            padding: const EdgeInsets.only(right: 48),
+            padding: const EdgeInsets.only(right: 10),
             child: Text(
               time,
               style: const TextStyle(
