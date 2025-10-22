@@ -2,7 +2,11 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+<<<<<<< HEAD
       <module fileurl="file://$PROJECT_DIR$/.idea/TradeMatch.iml" filepath="$PROJECT_DIR$/.idea/TradeMatch.iml" />
+=======
+      <module fileurl="file://$PROJECT_DIR$/.idea/trade-match.iml" filepath="$PROJECT_DIR$/.idea/trade-match.iml" />
+>>>>>>> a8834bc14fc8d238352b64e8af706d520738bf99
     </modules>
   </component>
 </project>
