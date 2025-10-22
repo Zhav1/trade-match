@@ -1,4 +1,5 @@
 import 'package:Flutter/chat/chat_list.dart';
+import 'package:Flutter/screens/explore_screen.dart';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -11,13 +12,16 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: '',
+      title: 'TradeMatch',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        primarySwatch: Colors.orange,
+        scaffoldBackgroundColor: Colors.grey[50],
+        fontFamily: 'Roboto',
       ),
-      home: ChatListScreen(),
+      home: const ExploreScreen(),
     );
   }
 }
+
 
