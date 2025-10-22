@@ -1,237 +1,147 @@
 import 'package:flutter/material.dart';
 import 'package:Flutter/widget_Template/chat_list_widget.dart';
 
-class ChatListScreen extends StatefulWidget{
+class ChatListScreen extends StatefulWidget {
+  const ChatListScreen({super.key});
+
   @override
   State<ChatListScreen> createState() => _ChatListScreenState();
 }
-class _ChatListScreenState extends State<ChatListScreen>{
+
+class _ChatListScreenState extends State<ChatListScreen> {
   @override
   Widget build(BuildContext context) {
+    final Color primary = const Color(0xFFFD7E14);
+    final Color background = const Color(0xFFFFF8ED);
+    final Color borderColor = const Color(0xFFE8E6EA);
+
     return Scaffold(
-      body: 
-      Column(
-        children: [
-          SafeArea(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                Text(
+      backgroundColor: background,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
                     "Messages",
-                  style: TextStyle(
-                    fontSize: 34,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.black,
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF441606), // warna cokelat tua
+                    ),
                   ),
-                ),
-                Container(
-                  width: 55,
-                  height: 55,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(15),
-                    border: Border.all(width: 1, color: Color(0xffE8E6EA)),
-                    color: Color(0xffF8F9FA),
-                  ),
-                  child: Image.asset('assets/images/filter.png'),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10,),
-          const SizedBox(
-            height: 48,
-            width: 295,
-            child:
-              TextField(
-                decoration: InputDecoration(
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(15)),
-                  ),
-                  hintText: "Search",
-                  hintStyle: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w400,
-                    color: Colors.black,
-                  ),
-                  )
-                ),
-          ),
-          const SizedBox(height: 30,),
-          Expanded(
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Row(
-                      children: [
-                        SizedBox(width: 10,),
-                        SizedBox(
-                          width: 48,
-                          height: 48,
-                          child: Image.asset('assets/images/pp-1.png'),
-                        ),
-                        SizedBox(width: 10,),
-                        Column(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                                "Emilie",
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.black,
-                              ),
-                            ),
-                            Text(
-                              "Halo",
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w400,
-                                color: Colors.black,
-                              ),
-                            )
-                          ],
-                        ),
+                  Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(15),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          offset: const Offset(0, 3),
+                          blurRadius: 5,
+                        )
                       ],
                     ),
-                    Row(
-                      children: [
-                        Text(
-                            "23 min",
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xffADAFBB),
-                          ),
-                        ),
-                        const SizedBox(width: 10,),
-                      ],
+                    child: Center(
+                      child: Image.asset(
+                        'assets/images/filter.png',
+                        width: 26,
+                      ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 5,),
-                Row(
-                  children: [
-                    const SizedBox(width: 75,),
-                    Container(
-                      height: 2,
-                      width: 305,
-                      color: Color(0xffE8E6EA),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
 
-            ChatList(
-            image: "pp-1.png",
-            name: "Rafi",
-            message: "Itu HP-nya ada minus di bagian mana ya?",
-            time: "3 min",
-            ),
-                const SizedBox(height: 5,),
-                Row(
-                  children: [
-                    const SizedBox(width: 75,),
-                    Container(
-                      height: 2,
-                      width: 305,
-                      color: Color(0xffE8E6EA),
-                    ),
-                  ],
-                ),
-            ChatList(
-              image: "pp-2.png",
-              name: "Tania",
-              message: "Kalau aku tukar sama headset JBL boleh gak?",
-              time: "10 min",
-            ),
-                const SizedBox(height: 5,),
-                Row(
-                  children: [
-                    const SizedBox(width: 75,),
-                    Container(
-                      height: 2,
-                      width: 305,
-                      color: Color(0xffE8E6EA),
-                    ),
-                  ],
-                ),
-            ChatList(
-              image: "pp-3.png",
-              name: "Johan",
-              message: "Kardus dan chargernya masih lengkap?",
-              time: "28 min",
-            ),
-                const SizedBox(height: 5,),
-            Row(
-              children: [
-                const SizedBox(width: 75,),
-                Container(
-                  height: 2,
-                  width: 305,
-                  color: Color(0xffE8E6EA),
-                ),
-              ],
-            ),
-            ChatList(
-              image: "pp-4.png",
-              name: "Mira",
-              message: "Kondisi barang masih mulus ya? pengen liat fotonya 📸",
-              time: "1 hr",
-            ),
-                const SizedBox(height: 5,),
-          Row(
-            children: [
-              const SizedBox(width: 75,),
               Container(
-                height: 2,
-                width: 305,
-                color: Color(0xffE8E6EA),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(15),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 6,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: const TextField(
+                  decoration: InputDecoration(
+                    hintText: "Search messages...",
+                    hintStyle: TextStyle(color: Colors.grey, fontSize: 14),
+                    prefixIcon: Icon(Icons.search, color: Colors.grey),
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(vertical: 15),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 25),
+
+              Expanded(
+                child: ListView(
+                  physics: const BouncingScrollPhysics(),
+                  children:  [
+                    ChatList(
+                      image: "pp-1.png",
+                      name: "Emilie",
+                      message: "Halo 👋",
+                      time: "23 min",
+                    ),
+                    ChatList(
+                      image: "pp-1.png",
+                      name: "Rafi",
+                      message: "Itu HP-nya ada minus di bagian mana ya?",
+                      time: "3 min",
+                    ),
+                    ChatList(
+                      image: "pp-2.png",
+                      name: "Tania",
+                      message: "Kalau aku tukar sama headset JBL boleh gak?",
+                      time: "10 min",
+                    ),
+                    ChatList(
+                      image: "pp-3.png",
+                      name: "Johan",
+                      message: "Kardus dan chargernya masih lengkap?",
+                      time: "28 min",
+                    ),
+                    ChatList(
+                      image: "pp-4.png",
+                      name: "Mira",
+                      message: "Kondisi barang masih mulus ya? pengen liat fotonya 📸",
+                      time: "1 hr",
+                    ),
+                    ChatList(
+                      image: "pp-5.png",
+                      name: "Dina",
+                      message: "Tuker sama sepatu Nike size 42 mau gak?",
+                      time: "2 hr",
+                    ),
+                    ChatList(
+                      image: "pp-6.png",
+                      name: "Andra",
+                      message: "Oke, nanti aku kirim lewat kurir aja ya 📦",
+                      time: "Yesterday",
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
-            ChatList(
-              image: "pp-5.png",
-              name: "Dina",
-              message: "Tuker sama sepatu Nike size 42 mau gak?",
-              time: "2 hr",
-            ),
-                const SizedBox(height: 5,),
-          Row(
-            children: [
-              const SizedBox(width: 75,),
-              Container(
-                height: 2,
-                width: 305,
-                color: Color(0xffE8E6EA),
-              ),
-            ],
-          ),
-            ChatList(
-              image: "pp-6.png",
-              name: "Andra",
-              message: "Oke, nanti aku kirim lewat kurir aja ya 📦",
-              time: "Yesterday",
-            ),
-                const SizedBox(height: 5,),
-          Row(
-            children: [
-              const SizedBox(width: 75,),
-              Container(
-                height: 2,
-                width: 305,
-                color: Color(0xffE8E6EA),
-              ),
-            ],
-          ),
+        ),
+      ),
 
-
-
-        ],
-            ),
-          )
-        ],
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {},
+        backgroundColor: primary,
+        child: const Icon(Icons.message_rounded, color: Colors.white),
       ),
     );
   }

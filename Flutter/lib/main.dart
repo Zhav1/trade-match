@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:Flutter/chat_list.dart';
+import 'package:Flutter/chat/chat_list.dart';
 import 'package:Flutter/profile/profile.dart';
 
 void main() {

@@ -54,7 +54,6 @@ class ProfilePage extends StatelessWidget {
 
               const SizedBox(height: 15),
 
-              // 🔹 Nama Pengguna
               const Center(
                 child: Text(
                   "Qhanakin Putri",
@@ -77,13 +76,12 @@ class ProfilePage extends StatelessWidget {
 
               const SizedBox(height: 20),
 
-              // 🔹 Statistik / Aktivitas Singkat
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.grey[100],
+                    color: Color(0xffFFF8ED),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Row(
@@ -99,7 +97,6 @@ class ProfilePage extends StatelessWidget {
 
               const SizedBox(height: 25),
 
-              // 🔹 Daftar Barang (TabBar)
               DefaultTabController(
                 length: 2,
                 child: Column(
@@ -107,7 +104,7 @@ class ProfilePage extends StatelessWidget {
                     const TabBar(
                       labelColor: Colors.black,
                       unselectedLabelColor: Colors.grey,
-                      indicatorColor: Colors.black,
+                      indicatorColor: Color(0xffFD7E14),
                       tabs: [
                         Tab(text: "Ditawarkan"),
                         Tab(text: "Dicari"),
@@ -128,7 +125,6 @@ class ProfilePage extends StatelessWidget {
 
               const SizedBox(height: 20),
 
-              // 🔹 Pengaturan Akun
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Column(
@@ -152,7 +148,6 @@ class ProfilePage extends StatelessWidget {
 
               const SizedBox(height: 30),
 
-              // 🔹 (Opsional) Rating / Reputasi
               Column(
                 children: const [
                   Text(
@@ -187,7 +182,6 @@ class ProfilePage extends StatelessWidget {
   }
 }
 
-// 🔸 Widget Statistik Item
 class _StatItem extends StatelessWidget {
   final String title;
   final String value;
@@ -214,7 +208,6 @@ class _StatItem extends StatelessWidget {
   }
 }
 
-// 🔸 Widget List Barang
 class _ItemList extends StatelessWidget {
   final bool isOffer;
   const _ItemList({required this.isOffer});
@@ -252,7 +245,6 @@ class _ItemList extends StatelessWidget {
   }
 }
 
-// 🔸 Widget Pengaturan
 class _SettingTile extends StatelessWidget {
   final IconData icon;
   final String title;
