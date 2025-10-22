@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:Flutter/chat/widget_Template/chat_list_widget.dart';
+import 'package:Flutter/widget_Template/chat_list_widget.dart';
 
 class ChatListScreen extends StatefulWidget{
   @override
@@ -19,7 +19,6 @@ class _ChatListScreenState extends State<ChatListScreen>{
                 Text(
                     "Messages",
                   style: TextStyle(
-                    fontFamily: "Sk-Modernist",
                     fontSize: 34,
                     fontWeight: FontWeight.w700,
                     color: Colors.black,
@@ -50,7 +49,6 @@ class _ChatListScreenState extends State<ChatListScreen>{
                   ),
                   hintText: "Search",
                   hintStyle: TextStyle(
-                    fontFamily: "Sk-Modernist",
                     fontSize: 14,
                     fontWeight: FontWeight.w400,
                     color: Colors.black,
@@ -68,7 +66,7 @@ class _ChatListScreenState extends State<ChatListScreen>{
                   children: [
                     Row(
                       children: [
-                        SizedBox(width: 49,),
+                        SizedBox(width: 10,),
                         SizedBox(
                           width: 48,
                           height: 48,
@@ -81,7 +79,6 @@ class _ChatListScreenState extends State<ChatListScreen>{
                             Text(
                                 "Emilie",
                               style: TextStyle(
-                                fontFamily: "Sk-Modernist",
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
                                 color: Colors.black,
@@ -90,7 +87,6 @@ class _ChatListScreenState extends State<ChatListScreen>{
                             Text(
                               "Halo",
                               style: TextStyle(
-                                fontFamily: "Sk-Modernist",
                                 fontSize: 14,
                                 fontWeight: FontWeight.w400,
                                 color: Colors.black,
@@ -105,23 +101,26 @@ class _ChatListScreenState extends State<ChatListScreen>{
                         Text(
                             "23 min",
                           style: TextStyle(
-                            fontFamily: "Sk-Modernist",
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
                             color: Color(0xffADAFBB),
                           ),
                         ),
-                        const SizedBox(width: 48,),
+                        const SizedBox(width: 10,),
                       ],
                     ),
                   ],
                 ),
                 const SizedBox(height: 5,),
-                const SizedBox(width: 165,),
-                Container(
-                  height: 2,
-                  width: 285,
-                  color: Color(0xffE8E6EA),
+                Row(
+                  children: [
+                    const SizedBox(width: 75,),
+                    Container(
+                      height: 2,
+                      width: 305,
+                      color: Color(0xffE8E6EA),
+                    ),
+                  ],
                 ),
 
             ChatList(
@@ -131,11 +130,15 @@ class _ChatListScreenState extends State<ChatListScreen>{
             time: "3 min",
             ),
                 const SizedBox(height: 5,),
-                const SizedBox(width: 165,),
-                Container(
-                  height: 2,
-                  width: 285,
-                  color: Color(0xffE8E6EA),
+                Row(
+                  children: [
+                    const SizedBox(width: 75,),
+                    Container(
+                      height: 2,
+                      width: 305,
+                      color: Color(0xffE8E6EA),
+                    ),
+                  ],
                 ),
             ChatList(
               image: "pp-2.png",
@@ -144,11 +147,15 @@ class _ChatListScreenState extends State<ChatListScreen>{
               time: "10 min",
             ),
                 const SizedBox(height: 5,),
-                const SizedBox(width: 165,),
-                Container(
-                  height: 2,
-                  width: 285,
-                  color: Color(0xffE8E6EA),
+                Row(
+                  children: [
+                    const SizedBox(width: 75,),
+                    Container(
+                      height: 2,
+                      width: 305,
+                      color: Color(0xffE8E6EA),
+                    ),
+                  ],
                 ),
             ChatList(
               image: "pp-3.png",
@@ -157,12 +164,16 @@ class _ChatListScreenState extends State<ChatListScreen>{
               time: "28 min",
             ),
                 const SizedBox(height: 5,),
-                const SizedBox(width: 165,),
+            Row(
+              children: [
+                const SizedBox(width: 75,),
                 Container(
                   height: 2,
-                  width: 285,
+                  width: 305,
                   color: Color(0xffE8E6EA),
                 ),
+              ],
+            ),
             ChatList(
               image: "pp-4.png",
               name: "Mira",
@@ -170,12 +181,16 @@ class _ChatListScreenState extends State<ChatListScreen>{
               time: "1 hr",
             ),
                 const SizedBox(height: 5,),
-                const SizedBox(width: 165,),
-                Container(
-                  height: 2,
-                  width: 285,
-                  color: Color(0xffE8E6EA),
-                ),
+          Row(
+            children: [
+              const SizedBox(width: 75,),
+              Container(
+                height: 2,
+                width: 305,
+                color: Color(0xffE8E6EA),
+              ),
+            ],
+          ),
             ChatList(
               image: "pp-5.png",
               name: "Dina",
@@ -183,12 +198,16 @@ class _ChatListScreenState extends State<ChatListScreen>{
               time: "2 hr",
             ),
                 const SizedBox(height: 5,),
-                const SizedBox(width: 165,),
-                Container(
-                  height: 2,
-                  width: 285,
-                  color: Color(0xffE8E6EA),
-                ),
+          Row(
+            children: [
+              const SizedBox(width: 75,),
+              Container(
+                height: 2,
+                width: 305,
+                color: Color(0xffE8E6EA),
+              ),
+            ],
+          ),
             ChatList(
               image: "pp-6.png",
               name: "Andra",
@@ -196,12 +215,16 @@ class _ChatListScreenState extends State<ChatListScreen>{
               time: "Yesterday",
             ),
                 const SizedBox(height: 5,),
-                const SizedBox(width: 165,),
-                Container(
-                  height: 2,
-                  width: 285,
-                  color: Color(0xffE8E6EA),
-                ),
+          Row(
+            children: [
+              const SizedBox(width: 75,),
+              Container(
+                height: 2,
+                width: 305,
+                color: Color(0xffE8E6EA),
+              ),
+            ],
+          ),
 
 
 
