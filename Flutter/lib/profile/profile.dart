@@ -1,208 +1,152 @@
 import 'package:flutter/material.dart';
+import 'settings_page.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        child: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 🔹 Header + Gambar Profil
-              Stack(
-                children: [
-                  SizedBox(
-                    height: 200,
-                    width: double.infinity,
-                    child: Image.asset(
-                      "assets/images/profile.jpg",
+    const Color primary = Color(0xFFFD7E14);
+
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: NestedScrollView(
+          physics: const BouncingScrollPhysics(),
+          headerSliverBuilder: (context, innerBoxIsScrolled) => [
+            SliverAppBar(
+              pinned: true,
+              elevation: 0,
+              backgroundColor: Colors.white,
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black87),
+                onPressed: () => Navigator.of(context).maybePop(),
+              ),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.settings, color: Colors.black87),
+                  onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsPage())),
+                ),
+              ],
+              expandedHeight: 300,
+              flexibleSpace: FlexibleSpaceBar(
+                background: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Image.asset(
+                      'assets/images/profile.jpg',
                       fit: BoxFit.cover,
+                      color: Colors.black.withOpacity(0.12),
+                      colorBlendMode: BlendMode.darken,
                     ),
-                  ),
-                  Positioned(
-                    top: 16,
-                    left: 16,
-                    child: IconButton(
-                      icon: const Icon(
-                        Icons.arrow_back_ios_new,
-                        color: Colors.white,
-                        size: 28,
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Colors.transparent, Colors.white.withOpacity(0.95)],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                        ),
                       ),
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
                     ),
-                  ),
-                  Positioned(
-                    top: 16,
-                    right: 16,
-                    child: IconButton(
-                      icon: const Icon(
-                        Icons.edit,
-                        color: Colors.white,
-                        size: 28,
-                      ),
-                      onPressed: () {},
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 15),
-
-              const Center(
-                child: Text(
-                  "Qhanakin Putri",
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 8),
-
-              const Center(
-                child: Text(
-                  "Medan, Indonesia",
-                  style: TextStyle(color: Colors.grey),
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Color(0xffFFF8ED),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: const [
-                      _StatItem(title: "Offers", value: "8"),
-                      _StatItem(title: "Requests", value: "3"),
-                      _StatItem(title: "Trades", value: "5"),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 25),
-
-              DefaultTabController(
-                length: 2,
-                child: Column(
-                  children: [
-                    const TabBar(
-                      labelColor: Colors.black,
-                      unselectedLabelColor: Colors.grey,
-                      indicatorColor: Color(0xffFD7E14),
-                      tabs: [
-                        Tab(text: "Ditawarkan"),
-                        Tab(text: "Dicari"),
-                      ],
-                    ),
-                    SizedBox(
-                      height: 250,
-                      child: TabBarView(
-                        children: [
-                          _ItemList(isOffer: true),
-                          _ItemList(isOffer: false),
-                        ],
+                    Align(
+                      alignment: Alignment.bottomCenter,
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 20.0),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white,
+                            boxShadow: [
+                              BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 4)),
+                            ],
+                          ),
+                          child: const CircleAvatar(
+                            radius: 56,
+                            backgroundImage: AssetImage('assets/images/pp-1.png'),
+                          ),
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
-
-              const SizedBox(height: 20),
-
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+              bottom: PreferredSize(
+                preferredSize: const Size.fromHeight(72),
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: TabBar(
+                    labelColor: Colors.black87,
+                    unselectedLabelColor: Colors.grey,
+                    indicatorColor: primary,
+                    tabs: const [Tab(text: 'Ditawarkan'), Tab(text: 'Dicari')],
+                  ),
+                ),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      "Pengaturan Akun",
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    _SettingTile(icon: Icons.person, title: "Ubah Foto / Bio"),
-                    _SettingTile(icon: Icons.lock, title: "Ganti Password"),
-                    _SettingTile(icon: Icons.notifications, title: "Notifikasi Barter"),
-                    _SettingTile(icon: Icons.logout, title: "Logout", isDanger: true),
+                  children: const [
+                    SizedBox(height: 8),
+                    _ProfileInfo(),
                   ],
                 ),
               ),
-
-              const SizedBox(height: 30),
-
-              Column(
-                children: const [
-                  Text(
-                    "Rating Pengguna",
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                  ),
-                  SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.star, color: Colors.amber),
-                      Icon(Icons.star, color: Colors.amber),
-                      Icon(Icons.star, color: Colors.amber),
-                      Icon(Icons.star_half, color: Colors.amber),
-                      Icon(Icons.star_border, color: Colors.amber),
-                    ],
-                  ),
-                  SizedBox(height: 6),
-                  Text(
-                    "Trader Aktif ⭐️ | Respons Cepat ⚡️",
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 40),
-            ],
-          ),
+            ),
+          ],
+          body: const TabBarView(children: [_ItemList(isOffer: true), _ItemList(isOffer: false)]),
+        ),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () {},
+          icon: const Icon(Icons.edit),
+          label: const Text('Edit Profile'),
+          backgroundColor: primary,
         ),
       ),
     );
   }
 }
 
-class _StatItem extends StatelessWidget {
-  final String title;
-  final String value;
-  const _StatItem({required this.title, required this.value});
+class _ProfileInfo extends StatelessWidget {
+  const _ProfileInfo();
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-          ),
+        const Text('Qhanakin Putri', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 6),
+        Text('Medan, Indonesia', style: TextStyle(color: Colors.grey[700])),
+        const SizedBox(height: 16),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: const [
+            _StatItem(value: '8', title: 'Offers'),
+            _StatItem(value: '3', title: 'Requests'),
+            _StatItem(value: '5', title: 'Trades'),
+          ],
         ),
+        const SizedBox(height: 12),
+      ],
+    );
+  }
+}
+
+class _StatItem extends StatelessWidget {
+  final String value;
+  final String title;
+  const _StatItem({required this.value, required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         const SizedBox(height: 4),
-        Text(
-          title,
-          style: const TextStyle(color: Colors.grey),
-        ),
+        Text(title, style: TextStyle(color: Colors.grey[700], fontSize: 13)),
       ],
     );
   }
@@ -216,59 +160,32 @@ class _ItemList extends StatelessWidget {
   Widget build(BuildContext context) {
     final items = isOffer
         ? [
-      {"name": "Laptop Asus", "status": "🟢 Aktif"},
-      {"name": "Sepeda Fixie", "status": "🟡 Dalam Proses"},
-      {"name": "Kamera Canon", "status": "🔴 Selesai"},
-    ]
+            {"name": "Laptop Asus", "status": "Aktif", "color": Colors.green},
+            {"name": "Sepeda Fixie", "status": "Dalam Proses", "color": Colors.orange},
+            {"name": "Kamera Canon", "status": "Selesai", "color": Colors.red},
+          ]
         : [
-      {"name": "iPhone Bekas", "status": "🟢 Aktif"},
-      {"name": "Kursi Gaming", "status": "🟢 Aktif"},
-      {"name": "Monitor 24 inch", "status": "🟡 Dalam Proses"},
-    ];
+            {"name": "iPhone Bekas", "status": "Aktif", "color": Colors.green},
+            {"name": "Kursi Gaming", "status": "Aktif", "color": Colors.green},
+          ];
 
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+    return ListView.separated(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
       itemCount: items.length,
+      separatorBuilder: (context, index) => Divider(color: Colors.grey[200]),
       itemBuilder: (context, index) {
         final item = items[index];
-        return Card(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          elevation: 1,
-          child: ListTile(
-            leading: const Icon(Icons.inventory_2_outlined, color: Colors.black),
-            title: Text(item["name"]!),
-            subtitle: Text(item["status"]!),
-          ),
+        return ListTile(
+          leading: CircleAvatar(backgroundColor: Colors.grey[200], child: const Icon(Icons.inventory_2_outlined, color: Colors.black54)),
+          title: Text(item['name'] as String, style: const TextStyle(fontWeight: FontWeight.w600)),
+          subtitle: Text(item['status'] as String, style: TextStyle(color: Colors.grey[700])),
+          trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+          onTap: () {},
         );
       },
     );
   }
 }
 
-class _SettingTile extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final bool isDanger;
-
-  const _SettingTile({
-    required this.icon,
-    required this.title,
-    this.isDanger = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      leading: Icon(icon, color: isDanger ? Colors.red : Colors.black),
-      title: Text(
-        title,
-        style: TextStyle(
-          color: isDanger ? Colors.red : Colors.black,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-      onTap: () {},
-    );
-  }
-}
+// Note: no unused helper delegates remain. If you later need a sticky TabBar, re-add
+// a SliverPersistentHeaderDelegate here.

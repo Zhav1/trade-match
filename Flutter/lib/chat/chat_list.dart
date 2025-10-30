@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:Flutter/widget_Template/chat_list_widget.dart';
+import 'package:Flutter/chat/chat_detail.dart';
 
 class ChatListScreen extends StatefulWidget {
   const ChatListScreen({super.key});
@@ -87,49 +87,14 @@ class _ChatListScreenState extends State<ChatListScreen> {
               Expanded(
                 child: ListView(
                   physics: const BouncingScrollPhysics(),
-                  children:  [
-                    ChatList(
-                      image: "pp-1.png",
-                      name: "Emilie",
-                      message: "Halo 👋",
-                      time: "23 min",
-                    ),
-                    ChatList(
-                      image: "pp-1.png",
-                      name: "Rafi",
-                      message: "Itu HP-nya ada minus di bagian mana ya?",
-                      time: "3 min",
-                    ),
-                    ChatList(
-                      image: "pp-2.png",
-                      name: "Tania",
-                      message: "Kalau aku tukar sama headset JBL boleh gak?",
-                      time: "10 min",
-                    ),
-                    ChatList(
-                      image: "pp-3.png",
-                      name: "Johan",
-                      message: "Kardus dan chargernya masih lengkap?",
-                      time: "28 min",
-                    ),
-                    ChatList(
-                      image: "pp-4.png",
-                      name: "Mira",
-                      message: "Kondisi barang masih mulus ya? pengen liat fotonya 📸",
-                      time: "1 hr",
-                    ),
-                    ChatList(
-                      image: "pp-5.png",
-                      name: "Dina",
-                      message: "Tuker sama sepatu Nike size 42 mau gak?",
-                      time: "2 hr",
-                    ),
-                    ChatList(
-                      image: "pp-6.png",
-                      name: "Andra",
-                      message: "Oke, nanti aku kirim lewat kurir aja ya 📦",
-                      time: "Yesterday",
-                    ),
+                  children: [
+                    _conversationTile(context, 'Emilie', 'pp-1.png', 'Halo 👋', '23 min'),
+                    _conversationTile(context, 'Rafi', 'pp-1.png', 'Itu HP-nya ada minus di bagian mana ya?', '3 min'),
+                    _conversationTile(context, 'Tania', 'pp-2.png', 'Kalau aku tukar sama headset JBL boleh gak?', '10 min'),
+                    _conversationTile(context, 'Johan', 'pp-3.png', 'Kardus dan chargernya masih lengkap?', '28 min'),
+                    _conversationTile(context, 'Mira', 'pp-4.png', 'Kondisi barang masih mulus ya? pengen liat fotonya 📸', '1 hr'),
+                    _conversationTile(context, 'Dina', 'pp-5.png', 'Tuker sama sepatu Nike size 42 mau gak?', '2 hr'),
+                    _conversationTile(context, 'Andra', 'pp-6.png', 'Oke, nanti aku kirim lewat kurir aja ya �', 'Yesterday'),
                   ],
                 ),
               ),
@@ -143,6 +108,30 @@ class _ChatListScreenState extends State<ChatListScreen> {
         backgroundColor: primary,
         child: const Icon(Icons.message_rounded, color: Colors.white),
       ),
+    );
+  }
+
+  Widget _conversationTile(BuildContext context, String name, String image, String preview, String time) {
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(vertical: 8.0),
+      leading: CircleAvatar(radius: 26, backgroundImage: AssetImage('assets/images/$image')),
+      title: Text(name, style: const TextStyle(fontWeight: FontWeight.w700)),
+      subtitle: Text(preview, maxLines: 1, overflow: TextOverflow.ellipsis),
+      trailing: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(time, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+          const SizedBox(height: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(color: const Color(0xFFFD7E14), borderRadius: BorderRadius.circular(12)),
+            child: const Text('1', style: TextStyle(color: Colors.white, fontSize: 12)),
+          ),
+        ],
+      ),
+      onTap: () {
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => ChatDetailPage(name: name, image: image)));
+      },
     );
   }
 }

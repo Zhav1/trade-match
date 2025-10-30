@@ -9,8 +9,11 @@ class ExploreScreen extends StatefulWidget {
   _ExploreScreenState createState() => _ExploreScreenState();
 }
 
-class _ExploreScreenState extends State<ExploreScreen> {
+class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProviderStateMixin {
   final AppinioSwiperController _swiperController = AppinioSwiperController();
+  late final AnimationController _likeController;
+  late final Animation<double> _likeScale;
+  bool _showLike = false;
 
   final List<BarterItem> items = [
     BarterItem(
@@ -38,227 +41,199 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final Color primary = const Color(0xFFFD7E14);
+
+    // Build a Stack so we can overlay the heart animation when liking
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        toolbarHeight: 80,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new, color: Colors.grey[700]),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      backgroundColor: Colors.grey[50],
+      body: SafeArea(
+        child: Stack(
           children: [
-            const Text(
-              "Discover",
-              style: TextStyle(
-                color: Colors.black,
-                fontWeight: FontWeight.bold,
-                fontSize: 26,
-              ),
-            ),
-            Text(
-              "Chicago, IL",
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 14,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.filter_list_rounded,
-                color: Colors.orange, size: 30),
-            onPressed: () {},
-          ),
-          const SizedBox(width: 10),
-        ],
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            // 🔒 Aman dari divide-by-zero
-            child: items.isEmpty
-                ? const Center(
-              child: Text(
-                "Tidak ada barang untuk ditampilkan 😅",
-                style: TextStyle(color: Colors.grey, fontSize: 16),
-              ),
-            )
-                : AppinioSwiper(
-              controller: _swiperController,
-              cardCount: items.length,
-              loop: true,
-              cardBuilder: (BuildContext context, int index) {
-                return _buildBarterCard(items[index]);
-              },
-              onSwipeEnd: (previousIndex, targetIndex, activity) {
-                debugPrint(
-                    "Swiped from $previousIndex to $targetIndex (${activity.runtimeType})");
-              },
-              onEnd: () {
-                debugPrint("Semua kartu telah di-swipe!");
-              },
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 20.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            Column(
               children: [
-                _buildActionButton(
-                  onPressed: () => _swiperController.swipeLeft(),
-                  icon: Icons.close,
-                  color: Colors.red[400]!,
-                  size: 30,
+                // Header: avatar, title, filter/search
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
+                  child: Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () {},
+                        child: const CircleAvatar(radius: 22, backgroundImage: AssetImage('assets/images/profile.jpg')),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: const [
+                            Text('Discover', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                            SizedBox(height: 2),
+                            Text('Nearby • Jakarta', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                          ],
+                        ),
+                      ),
+                      IconButton(onPressed: () {}, icon: const Icon(Icons.notifications_outlined, color: Colors.grey)),
+                      const SizedBox(width: 6),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: primary,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        ),
+                        onPressed: () {},
+                        child: const Icon(Icons.filter_list, color: Colors.white),
+                      ),
+                    ],
+                  ),
                 ),
-                _buildActionButton(
-                  onPressed: () => _swiperController.unswipe(),
-                  icon: Icons.favorite,
-                  color: Colors.orange,
-                  size: 40,
-                  isPrimary: true,
+
+                // Card stack / swiper
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: items.isEmpty
+                        ? const Center(child: Text('Tidak ada barang untuk ditampilkan 😅', style: TextStyle(color: Colors.grey)))
+                        : AppinioSwiper(controller: _swiperController, cardCount: items.length, loop: true, cardBuilder: (context, index) => _buildCard(items[index])),
+                  ),
                 ),
-                _buildActionButton(
-                  onPressed: () => _swiperController.swipeUp(),
-                  icon: Icons.star,
-                  color: Colors.purple[400]!,
-                  size: 30,
+
+                // Action Row
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 18.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _smallAction(icon: Icons.close, color: Colors.red[400]!, onTap: () => _swiperController.swipeLeft()),
+                      _bigAction(icon: Icons.favorite, color: primary, onTap: () {
+                        setState(() => _showLike = true);
+                        _likeController.forward(from: 0);
+                        _swiperController.unswipe();
+                      }),
+                      _smallAction(icon: Icons.star, color: Colors.purple[300]!, onTap: () => _swiperController.swipeUp()),
+                    ],
+                  ),
                 ),
               ],
             ),
-          ),
-        ],
+
+            // Heart/like animation overlay
+            if (_showLike)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: Center(
+                    child: AnimatedBuilder(
+                      animation: _likeController,
+                      builder: (context, child) {
+                        final scale = _likeScale.value;
+                        final opacity = (_likeController.value > 0.1) ? (1.0 - _likeController.value * 0.8) : 1.0;
+                        return Opacity(
+                          opacity: opacity,
+                          child: Transform.scale(scale: scale, child: child),
+                        );
+                      },
+                      child: Icon(Icons.favorite, color: primary, size: 120),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildBarterCard(BarterItem item) {
+  @override
+  void initState() {
+    super.initState();
+    _likeController = AnimationController(vsync: this, duration: const Duration(milliseconds: 700))
+      ..addStatusListener((status) {
+        if (status == AnimationStatus.completed) {
+          // hide after a short delay
+          Future.delayed(const Duration(milliseconds: 300), () {
+            if (mounted) setState(() => _showLike = false);
+          });
+        }
+      });
+    _likeScale = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 0.4, end: 1.3).chain(CurveTween(curve: Curves.easeOutBack)), weight: 70),
+      TweenSequenceItem(tween: Tween(begin: 1.3, end: 1.0).chain(CurveTween(curve: Curves.easeIn)), weight: 30),
+    ]).animate(_likeController);
+  }
+
+  @override
+  void dispose() {
+    _likeController.dispose();
+    super.dispose();
+  }
+
+  Widget _buildCard(BarterItem item) {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            spreadRadius: 2,
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 12, offset: const Offset(0, 8))],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20),
         child: Stack(
+          fit: StackFit.expand,
           children: [
-            Positioned.fill(
-              child: Image.asset(
-                item.imageUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return const Center(
-                      child: Icon(Icons.broken_image, color: Colors.grey));
-                },
-              ),
-            ),
+            Image.asset(item.imageUrl, fit: BoxFit.cover, errorBuilder: (c, e, s) => const Center(child: Icon(Icons.broken_image))),
             Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: Container(
-                height: 150,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.transparent,
-                      Colors.black.withOpacity(0.8),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              bottom: 25,
-              left: 20,
-              right: 20,
+              left: 16,
+              right: 16,
+              bottom: 24,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    "${item.namaBarang} (${item.kondisi})",
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(color: Colors.black.withOpacity(0.45), borderRadius: BorderRadius.circular(12)),
+                    child: Text('${item.namaBarang} • ${item.kondisi}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
                   ),
-                  const SizedBox(height: 5),
-                  Text(
-                    "Ditawarkan oleh ${item.namaUser}",
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 16,
-                    ),
-                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      CircleAvatar(radius: 14, backgroundImage: AssetImage('assets/images/pp-1.png')),
+                      const SizedBox(width: 8),
+                      Text('Ditawarkan oleh ${item.namaUser}', style: const TextStyle(color: Colors.white70)),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                        decoration: BoxDecoration(color: Colors.black.withOpacity(0.45), borderRadius: BorderRadius.circular(10)),
+                        child: Row(children: [const Icon(Icons.location_on, size: 14, color: Colors.white), const SizedBox(width: 4), Text(item.jarak, style: const TextStyle(color: Colors.white))]),
+                      )
+                    ],
+                  )
                 ],
               ),
-            ),
-            Positioned(
-              top: 15,
-              left: 15,
-              child: Container(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.5),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.location_on,
-                        color: Colors.white, size: 16),
-                    const SizedBox(width: 4),
-                    Text(item.jarak,
-                        style: const TextStyle(color: Colors.white)),
-                  ],
-                ),
-              ),
-            ),
+            )
           ],
         ),
       ),
     );
   }
 
-  Widget _buildActionButton({
-    required VoidCallback onPressed,
-    required IconData icon,
-    required Color color,
-    double size = 30,
-    bool isPrimary = false,
-  }) {
-    if (isPrimary) {
-      return FloatingActionButton(
-        heroTag: UniqueKey(),
-        onPressed: onPressed,
-        backgroundColor: color,
-        child: Icon(icon, color: Colors.white, size: 36),
-      );
-    }
-    return FloatingActionButton(
-      heroTag: UniqueKey(),
-      onPressed: onPressed,
-      backgroundColor: Colors.white,
-      elevation: 5,
-      child: Icon(icon, color: color, size: size),
+  Widget _smallAction({required IconData icon, required Color color, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 64,
+        height: 64,
+        decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 8)]),
+        child: Icon(icon, color: color, size: 30),
+      ),
+    );
+  }
+
+  Widget _bigAction({required IconData icon, required Color color, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 84,
+        height: 84,
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle, boxShadow: [BoxShadow(color: color.withOpacity(0.3), blurRadius: 12)]),
+        child: Icon(icon, color: Colors.white, size: 38),
+      ),
     );
   }
 }
