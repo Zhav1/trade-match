@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:Flutter/chat/chat_detail.dart';
+import 'package:Flutter/models/barter_item.dart';
 
 class MatchesPage extends StatefulWidget {
   const MatchesPage({super.key});
@@ -94,7 +96,9 @@ class _MatchesPageState extends State<MatchesPage> with SingleTickerProviderStat
       elevation: 2,
       child: InkWell(
         onTap: () {
-          // TODO: Navigate to chat or item detail
+          // Open item detail for this match (demo item created locally)
+          final demoItem = BarterItem(namaBarang: item, kondisi: 'Baik', namaUser: name, imageUrl: 'https://picsum.photos/500/300', jarak: '3 km');
+          Navigator.pushNamed(context, '/item_detail', arguments: demoItem);
         },
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -149,13 +153,14 @@ class _MatchesPageState extends State<MatchesPage> with SingleTickerProviderStat
                   icon: const Icon(Icons.chat_bubble_outline),
                   color: Theme.of(context).colorScheme.primary,
                   onPressed: () {
-                    // TODO: Navigate to chat
+                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => ChatDetailPage(name: name, image: 'pp-1.png')));
                   },
                 )
               else
                 TextButton(
                   onPressed: () {
-                    // TODO: Handle like action
+                    final demoItem = BarterItem(namaBarang: item, kondisi: 'Baik', namaUser: name, imageUrl: 'https://picsum.photos/500/300', jarak: '5 km');
+                    Navigator.pushNamed(context, '/item_detail', arguments: demoItem);
                   },
                   style: TextButton.styleFrom(
                     foregroundColor: Theme.of(context).colorScheme.primary,

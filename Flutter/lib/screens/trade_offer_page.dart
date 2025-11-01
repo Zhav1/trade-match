@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:Flutter/models/barter_item.dart';
 
 class TradeOfferPage extends StatefulWidget {
-  const TradeOfferPage({super.key});
+  final BarterItem? theirItem;
+  const TradeOfferPage({super.key, this.theirItem});
 
   @override
   State<TradeOfferPage> createState() => _TradeOfferPageState();
@@ -45,8 +47,8 @@ class _TradeOfferPageState extends State<TradeOfferPage> {
                   height: 60,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(8),
-                    image: const DecorationImage(
-                      image: NetworkImage('https://picsum.photos/60/60'),
+                    image: DecorationImage(
+                      image: NetworkImage(widget.theirItem?.imageUrl ?? 'https://picsum.photos/60/60'),
                       fit: BoxFit.cover,
                     ),
                   ),
@@ -63,15 +65,15 @@ class _TradeOfferPageState extends State<TradeOfferPage> {
                           fontSize: 12,
                         ),
                       ),
-                      const Text(
-                        'Vintage Camera',
-                        style: TextStyle(
+                      Text(
+                        widget.theirItem?.namaBarang ?? 'Item',
+                        style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
                         ),
                       ),
                       Text(
-                        'Est. Value: IDR 2,000,000',
+                        'Est. Value: --',
                         style: TextStyle(
                           color: Colors.grey[600],
                           fontSize: 12,
@@ -238,22 +240,155 @@ class _TradeOfferPageState extends State<TradeOfferPage> {
   }
 
   void _addItems() {
-    // TODO: Implement item selection
-    setState(() {
-      _selectedItems.add('Item ${_selectedItems.length + 1}');
-    });
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        maxChildSize: 0.9,
+        minChildSize: 0.5,
+        builder: (_, controller) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              Container(
+                margin: const EdgeInsets.symmetric(vertical: 8),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.all(16),
+                child: Text(
+                  'Select Items to Offer',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: ListView.builder(
+                  controller: controller,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: 10, // Replace with your actual items
+                  itemBuilder: (context, index) {
+                    final itemName = 'Your Item ${index + 1}';
+                    final isSelected = _selectedItems.contains(itemName);
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      child: ListTile(
+                        leading: Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                            image: DecorationImage(
+                              image: NetworkImage(
+                                'https://picsum.photos/48/48?random=$index',
+                              ),
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                        title: Text(itemName),
+                        subtitle: Text(
+                          'Est. Value: IDR ${(index + 1) * 500000}',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 12,
+                          ),
+                        ),
+                        trailing: Checkbox(
+                          value: isSelected,
+                          onChanged: (value) {
+                            setState(() {
+                              if (value == true) {
+                                _selectedItems.add(itemName);
+                              } else {
+                                _selectedItems.remove(itemName);
+                              }
+                            });
+                            // Refresh the modal state
+                            Navigator.pop(context);
+                            _addItems();
+                          },
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _removeItem(int index) {
     setState(() {
       _selectedItems.removeAt(index);
     });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Item removed from offer'),
+        duration: Duration(seconds: 2),
+      ),
+    );
   }
 
   void _sendTradeOffer() {
-    // TODO: Implement trade offer submission
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Sending trade offer...')),
+    if (_selectedItems.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select at least one item to trade'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return const Center(
+          child: CircularProgressIndicator(),
+        );
+      },
     );
+
+    // Simulate API call
+    Future.delayed(const Duration(seconds: 2), () {
+      Navigator.pop(context); // Dismiss loading dialog
+      
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Trade Offer Sent!'),
+            content: const Text('Your trade offer has been sent. You will be notified when the other user responds.'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context); // Dismiss dialog
+                  Navigator.pop(context); // Go back to previous screen
+                },
+                child: const Text('OK'),
+              ),
+            ],
+          );
+        },
+      );
+    });
   }
 }

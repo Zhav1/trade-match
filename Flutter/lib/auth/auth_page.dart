@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:Flutter/auth/forgot_password.dart';
 
 class AuthPage extends StatefulWidget {
-  const AuthPage({super.key});
+  final int initialTabIndex;
+  const AuthPage({super.key, this.initialTabIndex = 0});
 
   @override
   State<AuthPage> createState() => _AuthPageState();
@@ -21,7 +23,7 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 2, vsync: this, initialIndex: widget.initialTabIndex);
   }
 
   @override
@@ -271,22 +273,26 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
 
   void _handleSignIn() {
     if (_formKey.currentState!.validate()) {
-      // TODO: Implement sign in logic
+      // Simulate sign in
       setState(() => _isLoading = true);
-      // Simulate API call
       Future.delayed(const Duration(seconds: 2), () {
+        if (!mounted) return;
         setState(() => _isLoading = false);
+        // Navigate to main app
+        Navigator.pushReplacementNamed(context, '/main');
       });
     }
   }
 
   void _handleRegister() {
     if (_formKey.currentState!.validate()) {
-      // TODO: Implement registration logic
+      // Simulate registration
       setState(() => _isLoading = true);
-      // Simulate API call
       Future.delayed(const Duration(seconds: 2), () {
+        if (!mounted) return;
         setState(() => _isLoading = false);
+        // After registration, go to profile setup or main; for prototype go to main
+        Navigator.pushReplacementNamed(context, '/main');
       });
     }
   }

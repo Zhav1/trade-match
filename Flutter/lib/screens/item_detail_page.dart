@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:Flutter/profile/profile.dart';
+import 'package:Flutter/models/barter_item.dart';
 
 class ItemDetailPage extends StatelessWidget {
   const ItemDetailPage({super.key});
@@ -68,7 +70,7 @@ class ItemDetailPage extends StatelessWidget {
                   // Owner info
                   InkWell(
                     onTap: () {
-                      // TODO: Navigate to user profile
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfilePage()));
                     },
                     child: Row(
                       children: [
@@ -224,7 +226,7 @@ class ItemDetailPage extends StatelessWidget {
             Expanded(
                 child: OutlinedButton.icon(
                 onPressed: () {
-                  // TODO: Add to favorites
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Saved to favorites (demo)')));
                 },
                 icon: const Icon(Icons.favorite_border),
                 label: const Text('Save'),
@@ -239,7 +241,20 @@ class ItemDetailPage extends StatelessWidget {
             Expanded(
                 child: ElevatedButton.icon(
                 onPressed: () {
-                  // TODO: Navigate to trade offer page
+                  final item = BarterItem(
+    namaBarang: 'Vintage Camera',
+    kondisi: 'Baik',
+    namaUser: 'John Doe',
+    imageUrl: 'https://picsum.photos/500/300',
+    jarak: '2 km',
+    description: 'Vintage camera in excellent condition. Perfect for collectors or photography enthusiasts. Comes with original leather case and manual.',
+    estimatedValue: 'IDR 2,000,000',
+    lookingFor: ['DSLR Camera', 'Vintage Lenses', 'Camera Equipment'],
+    location: 'Jakarta, Indonesia',
+    memberSince: '2023',
+    rating: 4.8,
+  );
+                  Navigator.pushNamed(context, '/trade_offer', arguments: item);
                 },
                 icon: const Icon(Icons.swap_horiz),
                 label: const Text('Offer Trade'),

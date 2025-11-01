@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:Flutter/theme.dart';
 import 'package:Flutter/auth/auth_page.dart';
+import 'package:Flutter/auth/welcome_page.dart';
+import 'package:Flutter/auth/forgot_password.dart';
 import 'package:Flutter/chat/chat_list.dart';
 import 'package:Flutter/profile/profile.dart';
 import 'package:Flutter/profile/settings_page.dart';
@@ -14,7 +16,7 @@ import 'package:Flutter/screens/reviews_page.dart';
 import 'package:Flutter/screens/search_filter_page.dart';
 import 'package:Flutter/screens/trade_history_page.dart';
 import 'package:Flutter/screens/trade_offer_page.dart';
-import 'package:Flutter/services/mock_data_service.dart';
+import 'package:Flutter/models/barter_item.dart';
 
 void main() {
   runApp(const MyApp());
@@ -27,24 +29,34 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'TradeMatch',
-      // Use centralized app theme (colors + font)
       theme: AppTheme.lightTheme(),
-      // ensure routes kept below
-      // Added route for settings page
+      // Routes. Some routes read ModalRoute.arguments to receive objects.
       routes: {
         '/settings': (context) => const SettingsPage(),
         '/add_item': (context) => const AddItemPage(),
-        '/item_detail': (context) => const ItemDetailPage(),
         '/matches': (context) => const MatchesPage(),
         '/notifications': (context) => const NotificationsPage(),
         '/reviews': (context) => const ReviewsPage(),
         '/search': (context) => const SearchFilterPage(),
         '/trade_history': (context) => const TradeHistoryPage(),
-        '/trade_offer': (context) => const TradeOfferPage(),
         '/auth': (context) => const AuthPage(),
+        '/main': (context) => const MainPage(),
+      },
+      // Named routes that need arguments are provided here using closures.
+      onGenerateRoute: (settings) {
+        if (settings.name == '/item_detail') {
+          final item = settings.arguments as BarterItem?;
+          return MaterialPageRoute(builder: (_) => ItemDetailPage(item: item));
+        }
+        if (settings.name == '/trade_offer') {
+          final item = settings.arguments as BarterItem?;
+          return MaterialPageRoute(builder: (_) => TradeOfferPage(theirItem: item));
+        }
+        return null;
       },
       debugShowCheckedModeBanner: false,
-      home: MainPage(),
+      // Start with the welcome screen so users see onboarding first
+      home: const WelcomePage(),
     );
   }
 }
@@ -119,11 +131,10 @@ class _MainPageState extends State<MainPage> {
   }
 
   final List<Widget> _pages = [
-
-    ExploreScreen(),
-    ChatListScreen(),
-    LibraryScreen(),
-    ProfilePage(),
+    const ExploreScreen(),
+    const ChatListScreen(),
+    const LibraryScreen(),
+    const ProfilePage(),
   ];
 
   void _onItemTapped(int index) {
@@ -144,7 +155,7 @@ class _MainPageState extends State<MainPage> {
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         backgroundColor: Colors.white,
-  selectedItemColor: Theme.of(context).colorScheme.primary,
+        selectedItemColor: Theme.of(context).colorScheme.primary,
         unselectedItemColor: Colors.grey,
         showUnselectedLabels: true,
         currentIndex: _selectedIndex,
