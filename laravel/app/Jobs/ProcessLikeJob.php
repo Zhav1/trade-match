@@ -6,6 +6,7 @@ use App\Models\Item;
 use App\Models\User;
 use App\Models\Like;
 use App\Models\BarterMatch;
+use App\Jobs\SendMatchNotificationJob;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -33,25 +34,49 @@ class ProcessLikeJob implements ShouldQueue
 	 */
 	public function handle(): void
 	{
-		// Basic matching logic placeholder:
-		// Look for reciprocal like where owner of $this->item liked one of $this->user's items
-		$owner = $this->item->user;
+		// Get the owner of the liked item
+		$itemOwner = $this->item->user;
 
-		// Find likes where owner liked any item belonging to the liker
-		$mutual = Like::where('user_id', $owner->id)
-			->whereIn('item_id', function ($query) {
-				$query->select('id')->from('items')->where('user_id', $this->user->id);
-			})
+		if (! $itemOwner) {
+			return;
+		}
+
+		// Get active item ids belonging to the user who performed the like
+		$userItemIds = Item::where('user_id', $this->user->id)
+			->where('status', 'active')
+			->pluck('id');
+
+		if ($userItemIds->isEmpty()) {
+			return;
+		}
+
+		// Check if the owner of the liked item has liked any of the user's active items
+		$mutualLike = Like::where('user_id', $itemOwner->id)
+			->whereIn('item_id', $userItemIds)
 			->first();
 
-		if ($mutual) {
-			// Create match record. For safety, ensure no duplicate match exists.
-			BarterMatch::firstOrCreate([
-				'user_a_id' => $this->user->id,
-				'user_b_id' => $owner->id,
-				'item_a_id' => $this->item->id,
-				'item_b_id' => $mutual->item_id,
-			], ['status' => 'active']);
+		if (! $mutualLike) {
+			// No reciprocal like found
+			return;
 		}
+
+		// The specific item of the user that was liked by the item owner
+		$userItem = $mutualLike->item;
+
+		if (! $userItem) {
+			return;
+		}
+
+		// Create the match (avoid duplicates)
+		$match = BarterMatch::firstOrCreate([
+			'user_a_id' => $this->user->id,
+			'user_b_id' => $itemOwner->id,
+			'item_a_id' => $this->item->id,
+			'item_b_id' => $userItem->id,
+		], ['status' => 'active']);
+
+		// Dispatch notifications to both participants
+		SendMatchNotificationJob::dispatch($this->user, $match);
+		SendMatchNotificationJob::dispatch($itemOwner, $match);
 	}
 }
