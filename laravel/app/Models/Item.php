@@ -32,4 +32,12 @@ class Item extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    /**
+     * Get all likes received by this item.
+     */
+    public function likes(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Like::class);
+    }
 }
