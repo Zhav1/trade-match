@@ -23,6 +23,7 @@ Route::middleware('auth:sanctum')->group(function () {
 	// Chat routes: fetch history and send messages for a match
 	Route::get('/chat/{match}/messages', [\App\Http\Controllers\ChatController::class, 'getMessages']);
 	Route::post('/chat/{match}/messages', [\App\Http\Controllers\ChatController::class, 'sendMessage']);
+	Route::post('/chat/{match}/messages/{message}/agree', [\App\Http\Controllers\ChatController::class, 'agreeToLocation']);
 
 	// Trade confirmation route
 	Route::post('/trade/{match}/confirm', [\App\Http\Controllers\TradeController::class, 'confirmTrade']);
