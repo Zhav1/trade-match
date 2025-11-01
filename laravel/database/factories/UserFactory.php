@@ -29,6 +29,9 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
+            'fcm_token' => fake()->uuid(),
+            'lat' => fake()->latitude(-6.9175, -6.9),  // Jakarta area
+            'lng' => fake()->longitude(106.8, 106.9),  // Jakarta area
         ];
     }
 
