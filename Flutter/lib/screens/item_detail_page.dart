@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:Flutter/profile/profile.dart';
 import 'package:Flutter/models/barter_item.dart';
+import 'package:shimmer/shimmer.dart';
 
 class ItemDetailPage extends StatelessWidget {
   const ItemDetailPage({super.key});
@@ -18,9 +19,13 @@ class ItemDetailPage extends StatelessWidget {
               background: PageView.builder(
                 itemCount: 5, // Replace with actual image count
                 itemBuilder: (context, index) {
-                  return Image.network(
-                    'https://picsum.photos/500/300?random=$index',
-                    fit: BoxFit.cover,
+                  return Shimmer.fromColors(
+                    baseColor: Colors.grey[300]!,
+                    highlightColor: Colors.grey[100]!,
+                    child: Image.network(
+                      'https://picsum.photos/500/300?random=$index',
+                      fit: BoxFit.cover,
+                    ),
                   );
                 },
               ),
@@ -262,6 +267,9 @@ class ItemDetailPage extends StatelessWidget {
                   backgroundColor: Theme.of(context).colorScheme.primary,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 12),
+                ).copyWith(
+                  elevation: MaterialStateProperty.all(6),
+                  animationDuration: Duration(milliseconds: 100),
                 ),
               ),
             ),

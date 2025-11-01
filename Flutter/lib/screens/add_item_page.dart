@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:shimmer/shimmer.dart';
+
+import '../widget_Template/loading_overlay.dart';
 
 class AddItemPage extends StatefulWidget {
   const AddItemPage({super.key});
@@ -20,6 +23,7 @@ class _AddItemPageState extends State<AddItemPage> {
     'Others'
   ];
   String? _selectedCategory;
+  bool _isLoading = false;
 
   // Controllers
   final _titleController = TextEditingController();
@@ -40,194 +44,206 @@ class _AddItemPageState extends State<AddItemPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Add New Item'),
-        backgroundColor: Colors.white,
-        elevation: 0,
-      ),
-      body: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Image Upload Section
-              Container(
-                height: 200,
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: _selectedImages.isEmpty
-                    ? Center(
-                        child: IconButton(
-                          icon: const Icon(Icons.add_photo_alternate, size: 40),
-                          onPressed: _handleImageSelection,
-                        ),
-                      )
-                    : ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: _selectedImages.length + 1,
-                        itemBuilder: (context, index) {
-                          if (index == _selectedImages.length) {
-                            return Center(
-                              child: IconButton(
-                                icon: const Icon(Icons.add_photo_alternate),
-                                onPressed: _handleImageSelection,
-                              ),
-                            );
-                          }
-                          return Stack(
-                            children: [
-                              Image.network(
-                                _selectedImages[index],
-                                fit: BoxFit.cover,
-                              ),
-                              Positioned(
-                                top: 5,
-                                right: 5,
+    return LoadingOverlay(
+      isLoading: _isLoading,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Add New Item'),
+          backgroundColor: Colors.white,
+          elevation: 0,
+        ),
+        body: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Image Upload Section
+                Container(
+                  height: 200,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: _selectedImages.isEmpty
+                      ? Shimmer.fromColors(
+                          baseColor: Colors.grey[300]!,
+                          highlightColor: Colors.grey[100]!,
+                          child: Center(
+                            child: Icon(Icons.add_photo_alternate, size: 40),
+                          ),
+                        )
+                      : ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: _selectedImages.length + 1,
+                          itemBuilder: (context, index) {
+                            if (index == _selectedImages.length) {
+                              return Center(
                                 child: IconButton(
-                                  icon: const Icon(Icons.remove_circle),
-                                  color: Colors.red,
-                                  onPressed: () =>
-                                      _removeImage(_selectedImages[index]),
+                                  icon: const Icon(Icons.add_photo_alternate),
+                                  onPressed: _handleImageSelection,
                                 ),
-                              ),
-                            ],
-                          );
-                        },
+                              );
+                            }
+                            return Stack(
+                              children: [
+                                Image.network(
+                                  _selectedImages[index],
+                                  fit: BoxFit.cover,
+                                ),
+                                Positioned(
+                                  top: 5,
+                                  right: 5,
+                                  child: IconButton(
+                                    icon: const Icon(Icons.remove_circle),
+                                    color: Colors.red,
+                                    onPressed: () =>
+                                        _removeImage(_selectedImages[index]),
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+                ),
+                const SizedBox(height: 24),
+
+                // Title
+                TextFormField(
+                  controller: _titleController,
+                  decoration: _buildInputDecoration('Item Title',
+                      'Give your item a catchy title'),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter an item title';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Category Dropdown
+                DropdownButtonFormField<String>(
+                  value: _selectedCategory,
+                  decoration: _buildInputDecoration('Category',
+                      'Select item category'),
+                  items: _categories.map((String category) {
+                    return DropdownMenuItem(
+                      value: category,
+                      child: Text(category),
+                    );
+                  }).toList(),
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      _selectedCategory = newValue;
+                    });
+                  },
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please select a category';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Description
+                TextFormField(
+                  controller: _descriptionController,
+                  decoration: _buildInputDecoration(
+                    'Description',
+                    'Describe your item (condition, age, special features)',
+                  ),
+                  maxLines: 3,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a description';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Estimated Value
+                TextFormField(
+                  controller: _estimatedValueController,
+                  decoration: _buildInputDecoration(
+                    'Estimated Value',
+                    'Approximate value in IDR',
+                  ),
+                  keyboardType: TextInputType.number,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter an estimated value';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Preferred Items for Trade
+                TextFormField(
+                  controller: _preferredItemsController,
+                  decoration: _buildInputDecoration(
+                    'What would you like in return?',
+                    'List items you\'d like to trade for',
+                  ),
+                  maxLines: 2,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your trade preferences';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Location
+                TextFormField(
+                  controller: _locationController,
+                  decoration: _buildInputDecoration(
+                    'Location',
+                    'Where is the item located?',
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a location';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 24),
+
+                // Submit Button
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      setState(() => _isLoading = true);
+                      await Future.delayed(Duration(seconds: 2)); // Simulate upload
+                      _handleSubmit();
+                      setState(() => _isLoading = false);
+                    },
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor:
+                            Theme.of(context).colorScheme.primary,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
-              ),
-              const SizedBox(height: 24),
-
-              // Title
-              TextFormField(
-                controller: _titleController,
-                decoration: _buildInputDecoration('Item Title', 'Give your item a catchy title'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter an item title';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Category Dropdown
-              DropdownButtonFormField<String>(
-                value: _selectedCategory,
-                decoration: _buildInputDecoration('Category', 'Select item category'),
-                items: _categories.map((String category) {
-                  return DropdownMenuItem(
-                    value: category,
-                    child: Text(category),
-                  );
-                }).toList(),
-                onChanged: (String? newValue) {
-                  setState(() {
-                    _selectedCategory = newValue;
-                  });
-                },
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please select a category';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Description
-              TextFormField(
-                controller: _descriptionController,
-                decoration: _buildInputDecoration(
-                  'Description',
-                  'Describe your item (condition, age, special features)',
-                ),
-                maxLines: 3,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a description';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Estimated Value
-              TextFormField(
-                controller: _estimatedValueController,
-                decoration: _buildInputDecoration(
-                  'Estimated Value',
-                  'Approximate value in IDR',
-                ),
-                keyboardType: TextInputType.number,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter an estimated value';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Preferred Items for Trade
-              TextFormField(
-                controller: _preferredItemsController,
-                decoration: _buildInputDecoration(
-                  'What would you like in return?',
-                  'List items you\'d like to trade for',
-                ),
-                maxLines: 2,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your trade preferences';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Location
-              TextFormField(
-                controller: _locationController,
-                decoration: _buildInputDecoration(
-                  'Location',
-                  'Where is the item located?',
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a location';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 24),
-
-              // Submit Button
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: _handleSubmit,
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).colorScheme.primary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text(
-                    'List Item',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                    child: const Text(
+                      'List Item',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

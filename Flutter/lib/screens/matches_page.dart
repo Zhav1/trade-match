@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:Flutter/chat/chat_detail.dart';
 import 'package:Flutter/models/barter_item.dart';
+import 'package:shimmer/shimmer.dart';
 
 class MatchesPage extends StatefulWidget {
   const MatchesPage({super.key});
@@ -57,11 +58,15 @@ class _MatchesPageState extends State<MatchesPage> with SingleTickerProviderStat
       padding: const EdgeInsets.all(16),
       itemCount: 10, // Replace with actual matches count
       itemBuilder: (context, index) {
-        return _buildMatchCard(
-          isMatch: true,
-          name: 'User ${index + 1}',
-          item: 'Item Name ${index + 1}',
-          matchDate: DateTime.now().subtract(Duration(days: index)),
+        return AnimatedScale(
+          scale: 1.0,
+          duration: Duration(milliseconds: 100),
+          child: _buildMatchCard(
+            isMatch: true,
+            name: 'User ${index + 1}',
+            item: 'Item Name ${index + 1}',
+            matchDate: DateTime.now().subtract(Duration(days: index)),
+          ),
         );
       },
     );
@@ -72,11 +77,15 @@ class _MatchesPageState extends State<MatchesPage> with SingleTickerProviderStat
       padding: const EdgeInsets.all(16),
       itemCount: 15, // Replace with actual likes count
       itemBuilder: (context, index) {
-        return _buildMatchCard(
-          isMatch: false,
-          name: 'User ${index + 1}',
-          item: 'Item Name ${index + 1}',
-          matchDate: DateTime.now().subtract(Duration(hours: index)),
+        return AnimatedScale(
+          scale: 1.0,
+          duration: Duration(milliseconds: 100),
+          child: _buildMatchCard(
+            isMatch: false,
+            name: 'User ${index + 1}',
+            item: 'Item Name ${index + 1}',
+            matchDate: DateTime.now().subtract(Duration(hours: index)),
+          ),
         );
       },
     );
@@ -153,7 +162,14 @@ class _MatchesPageState extends State<MatchesPage> with SingleTickerProviderStat
                   icon: const Icon(Icons.chat_bubble_outline),
                   color: Theme.of(context).colorScheme.primary,
                   onPressed: () {
-                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => ChatDetailPage(name: name, image: 'pp-1.png')));
+                    // Use a demo matchId for now, replace with real matchId in production
+                    Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => ChatDetailPage(
+                        matchId: 'match_${name}_$item',
+                        otherUserName: name,
+                        otherUserImage: 'pp-1.png',
+                      ),
+                    ));
                   },
                 )
               else

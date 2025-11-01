@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:appinio_swiper/appinio_swiper.dart';
+import 'package:shimmer/shimmer.dart';
 import '../models/barter_item.dart';
 
 class ExploreScreen extends StatefulWidget {
@@ -91,8 +92,26 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     child: items.isEmpty
-                        ? const Center(child: Text('Tidak ada barang untuk ditampilkan 😅', style: TextStyle(color: Colors.grey)))
-                        : AppinioSwiper(controller: _swiperController, cardCount: items.length, loop: true, cardBuilder: (context, index) => _buildCard(items[index])),
+                        ? Shimmer.fromColors(
+                            baseColor: Colors.grey[300]!,
+                            highlightColor: Colors.grey[100]!,
+                            child: Column(
+                              children: List.generate(3, (i) => Container(
+                                margin: EdgeInsets.symmetric(vertical: 12),
+                                height: 320,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                              )),
+                            ),
+                          )
+                        : AppinioSwiper(
+                            controller: _swiperController,
+                            cardCount: items.length,
+                            loop: true,
+                            cardBuilder: (context, index) => _buildCard(items[index]),
+                          ),
                   ),
                 ),
 
@@ -222,7 +241,6 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
   }
 
   Widget _smallAction({required IconData icon, required Color color, required VoidCallback onTap}) {
-    // Use Material + InkWell to get splash/ripple and overlay color from theme
     return Material(
       color: Colors.white,
       shape: const CircleBorder(),
@@ -231,17 +249,20 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
         onTap: onTap,
         customBorder: const CircleBorder(),
         splashColor: Theme.of(context).colorScheme.primary.withOpacity(0.12),
-        child: SizedBox(
-          width: 64,
-          height: 64,
-          child: Icon(icon, color: color, size: 30),
+        child: AnimatedScale(
+          scale: 1.0,
+          duration: Duration(milliseconds: 100),
+          child: SizedBox(
+            width: 64,
+            height: 64,
+            child: Icon(icon, color: color, size: 30),
+          ),
         ),
       ),
     );
   }
 
   Widget _bigAction({required IconData icon, required Color color, required VoidCallback onTap}) {
-    // Use Material + InkWell so ripples and overlays show on the colored circle
     return Material(
       color: color,
       shape: const CircleBorder(),
@@ -250,10 +271,14 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
         onTap: onTap,
         customBorder: const CircleBorder(),
         splashColor: Theme.of(context).colorScheme.onPrimary.withOpacity(0.12),
-        child: SizedBox(
-          width: 84,
-          height: 84,
-          child: Icon(icon, color: Colors.white, size: 38),
+        child: AnimatedScale(
+          scale: 1.0,
+          duration: Duration(milliseconds: 100),
+          child: SizedBox(
+            width: 84,
+            height: 84,
+            child: Icon(icon, color: Colors.white, size: 38),
+          ),
         ),
       ),
     );

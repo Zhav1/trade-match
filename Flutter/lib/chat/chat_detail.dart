@@ -3,6 +3,7 @@ import 'location_picker_modal.dart';
 import 'location_message_bubble.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../widget_Template/loading_overlay.dart';
 
 class ChatDetailPage extends StatefulWidget {
   final String matchId;
@@ -237,67 +238,89 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
           ],
         ),
       ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            if (isLoading)
-              LinearProgressIndicator(),
-            Expanded(
-              child: ListView.builder(
-                controller: _scrollController,
-                padding: EdgeInsets.all(16),
-                itemCount: messages.length,
-                itemBuilder: (context, index) => _buildMessage(messages[index]),
-              ),
-            ),
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border(
-                  top: BorderSide(color: Colors.grey[200]!),
+      body: LoadingOverlay(
+        isLoading: isLoading,
+        child: SafeArea(
+          child: Column(
+            children: [
+              Expanded(
+                child: ListView.builder(
+                  controller: _scrollController,
+                  padding: EdgeInsets.all(16),
+                  itemCount: messages.length,
+                  itemBuilder: (context, index) => AnimatedSwitcher(
+                    duration: Duration(milliseconds: 300),
+                    child: _buildMessage(messages[index]),
+                  ),
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 4,
-                    offset: Offset(0, -2),
-                  ),
-                ],
               ),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.location_on),
-                    onPressed: _showLocationPicker,
-                    color: Theme.of(context).primaryColor,
-                    tooltip: 'Suggest meeting location',
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border(
+                    top: BorderSide(color: Colors.grey[200]!),
                   ),
-                  Expanded(
-                    child: TextField(
-                      controller: _messageController,
-                      decoration: InputDecoration(
-                        hintText: 'Type a message...',
-                        border: InputBorder.none,
-                      ),
-                      maxLines: null,
-                      textCapitalization: TextCapitalization.sentences,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 4,
+                      offset: Offset(0, -2),
                     ),
-                  ),
-                  FloatingActionButton(
-                    onPressed: () {
-                      if (_messageController.text.trim().isNotEmpty) {
-                        _sendMessage(content: _messageController.text.trim());
-                      }
-                    },
-                    backgroundColor: Theme.of(context).primaryColor,
-                    mini: true,
-                    child: const Icon(Icons.send, color: Colors.white),
-                  ),
-                ],
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    GestureDetector(
+                      onTapDown: (_) => setState(() {}),
+                      onTapUp: (_) => setState(() {}),
+                      onTap: _showLocationPicker,
+                      child: AnimatedScale(
+                        scale: 1.0,
+                        duration: Duration(milliseconds: 100),
+                        child: Icon(
+                          Icons.location_on,
+                          color: Theme.of(context).primaryColor,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: TextField(
+                        controller: _messageController,
+                        decoration: InputDecoration(
+                          hintText: 'Type a message...',
+                          border: InputBorder.none,
+                        ),
+                        maxLines: null,
+                        textCapitalization: TextCapitalization.sentences,
+                      ),
+                    ),
+                    GestureDetector(
+                      onTapDown: (_) => setState(() {}),
+                      onTapUp: (_) => setState(() {}),
+                      onTap: () {
+                        if (_messageController.text.trim().isNotEmpty) {
+                          _sendMessage(content: _messageController.text.trim());
+                        }
+                      },
+                      child: AnimatedScale(
+                        scale: 1.0,
+                        duration: Duration(milliseconds: 100),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).primaryColor,
+                            shape: BoxShape.circle,
+                          ),
+                          padding: EdgeInsets.all(8),
+                          child: Icon(Icons.send, color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
