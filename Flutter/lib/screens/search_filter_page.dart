@@ -72,7 +72,7 @@ class _SearchFilterPageState extends State<SearchFilterPage> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFF6B4EFF)),
+                  borderSide: BorderSide(color: Theme.of(context).colorScheme.primary),
                 ),
               ),
             ),
@@ -109,8 +109,8 @@ class _SearchFilterPageState extends State<SearchFilterPage> {
                                 _selectedCategory = category;
                               });
                             },
-                            selectedColor: const Color(0xFF6B4EFF).withOpacity(0.2),
-                            checkmarkColor: const Color(0xFF6B4EFF),
+                            selectedColor: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                            checkmarkColor: Theme.of(context).colorScheme.primary,
                           ),
                         );
                       }).toList(),
@@ -131,8 +131,8 @@ class _SearchFilterPageState extends State<SearchFilterPage> {
                       ),
                       Text(
                         'IDR ${_priceRange.start.round()} - ${_priceRange.end.round()}',
-                        style: const TextStyle(
-                          color: Color(0xFF6B4EFF),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.primary,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -144,8 +144,8 @@ class _SearchFilterPageState extends State<SearchFilterPage> {
                     min: 0,
                     max: 10000000,
                     divisions: 100,
-                    activeColor: const Color(0xFF6B4EFF),
-                    inactiveColor: const Color(0xFF6B4EFF).withOpacity(0.2),
+                    activeColor: Theme.of(context).colorScheme.primary,
+                    inactiveColor: Theme.of(context).colorScheme.primary.withOpacity(0.2),
                     onChanged: (values) {
                       setState(() {
                         _priceRange = values;
@@ -167,8 +167,8 @@ class _SearchFilterPageState extends State<SearchFilterPage> {
                       ),
                       Text(
                         '${_maxDistance.round()} km',
-                        style: const TextStyle(
-                          color: Color(0xFF6B4EFF),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.primary,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -180,8 +180,8 @@ class _SearchFilterPageState extends State<SearchFilterPage> {
                     min: 0,
                     max: 100,
                     divisions: 20,
-                    activeColor: const Color(0xFF6B4EFF),
-                    inactiveColor: const Color(0xFF6B4EFF).withOpacity(0.2),
+                    activeColor: Theme.of(context).colorScheme.primary,
+                    inactiveColor: Theme.of(context).colorScheme.primary.withOpacity(0.2),
                     onChanged: (value) {
                       setState(() {
                         _maxDistance = value;
@@ -216,8 +216,8 @@ class _SearchFilterPageState extends State<SearchFilterPage> {
                             }
                           });
                         },
-                        selectedColor: const Color(0xFF6B4EFF).withOpacity(0.2),
-                        checkmarkColor: const Color(0xFF6B4EFF),
+                        selectedColor: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                        checkmarkColor: Theme.of(context).colorScheme.primary,
                       );
                     }).toList(),
                   ),
@@ -245,7 +245,7 @@ class _SearchFilterPageState extends State<SearchFilterPage> {
               child: ElevatedButton(
                 onPressed: _applyFilters,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF6B4EFF),
+                  backgroundColor: Theme.of(context).colorScheme.primary,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),

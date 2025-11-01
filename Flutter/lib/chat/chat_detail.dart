@@ -29,9 +29,9 @@ class ChatDetailPage extends StatelessWidget {
                 padding: const EdgeInsets.all(16),
                 children: [
                   // Mock messages
-                  _buildBubble('Hi! Ini sample chat.', false),
-                  _buildBubble('Halo, apakah barangnya masih ada?', true),
-                  _buildBubble('Masih ada, mau lihat foto lagi?', false),
+                  _buildBubble(context, 'Hi! Ini sample chat.', false),
+                  _buildBubble(context, 'Halo, apakah barangnya masih ada?', true),
+                  _buildBubble(context, 'Masih ada, mau lihat foto lagi?', false),
                 ],
               ),
             ),
@@ -42,7 +42,7 @@ class ChatDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildBubble(String text, bool isMe) {
+  Widget _buildBubble(BuildContext context, String text, bool isMe) {
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
@@ -50,7 +50,7 @@ class ChatDetailPage extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         constraints: BoxConstraints(maxWidth: 280),
         decoration: BoxDecoration(
-          color: isMe ? const Color(0xFFFD7E14) : Colors.grey[200],
+          color: isMe ? Theme.of(context).colorScheme.primary : Colors.grey[200],
           borderRadius: BorderRadius.circular(14),
         ),
         child: Text(
@@ -75,7 +75,7 @@ class ChatDetailPage extends StatelessWidget {
           ),
           FloatingActionButton(
             onPressed: () {},
-            backgroundColor: const Color(0xFFFD7E14),
+            backgroundColor: Theme.of(context).colorScheme.primary,
             mini: true,
             child: const Icon(Icons.send, color: Colors.white),
           )

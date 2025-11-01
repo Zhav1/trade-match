@@ -24,15 +24,15 @@ class TradeHistoryPage extends StatelessWidget {
                   ),
                 ),
               ),
-              child: const TabBar(
-                tabs: [
+              child: TabBar(
+                tabs: const [
                   Tab(text: 'Active'),
                   Tab(text: 'Completed'),
                   Tab(text: 'Cancelled'),
                 ],
-                labelColor: Color(0xFF6B4EFF),
+                labelColor: Theme.of(context).colorScheme.primary,
                 unselectedLabelColor: Colors.grey,
-                indicatorColor: Color(0xFF6B4EFF),
+                indicatorColor: Theme.of(context).colorScheme.primary,
               ),
             ),
             Expanded(
@@ -56,6 +56,7 @@ class TradeHistoryPage extends StatelessWidget {
       itemCount: 10,
       itemBuilder: (context, index) {
         return _buildTradeCard(
+          context,
           status: status,
           tradeDate: DateTime.now().subtract(Duration(days: index)),
         );
@@ -63,7 +64,7 @@ class TradeHistoryPage extends StatelessWidget {
     );
   }
 
-  Widget _buildTradeCard({
+  Widget _buildTradeCard(BuildContext context, {
     required TradeStatus status,
     required DateTime tradeDate,
   }) {
@@ -104,9 +105,9 @@ class TradeHistoryPage extends StatelessWidget {
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: const Icon(
+                  child: Icon(
                     Icons.swap_horiz,
-                    color: Color(0xFF6B4EFF),
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
                 Expanded(
@@ -169,7 +170,7 @@ class TradeHistoryPage extends StatelessWidget {
                         // TODO: Handle completion
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF6B4EFF),
+                        backgroundColor: Theme.of(context).colorScheme.primary,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                       child: const Text('Complete'),

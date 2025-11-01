@@ -26,12 +26,12 @@ class ReviewsPage extends StatelessWidget {
                   flex: 2,
                   child: Column(
                     children: [
-                      const Text(
+                      Text(
                         '4.8',
                         style: TextStyle(
                           fontSize: 48,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF6B4EFF),
+                          color: Theme.of(context).colorScheme.primary,
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -40,7 +40,7 @@ class ReviewsPage extends StatelessWidget {
                         children: List.generate(5, (index) {
                           return Icon(
                             index < 4 ? Icons.star : Icons.star_half,
-                            color: const Color(0xFF6B4EFF),
+                            color: Theme.of(context).colorScheme.primary,
                             size: 20,
                           );
                         }),
@@ -61,11 +61,11 @@ class ReviewsPage extends StatelessWidget {
                   flex: 3,
                   child: Column(
                     children: [
-                      _buildRatingBar(5, 0.8),
-                      _buildRatingBar(4, 0.15),
-                      _buildRatingBar(3, 0.03),
-                      _buildRatingBar(2, 0.01),
-                      _buildRatingBar(1, 0.01),
+                      _buildRatingBar(context, 5, 0.8),
+                      _buildRatingBar(context, 4, 0.15),
+                      _buildRatingBar(context, 3, 0.03),
+                      _buildRatingBar(context, 2, 0.01),
+                      _buildRatingBar(context, 1, 0.01),
                     ],
                   ),
                 ),
@@ -80,7 +80,7 @@ class ReviewsPage extends StatelessWidget {
               padding: const EdgeInsets.all(16),
               itemCount: 10,
               itemBuilder: (context, index) {
-                return _buildReviewCard();
+                return _buildReviewCard(context);
               },
             ),
           ),
@@ -89,7 +89,7 @@ class ReviewsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildRatingBar(int rating, double percentage) {
+  Widget _buildRatingBar(BuildContext context, int rating, double percentage) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
@@ -118,7 +118,7 @@ class ReviewsPage extends StatelessWidget {
                   child: Container(
                     height: 4,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF6B4EFF),
+                      color: Theme.of(context).colorScheme.primary,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -139,7 +139,7 @@ class ReviewsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildReviewCard() {
+  Widget _buildReviewCard(BuildContext context) {
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       shape: RoundedRectangleBorder(
@@ -185,7 +185,7 @@ class ReviewsPage extends StatelessWidget {
                       Icons.star,
                       size: 16,
                       color: index < 4
-                          ? const Color(0xFF6B4EFF)
+                          ? Theme.of(context).colorScheme.primary
                           : Colors.grey[300],
                     );
                   }),

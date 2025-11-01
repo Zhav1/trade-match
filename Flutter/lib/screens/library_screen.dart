@@ -5,7 +5,7 @@ class LibraryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color primary = const Color(0xFFFD7E14);
+  final Color primary = Theme.of(context).colorScheme.primary;
 
     final items = List.generate(
       8,

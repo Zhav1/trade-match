@@ -50,13 +50,13 @@ class ItemDetailPage extends StatelessWidget {
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF6B4EFF).withOpacity(0.1),
+                          color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
                           'Est. IDR 2,000,000',
                           style: TextStyle(
-                            color: const Color(0xFF6B4EFF),
+                            color: Theme.of(context).colorScheme.primary,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -222,29 +222,29 @@ class ItemDetailPage extends StatelessWidget {
         child: Row(
           children: [
             Expanded(
-              child: OutlinedButton.icon(
+                child: OutlinedButton.icon(
                 onPressed: () {
                   // TODO: Add to favorites
                 },
                 icon: const Icon(Icons.favorite_border),
                 label: const Text('Save'),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF6B4EFF),
-                  side: const BorderSide(color: Color(0xFF6B4EFF)),
+                  foregroundColor: Theme.of(context).colorScheme.primary,
+                  side: BorderSide(color: Theme.of(context).colorScheme.primary),
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: ElevatedButton.icon(
+                child: ElevatedButton.icon(
                 onPressed: () {
                   // TODO: Navigate to trade offer page
                 },
                 icon: const Icon(Icons.swap_horiz),
                 label: const Text('Offer Trade'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF6B4EFF),
+                  backgroundColor: Theme.of(context).colorScheme.primary,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),

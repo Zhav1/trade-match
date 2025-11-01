@@ -6,7 +6,7 @@ class ProfilePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const Color primary = Color(0xFFFD7E14);
+  final Color primary = Theme.of(context).colorScheme.primary;
 
     return DefaultTabController(
       length: 2,
@@ -78,7 +78,7 @@ class ProfilePage extends StatelessWidget {
                   child: TabBar(
                     labelColor: Colors.black87,
                     unselectedLabelColor: Colors.grey,
-                    indicatorColor: primary,
+                    indicatorColor: Theme.of(context).colorScheme.primary,
                     tabs: const [Tab(text: 'Ditawarkan'), Tab(text: 'Dicari')],
                   ),
                 ),

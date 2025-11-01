@@ -35,22 +35,20 @@ Widget ChatList({
                       name,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        fontFamily: "Sk-Modernist",
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.black,
-                      ),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.black,
+                        ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       message,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        fontFamily: "Sk-Modernist",
-                        fontSize: 13,
-                        fontWeight: FontWeight.w400,
-                        color: Colors.black54,
-                      ),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w400,
+                          color: Colors.black54,
+                        ),
                     ),
                   ],
                 ),
@@ -62,7 +60,6 @@ Widget ChatList({
             child: Text(
               time,
               style: const TextStyle(
-                fontFamily: "Sk-Modernist",
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
                 color: Color(0xffADAFBB),

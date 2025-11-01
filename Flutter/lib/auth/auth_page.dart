@@ -38,11 +38,11 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF6B4EFF), Color(0xFF9747FF)],
+            colors: [Theme.of(context).colorScheme.primary, Theme.of(context).colorScheme.primary.withOpacity(0.85)],
           ),
         ),
         child: SafeArea(
@@ -79,9 +79,9 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
                           Tab(text: 'Sign In'),
                           Tab(text: 'Register'),
                         ],
-                        labelColor: const Color(0xFF6B4EFF),
+                        labelColor: Theme.of(context).colorScheme.primary,
                         unselectedLabelColor: Colors.grey,
-                        indicatorColor: const Color(0xFF6B4EFF),
+                        indicatorColor: Theme.of(context).colorScheme.primary,
                       ),
                       // Tab View
                       Expanded(
@@ -143,7 +143,7 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
               child: ElevatedButton(
                 onPressed: _isLoading ? null : _handleSignIn,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF6B4EFF),
+                  backgroundColor: Theme.of(context).colorScheme.primary,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -159,10 +159,10 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
               onPressed: () {
                 // TODO: Implement forgot password
               },
-              child: const Text(
-                'Forgot Password?',
-                style: TextStyle(color: Color(0xFF6B4EFF)),
-              ),
+              child: Text(
+                  'Forgot Password?',
+                  style: TextStyle(color: Theme.of(context).colorScheme.primary),
+                ),
             ),
           ],
         ),
@@ -233,7 +233,7 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
               child: ElevatedButton(
                 onPressed: _isLoading ? null : _handleRegister,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF6B4EFF),
+                  backgroundColor: Theme.of(context).colorScheme.primary,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -253,7 +253,7 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
   InputDecoration _inputDecoration(String label, IconData icon) {
     return InputDecoration(
       labelText: label,
-      prefixIcon: Icon(icon, color: const Color(0xFF6B4EFF)),
+  prefixIcon: Icon(icon, color: Theme.of(context).colorScheme.primary),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(color: Colors.grey),
@@ -264,7 +264,7 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFF6B4EFF)),
+        borderSide: BorderSide(color: Theme.of(context).colorScheme.primary),
       ),
     );
   }

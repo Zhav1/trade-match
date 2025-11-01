@@ -11,9 +11,8 @@ class ChatListScreen extends StatefulWidget {
 class _ChatListScreenState extends State<ChatListScreen> {
   @override
   Widget build(BuildContext context) {
-    final Color primary = const Color(0xFFFD7E14);
-    final Color background = const Color(0xFFFFF8ED);
-    final Color borderColor = const Color(0xFFE8E6EA);
+  final Color primary = Theme.of(context).colorScheme.primary;
+  final Color background = Theme.of(context).scaffoldBackgroundColor;
 
     return Scaffold(
       backgroundColor: background,
@@ -117,14 +116,14 @@ class _ChatListScreenState extends State<ChatListScreen> {
       leading: CircleAvatar(radius: 26, backgroundImage: AssetImage('assets/images/$image')),
       title: Text(name, style: const TextStyle(fontWeight: FontWeight.w700)),
       subtitle: Text(preview, maxLines: 1, overflow: TextOverflow.ellipsis),
-      trailing: Column(
+          trailing: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(time, style: const TextStyle(color: Colors.grey, fontSize: 12)),
           const SizedBox(height: 6),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(color: const Color(0xFFFD7E14), borderRadius: BorderRadius.circular(12)),
+            decoration: BoxDecoration(color: Theme.of(context).colorScheme.primary, borderRadius: BorderRadius.circular(12)),
             child: const Text('1', style: TextStyle(color: Colors.white, fontSize: 12)),
           ),
         ],

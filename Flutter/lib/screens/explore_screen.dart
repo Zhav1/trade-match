@@ -41,7 +41,7 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
-    final Color primary = const Color(0xFFFD7E14);
+  final Color primary = Theme.of(context).colorScheme.primary;
 
     // Build a Stack so we can overlay the heart animation when liking
     return Scaffold(
@@ -108,7 +108,7 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
                         _likeController.forward(from: 0);
                         _swiperController.unswipe();
                       }),
-                      _smallAction(icon: Icons.star, color: Colors.purple[300]!, onTap: () => _swiperController.swipeUp()),
+                      _smallAction(icon: Icons.star, color: primary, onTap: () => _swiperController.swipeUp()),
                     ],
                   ),
                 ),
@@ -187,8 +187,16 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(color: Colors.black.withOpacity(0.45), borderRadius: BorderRadius.circular(12)),
-                    child: Text('${item.namaBarang} • ${item.kondisi}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+                    decoration: BoxDecoration(color: Colors.black.withOpacity(0.68), borderRadius: BorderRadius.circular(12)),
+                    child: Text(
+                      '${item.namaBarang} • ${item.kondisi}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        shadows: [Shadow(color: Colors.black45, blurRadius: 6, offset: Offset(0, 1))],
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Row(
@@ -199,8 +207,8 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
                       const Spacer(),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                        decoration: BoxDecoration(color: Colors.black.withOpacity(0.45), borderRadius: BorderRadius.circular(10)),
-                        child: Row(children: [const Icon(Icons.location_on, size: 14, color: Colors.white), const SizedBox(width: 4), Text(item.jarak, style: const TextStyle(color: Colors.white))]),
+                        decoration: BoxDecoration(color: Colors.black.withOpacity(0.6), borderRadius: BorderRadius.circular(10)),
+                        child: Row(children: [const Icon(Icons.location_on, size: 14, color: Colors.white), const SizedBox(width: 4), Text(item.jarak, style: const TextStyle(color: Colors.white, shadows: [Shadow(color: Colors.black45, blurRadius: 4, offset: Offset(0, 1))]))]),
                       )
                     ],
                   )
@@ -214,25 +222,39 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
   }
 
   Widget _smallAction({required IconData icon, required Color color, required VoidCallback onTap}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 64,
-        height: 64,
-        decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 8)]),
-        child: Icon(icon, color: color, size: 30),
+    // Use Material + InkWell to get splash/ripple and overlay color from theme
+    return Material(
+      color: Colors.white,
+      shape: const CircleBorder(),
+      elevation: 4,
+      child: InkWell(
+        onTap: onTap,
+        customBorder: const CircleBorder(),
+        splashColor: Theme.of(context).colorScheme.primary.withOpacity(0.12),
+        child: SizedBox(
+          width: 64,
+          height: 64,
+          child: Icon(icon, color: color, size: 30),
+        ),
       ),
     );
   }
 
   Widget _bigAction({required IconData icon, required Color color, required VoidCallback onTap}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 84,
-        height: 84,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle, boxShadow: [BoxShadow(color: color.withOpacity(0.3), blurRadius: 12)]),
-        child: Icon(icon, color: Colors.white, size: 38),
+    // Use Material + InkWell so ripples and overlays show on the colored circle
+    return Material(
+      color: color,
+      shape: const CircleBorder(),
+      elevation: 6,
+      child: InkWell(
+        onTap: onTap,
+        customBorder: const CircleBorder(),
+        splashColor: Theme.of(context).colorScheme.onPrimary.withOpacity(0.12),
+        child: SizedBox(
+          width: 84,
+          height: 84,
+          child: Icon(icon, color: Colors.white, size: 38),
+        ),
       ),
     );
   }

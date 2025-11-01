@@ -35,9 +35,9 @@ class _MatchesPageState extends State<MatchesPage> with SingleTickerProviderStat
             Tab(text: 'Matches'),
             Tab(text: 'Likes'),
           ],
-          labelColor: const Color(0xFF6B4EFF),
+          labelColor: Theme.of(context).colorScheme.primary,
           unselectedLabelColor: Colors.grey,
-          indicatorColor: const Color(0xFF6B4EFF),
+          indicatorColor: Theme.of(context).colorScheme.primary,
         ),
       ),
       body: TabBarView(
@@ -147,7 +147,7 @@ class _MatchesPageState extends State<MatchesPage> with SingleTickerProviderStat
               if (isMatch)
                 IconButton(
                   icon: const Icon(Icons.chat_bubble_outline),
-                  color: const Color(0xFF6B4EFF),
+                  color: Theme.of(context).colorScheme.primary,
                   onPressed: () {
                     // TODO: Navigate to chat
                   },
@@ -158,7 +158,7 @@ class _MatchesPageState extends State<MatchesPage> with SingleTickerProviderStat
                     // TODO: Handle like action
                   },
                   style: TextButton.styleFrom(
-                    foregroundColor: const Color(0xFF6B4EFF),
+                    foregroundColor: Theme.of(context).colorScheme.primary,
                   ),
                   child: const Text('View Item'),
                 ),

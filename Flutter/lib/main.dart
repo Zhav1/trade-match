@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:Flutter/theme.dart';
 import 'package:Flutter/auth/auth_page.dart';
 import 'package:Flutter/chat/chat_list.dart';
 import 'package:Flutter/profile/profile.dart';
@@ -26,6 +27,9 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'TradeMatch',
+      // Use centralized app theme (colors + font)
+      theme: AppTheme.lightTheme(),
+      // ensure routes kept below
       // Added route for settings page
       routes: {
         '/settings': (context) => const SettingsPage(),
@@ -40,12 +44,6 @@ class MyApp extends StatelessWidget {
         '/auth': (context) => const AuthPage(),
       },
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.orange,
-        scaffoldBackgroundColor: Colors.grey[50],
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        fontFamily: "Sk-Modernist",
-      ),
       home: MainPage(),
     );
   }
@@ -141,12 +139,12 @@ class _MainPageState extends State<MainPage> {
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showPageMenu(context),
         child: const Icon(Icons.add),
-        backgroundColor: const Color(0xFF6B4EFF),
+        backgroundColor: Theme.of(context).colorScheme.primary,
       ),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         backgroundColor: Colors.white,
-        selectedItemColor: Color(0xffFD7E14),
+  selectedItemColor: Theme.of(context).colorScheme.primary,
         unselectedItemColor: Colors.grey,
         showUnselectedLabels: true,
         currentIndex: _selectedIndex,

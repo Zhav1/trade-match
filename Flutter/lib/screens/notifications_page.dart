@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:Flutter/theme.dart';
 
 class NotificationsPage extends StatefulWidget {
   const NotificationsPage({super.key});
@@ -95,7 +96,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: notification.isRead ? null : const Color(0xFF6B4EFF).withOpacity(0.05),
+          color: notification.isRead ? null : Theme.of(context).colorScheme.primary.withOpacity(0.05),
           border: Border(
             bottom: BorderSide(
               color: Colors.grey[200]!,
@@ -153,8 +154,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
               Container(
                 width: 8,
                 height: 8,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF6B4EFF),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary,
                   shape: BoxShape.circle,
                 ),
               ),
@@ -171,7 +172,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
       case NotificationType.match:
         return Colors.green;
       case NotificationType.message:
-        return const Color(0xFF6B4EFF);
+        return AppColors.primary;
       case NotificationType.system:
         return Colors.orange;
     }

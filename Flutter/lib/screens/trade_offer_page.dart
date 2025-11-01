@@ -105,7 +105,7 @@ class _TradeOfferPageState extends State<TradeOfferPage> {
                         icon: const Icon(Icons.add),
                         label: const Text('Add Items'),
                         style: TextButton.styleFrom(
-                          foregroundColor: const Color(0xFF6B4EFF),
+                          foregroundColor: Theme.of(context).colorScheme.primary,
                         ),
                       ),
                     ],
@@ -207,7 +207,7 @@ class _TradeOfferPageState extends State<TradeOfferPage> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF6B4EFF)),
+                      borderSide: BorderSide(color: Theme.of(context).colorScheme.primary),
                     ),
                   ),
                 ),
@@ -215,7 +215,7 @@ class _TradeOfferPageState extends State<TradeOfferPage> {
                 ElevatedButton(
                   onPressed: _selectedItems.isEmpty ? null : _sendTradeOffer,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF6B4EFF),
+                    backgroundColor: Theme.of(context).colorScheme.primary,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
