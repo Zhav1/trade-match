@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ExploreController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ItemController;
 
 // Public authentication routes
 Route::post('/register', [AuthController::class, 'register']);
@@ -11,6 +12,11 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::middleware('auth:sanctum')->group(function () {
     // Auth route that requires authentication
     Route::post('/logout', [AuthController::class, 'logout']);
+    
+    // Item management routes
+    Route::apiResource('items', ItemController::class);
+    
+    // Explore and like routes
 	Route::get('/explore', [ExploreController::class, 'getFeed']);
 	Route::post('/like/{item}', [\App\Http\Controllers\LikeController::class, 'store']);
 
