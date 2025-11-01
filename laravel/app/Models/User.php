@@ -57,4 +57,36 @@ class User extends Authenticatable
     {
         return $this->hasMany(Like::class);
     }
+
+    /**
+     * Get all matches where user is participant A
+     */
+    public function matchesAsUserA(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(BarterMatch::class, 'user_a_id');
+    }
+
+    /**
+     * Get all matches where user is participant B
+     */
+    public function matchesAsUserB(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(BarterMatch::class, 'user_b_id');
+    }
+
+    /**
+     * Get all matches for the user (both as A and B)
+     */
+    public function matches()
+    {
+        return $this->matchesAsUserA()->orWhere('user_b_id', $this->id);
+    }
+
+        /**
+         * Get all messages sent by the user.
+         */
+        public function messages(): \Illuminate\Database\Eloquent\Relations\HasMany
+        {
+            return $this->hasMany(Message::class)->orderBy('created_at', 'desc');
+        }
 }
