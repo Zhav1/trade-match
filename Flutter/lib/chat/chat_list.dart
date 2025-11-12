@@ -87,13 +87,13 @@ class _ChatListScreenState extends State<ChatListScreen> {
                 child: ListView(
                   physics: const BouncingScrollPhysics(),
                   children: [
-                    _conversationTile(context, 'Emilie', 'pp-1.png', 'Halo 👋', '23 min'),
-                    _conversationTile(context, 'Rafi', 'pp-1.png', 'Itu HP-nya ada minus di bagian mana ya?', '3 min'),
-                    _conversationTile(context, 'Tania', 'pp-2.png', 'Kalau aku tukar sama headset JBL boleh gak?', '10 min'),
-                    _conversationTile(context, 'Johan', 'pp-3.png', 'Kardus dan chargernya masih lengkap?', '28 min'),
-                    _conversationTile(context, 'Mira', 'pp-4.png', 'Kondisi barang masih mulus ya? pengen liat fotonya 📸', '1 hr'),
-                    _conversationTile(context, 'Dina', 'pp-5.png', 'Tuker sama sepatu Nike size 42 mau gak?', '2 hr'),
-                    _conversationTile(context, 'Andra', 'pp-6.png', 'Oke, nanti aku kirim lewat kurir aja ya �', 'Yesterday'),
+                    _conversationTile(context, '1', 'Emilie', 'pp-1.png', 'Halo 👋', '23 min'),
+                    _conversationTile(context, '2', 'Rafi', 'pp-1.png', 'Itu HP-nya ada minus di bagian mana ya?', '3 min'),
+                    _conversationTile(context, '3', 'Tania', 'pp-2.png', 'Kalau aku tukar sama headset JBL boleh gak?', '10 min'),
+                    _conversationTile(context, '4', 'Johan', 'pp-3.png', 'Kardus dan chargernya masih lengkap?', '28 min'),
+                    _conversationTile(context, '5', 'Mira', 'pp-4.png', 'Kondisi barang masih mulus ya? pengen liat fotonya 📸', '1 hr'),
+                    _conversationTile(context, '6', 'Dina', 'pp-5.png', 'Tuker sama sepatu Nike size 42 mau gak?', '2 hr'),
+                    _conversationTile(context, '7', 'Andra', 'pp-6.png', 'Oke, nanti aku kirim lewat kurir aja ya ', 'Yesterday'),
                   ],
                 ),
               ),
@@ -110,7 +110,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
     );
   }
 
-  Widget _conversationTile(BuildContext context, String name, String image, String preview, String time) {
+  Widget _conversationTile(BuildContext context, String matchId, String name, String image, String preview, String time) {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(vertical: 8.0),
       leading: CircleAvatar(radius: 26, backgroundImage: AssetImage('assets/images/$image')),
@@ -129,7 +129,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
         ],
       ),
       onTap: () {
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => ChatDetailPage(name: name, image: image)));
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => ChatDetailPage(matchId: matchId, otherUserName: name, otherUserImage: image)));
       },
     );
   }

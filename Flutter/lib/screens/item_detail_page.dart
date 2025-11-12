@@ -4,7 +4,9 @@ import 'package:Flutter/models/barter_item.dart';
 import 'package:shimmer/shimmer.dart';
 
 class ItemDetailPage extends StatelessWidget {
-  const ItemDetailPage({super.key});
+  final BarterItem item;
+
+  const ItemDetailPage({super.key, required this.item});
 
   @override
   Widget build(BuildContext context) {
@@ -17,15 +19,20 @@ class ItemDetailPage extends StatelessWidget {
             pinned: true,
             flexibleSpace: FlexibleSpaceBar(
               background: PageView.builder(
-                itemCount: 5, // Replace with actual image count
+                itemCount: 1, // Replace with actual image count from item.imageUrl
                 itemBuilder: (context, index) {
-                  return Shimmer.fromColors(
-                    baseColor: Colors.grey[300]!,
-                    highlightColor: Colors.grey[100]!,
-                    child: Image.network(
-                      'https://picsum.photos/500/300?random=$index',
-                      fit: BoxFit.cover,
-                    ),
+                  return Image.network(
+                    item.imageUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (c, e, s) => const Center(child: Icon(Icons.broken_image)),
+                    loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Shimmer.fromColors(
+                        baseColor: Colors.grey[300]!,
+                        highlightColor: Colors.grey[100]!,
+                        child: Container(color: Colors.white),
+                      );
+                    },
                   );
                 },
               ),
@@ -45,7 +52,7 @@ class ItemDetailPage extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          'Vintage Camera',
+                          item.namaBarang,
                           style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
@@ -61,7 +68,7 @@ class ItemDetailPage extends StatelessWidget {
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          'Est. IDR 2,000,000',
+                          'Est. IDR ${item.estimatedValue}',
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.primary,
                             fontWeight: FontWeight.bold,
@@ -88,14 +95,14 @@ class ItemDetailPage extends StatelessWidget {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              'John Doe',
-                              style: TextStyle(
+                            Text(
+                              item.namaUser,
+                              style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                             Text(
-                              'Member since 2023',
+                              'Member since ${item.memberSince}',
                               style: TextStyle(
                                 color: Colors.grey[600],
                                 fontSize: 12,
@@ -114,16 +121,16 @@ class ItemDetailPage extends StatelessWidget {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Row(
-                            children: const [
-                              Icon(
+                            children: [
+                              const Icon(
                                 Icons.star,
                                 size: 16,
                                 color: Colors.green,
                               ),
-                              SizedBox(width: 4),
+                              const SizedBox(width: 4),
                               Text(
-                                '4.8',
-                                style: TextStyle(
+                                item.rating.toString(),
+                                style: const TextStyle(
                                   color: Colors.green,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -146,7 +153,7 @@ class ItemDetailPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Vintage camera in excellent condition. Perfect for collectors or photography enthusiasts. Comes with original leather case and manual.',
+                    item.description,
                     style: TextStyle(
                       color: Colors.grey[600],
                       height: 1.5,
@@ -166,11 +173,7 @@ class ItemDetailPage extends StatelessWidget {
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children: [
-                      'DSLR Camera',
-                      'Vintage Lenses',
-                      'Camera Equipment',
-                    ].map((tag) => Container(
+                    children: item.lookingFor.map((tag) => Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 12,
                         vertical: 6,
@@ -201,7 +204,7 @@ class ItemDetailPage extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Jakarta, Indonesia',
+                        item.location,
                         style: TextStyle(
                           color: Colors.grey[600],
                         ),
@@ -246,19 +249,6 @@ class ItemDetailPage extends StatelessWidget {
             Expanded(
                 child: ElevatedButton.icon(
                 onPressed: () {
-                  final item = BarterItem(
-    namaBarang: 'Vintage Camera',
-    kondisi: 'Baik',
-    namaUser: 'John Doe',
-    imageUrl: 'https://picsum.photos/500/300',
-    jarak: '2 km',
-    description: 'Vintage camera in excellent condition. Perfect for collectors or photography enthusiasts. Comes with original leather case and manual.',
-    estimatedValue: 'IDR 2,000,000',
-    lookingFor: ['DSLR Camera', 'Vintage Lenses', 'Camera Equipment'],
-    location: 'Jakarta, Indonesia',
-    memberSince: '2023',
-    rating: 4.8,
-  );
                   Navigator.pushNamed(context, '/trade_offer', arguments: item);
                 },
                 icon: const Icon(Icons.swap_horiz),
@@ -269,7 +259,7 @@ class ItemDetailPage extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ).copyWith(
                   elevation: MaterialStateProperty.all(6),
-                  animationDuration: Duration(milliseconds: 100),
+                  animationDuration: const Duration(milliseconds: 100),
                 ),
               ),
             ),

@@ -23,7 +23,7 @@ class _TradeOfferPageState extends State<TradeOfferPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Make Trade Offer'),
+        title: const Text('Ajukan Penawaran'),
         backgroundColor: Colors.white,
         elevation: 0,
       ),

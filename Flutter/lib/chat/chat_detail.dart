@@ -4,6 +4,7 @@ import 'location_message_bubble.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../widget_Template/loading_overlay.dart';
+import '../services/constants.dart';
 
 class ChatDetailPage extends StatefulWidget {
   final String matchId;
@@ -32,8 +33,9 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   void initState() {
     super.initState();
     _loadMessages();
-    // TODO: Get this from your auth service
-    currentUserId = "user_id_here";
+  // TODO: Wire this to your auth service. For local dev you can set
+  // AUTH_USER_ID in `lib/services/constants.dart`.
+  currentUserId = AUTH_USER_ID;
   }
 
   Future<void> _loadMessages() async {
@@ -43,9 +45,9 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
 
     try {
       final response = await http.get(
-        Uri.parse('YOUR_API_URL/api/chat/${widget.matchId}/messages'),
+        Uri.parse('$API_BASE/api/chat/${widget.matchId}/messages'),
         headers: {
-          'Authorization': 'Bearer YOUR_TOKEN_HERE',
+          'Authorization': 'Bearer $AUTH_TOKEN',
         },
       );
 
@@ -92,9 +94,9 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       }
 
       final response = await http.post(
-        Uri.parse('YOUR_API_URL/api/chat/${widget.matchId}/messages'),
+        Uri.parse('$API_BASE/api/chat/${widget.matchId}/messages'),
         headers: {
-          'Authorization': 'Bearer YOUR_TOKEN_HERE',
+          'Authorization': 'Bearer $AUTH_TOKEN',
           'Content-Type': 'application/json',
         },
         body: json.encode(body),
@@ -135,9 +137,9 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   Future<void> _agreeToLocation(String messageId) async {
     try {
       final response = await http.post(
-        Uri.parse('YOUR_API_URL/api/chat/${widget.matchId}/messages/$messageId/agree'),
+        Uri.parse('$API_BASE/api/chat/${widget.matchId}/messages/$messageId/agree'),
         headers: {
-          'Authorization': 'Bearer YOUR_TOKEN_HERE',
+          'Authorization': 'Bearer $AUTH_TOKEN',
         },
       );
 

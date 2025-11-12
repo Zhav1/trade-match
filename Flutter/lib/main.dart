@@ -46,13 +46,22 @@ class MyApp extends StatelessWidget {
       onGenerateRoute: (settings) {
         if (settings.name == '/item_detail') {
           final item = settings.arguments as BarterItem?;
-          return MaterialPageRoute(builder: (_) => ItemDetailPage(item: item));
+          if (item != null) {
+            return MaterialPageRoute(builder: (_) => ItemDetailPage(item: item));
+          }
         }
         if (settings.name == '/trade_offer') {
           final item = settings.arguments as BarterItem?;
           return MaterialPageRoute(builder: (_) => TradeOfferPage(theirItem: item));
         }
-        return null;
+        // If the route is not found or arguments are invalid, show an error page.
+        return MaterialPageRoute(
+          builder: (_) => const Scaffold(
+            body: Center(
+              child: Text('Error: Route not found or arguments are invalid.'),
+            ),
+          ),
+        );
       },
       debugShowCheckedModeBanner: false,
       // Start with the welcome screen so users see onboarding first
@@ -163,7 +172,7 @@ class _MainPageState extends State<MainPage> {
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.swap_horiz),
-            label: 'Beranda',
+            label: 'Explore',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.chat_bubble_outline),

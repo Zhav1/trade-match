@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:appinio_swiper/appinio_swiper.dart';
 import 'package:shimmer/shimmer.dart';
 import '../models/barter_item.dart';
+import '../services/api_service.dart'; // Import the ApiService
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({Key? key}) : super(key: key);
@@ -16,35 +17,32 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
   late final Animation<double> _likeScale;
   bool _showLike = false;
 
-  final List<BarterItem> items = [
-    BarterItem(
-      namaBarang: "Labubu",
-      kondisi: "Baik",
-      namaUser: "Rudi",
-      jarak: "2 km",
-      imageUrl: "assets/images/barang-1.jpg",
-    ),
-    BarterItem(
-      namaBarang: "kipas portable",
-      kondisi: "Seperti Baru",
-      namaUser: "Andi",
-      jarak: "4 km",
-      imageUrl: "assets/images/barang-2.jpg",
-    ),
-    BarterItem(
-      namaBarang: "smartwatch",
-      kondisi: "Mulus",
-      namaUser: "Budi",
-      jarak: "1 km",
-      imageUrl: "assets/images/barang-3.jpg",
-    ),
-  ];
+  late Future<List<BarterItem>> _itemsFuture;
+  final ApiService _apiService = ApiService();
+
+  @override
+  void initState() {
+    super.initState();
+    _itemsFuture = _apiService.getFeed(); // Fetch items from the API
+
+    _likeController = AnimationController(vsync: this, duration: const Duration(milliseconds: 700))
+      ..addStatusListener((status) {
+        if (status == AnimationStatus.completed) {
+          Future.delayed(const Duration(milliseconds: 300), () {
+            if (mounted) setState(() => _showLike = false);
+          });
+        }
+      });
+    _likeScale = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 0.4, end: 1.3).chain(CurveTween(curve: Curves.easeOutBack)), weight: 70),
+      TweenSequenceItem(tween: Tween(begin: 1.3, end: 1.0).chain(CurveTween(curve: Curves.easeIn)), weight: 30),
+    ]).animate(_likeController);
+  }
 
   @override
   Widget build(BuildContext context) {
-  final Color primary = Theme.of(context).colorScheme.primary;
+    final Color primary = Theme.of(context).colorScheme.primary;
 
-    // Build a Stack so we can overlay the heart animation when liking
     return Scaffold(
       backgroundColor: Colors.grey[50],
       body: SafeArea(
@@ -52,7 +50,7 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
           children: [
             Column(
               children: [
-                // Header: avatar, title, filter/search
+                // Header
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
                   child: Row(
@@ -91,27 +89,26 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: items.isEmpty
-                        ? Shimmer.fromColors(
-                            baseColor: Colors.grey[300]!,
-                            highlightColor: Colors.grey[100]!,
-                            child: Column(
-                              children: List.generate(3, (i) => Container(
-                                margin: EdgeInsets.symmetric(vertical: 12),
-                                height: 320,
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                              )),
-                            ),
-                          )
-                        : AppinioSwiper(
+                    child: FutureBuilder<List<BarterItem>>(
+                      future: _itemsFuture,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return _buildShimmer();
+                        } else if (snapshot.hasError) {
+                          return Center(child: Text('Error: ${snapshot.error}'));
+                        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                          return const Center(child: Text('No items found.'));
+                        } else {
+                          final items = snapshot.data!;
+                          return AppinioSwiper(
                             controller: _swiperController,
                             cardCount: items.length,
                             loop: true,
                             cardBuilder: (context, index) => _buildCard(items[index]),
-                          ),
+                          );
+                        }
+                      },
+                    ),
                   ),
                 ),
 
@@ -160,22 +157,21 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
     );
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _likeController = AnimationController(vsync: this, duration: const Duration(milliseconds: 700))
-      ..addStatusListener((status) {
-        if (status == AnimationStatus.completed) {
-          // hide after a short delay
-          Future.delayed(const Duration(milliseconds: 300), () {
-            if (mounted) setState(() => _showLike = false);
-          });
-        }
-      });
-    _likeScale = TweenSequence<double>([
-      TweenSequenceItem(tween: Tween(begin: 0.4, end: 1.3).chain(CurveTween(curve: Curves.easeOutBack)), weight: 70),
-      TweenSequenceItem(tween: Tween(begin: 1.3, end: 1.0).chain(CurveTween(curve: Curves.easeIn)), weight: 30),
-    ]).animate(_likeController);
+  Widget _buildShimmer() {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,
+      highlightColor: Colors.grey[100]!,
+      child: Column(
+        children: List.generate(3, (i) => Container(
+          margin: const EdgeInsets.symmetric(vertical: 12),
+          height: 320,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+          ),
+        )),
+      ),
+    );
   }
 
   @override
@@ -196,7 +192,7 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
         child: Stack(
           fit: StackFit.expand,
           children: [
-            Image.asset(item.imageUrl, fit: BoxFit.cover, errorBuilder: (c, e, s) => const Center(child: Icon(Icons.broken_image))),
+            Image.network(item.imageUrl, fit: BoxFit.cover, errorBuilder: (c, e, s) => const Center(child: Icon(Icons.broken_image))),
             Positioned(
               left: 16,
               right: 16,
@@ -220,7 +216,7 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      CircleAvatar(radius: 14, backgroundImage: AssetImage('assets/images/pp-1.png')),
+                      const CircleAvatar(radius: 14, backgroundImage: AssetImage('assets/images/pp-1.png')),
                       const SizedBox(width: 8),
                       Text('Ditawarkan oleh ${item.namaUser}', style: const TextStyle(color: Colors.white70)),
                       const Spacer(),
@@ -251,7 +247,7 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
         splashColor: Theme.of(context).colorScheme.primary.withOpacity(0.12),
         child: AnimatedScale(
           scale: 1.0,
-          duration: Duration(milliseconds: 100),
+          duration: const Duration(milliseconds: 100),
           child: SizedBox(
             width: 64,
             height: 64,
@@ -273,7 +269,7 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
         splashColor: Theme.of(context).colorScheme.onPrimary.withOpacity(0.12),
         child: AnimatedScale(
           scale: 1.0,
-          duration: Duration(milliseconds: 100),
+          duration: const Duration(milliseconds: 100),
           child: SizedBox(
             width: 84,
             height: 84,

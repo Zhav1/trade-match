@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:Flutter/auth/forgot_password.dart';
+import '../services/api_service.dart';
+import '../services/constants.dart';
+import '../screens/explore_screen.dart';
 
 class AuthPage extends StatefulWidget {
   final int initialTabIndex;
@@ -17,8 +20,11 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
   // Form controllers
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
+
+  final ApiService _apiService = ApiService();
 
   @override
   void initState() {
@@ -31,6 +37,7 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
     _tabController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     _nameController.dispose();
     _phoneController.dispose();
     super.dispose();
@@ -159,7 +166,7 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
             const SizedBox(height: 16),
             TextButton(
               onPressed: () {
-                // TODO: Implement forgot password
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const ForgotPasswordPage()));
               },
               child: Text(
                   'Forgot Password?',
@@ -228,6 +235,21 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
                 return null;
               },
             ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _confirmPasswordController,
+              decoration: _inputDecoration('Confirm Password', Icons.lock),
+              obscureText: true,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please confirm your password';
+                }
+                if (value != _passwordController.text) {
+                  return 'Passwords do not match';
+                }
+                return null;
+              },
+            ),
             const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
@@ -271,29 +293,57 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
     );
   }
 
-  void _handleSignIn() {
+  void _handleSignIn() async {
     if (_formKey.currentState!.validate()) {
-      // Simulate sign in
       setState(() => _isLoading = true);
-      Future.delayed(const Duration(seconds: 2), () {
-        if (!mounted) return;
-        setState(() => _isLoading = false);
-        // Navigate to main app
-        Navigator.pushReplacementNamed(context, '/main');
-      });
+      try {
+        final response = await _apiService.login(
+          _emailController.text,
+          _passwordController.text,
+        );
+        AUTH_TOKEN = response['token'];
+        AUTH_USER_ID = response['user']['id'].toString();
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const ExploreScreen()),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to sign in: ${e.toString()}')),
+        );
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+      }
     }
   }
 
-  void _handleRegister() {
+  void _handleRegister() async {
     if (_formKey.currentState!.validate()) {
-      // Simulate registration
       setState(() => _isLoading = true);
-      Future.delayed(const Duration(seconds: 2), () {
-        if (!mounted) return;
-        setState(() => _isLoading = false);
-        // After registration, go to profile setup or main; for prototype go to main
-        Navigator.pushReplacementNamed(context, '/main');
-      });
+      try {
+        final response = await _apiService.register(
+          _nameController.text,
+          _emailController.text,
+          _phoneController.text,
+          _passwordController.text,
+        );
+        AUTH_TOKEN = response['token'];
+        AUTH_USER_ID = response['user']['id'].toString();
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const ExploreScreen()),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to register: ${e.toString()}')),
+        );
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+      }
     }
   }
 }

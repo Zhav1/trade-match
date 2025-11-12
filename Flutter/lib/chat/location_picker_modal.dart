@@ -17,11 +17,11 @@ class LocationPickerModal extends StatefulWidget {
 }
 
 class _LocationPickerModalState extends State<LocationPickerModal> {
-  late GoogleMapController mapController;
-  LatLng? selectedLocation;
-  String? selectedAddress;
-  String? selectedName;
-  bool isLoading = false;
+  final MapController _mapController = MapController();
+  LatLng? _selectedLocation;
+  String? _selectedAddress;
+  String? _selectedName;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -30,19 +30,40 @@ class _LocationPickerModalState extends State<LocationPickerModal> {
   }
 
   Future<void> _getCurrentLocation() async {
-    setState(() => isLoading = true);
+    setState(() => _isLoading = true);
     try {
+      bool serviceEnabled;
+      LocationPermission permission;
+
+      serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        throw Exception('Location services are disabled.');
+      }
+
+      permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          throw Exception('Location permissions are denied');
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        throw Exception('Location permissions are permanently denied, we cannot request permissions.');
+      }
+
       Position position = await Geolocator.getCurrentPosition();
       setState(() {
-        selectedLocation = LatLng(position.latitude, position.longitude);
-        _getAddressFromLatLng(selectedLocation!);
+        _selectedLocation = LatLng(position.latitude, position.longitude);
+        _mapController.move(_selectedLocation!, 15.0);
+        _getAddressFromLatLng(_selectedLocation!);
       });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Could not get current location: $e')),
       );
     }
-    setState(() => isLoading = false);
+    setState(() => _isLoading = false);
   }
 
   Future<void> _getAddressFromLatLng(LatLng position) async {
@@ -54,8 +75,8 @@ class _LocationPickerModalState extends State<LocationPickerModal> {
       if (placemarks.isNotEmpty) {
         Placemark place = placemarks[0];
         setState(() {
-          selectedAddress = '${place.street}, ${place.locality}, ${place.country}';
-          selectedName = place.name ?? 'Selected Location';
+          _selectedAddress = '${place.street}, ${place.locality}, ${place.country}';
+          _selectedName = place.name ?? 'Selected Location';
         });
       }
     } catch (e) {
@@ -63,73 +84,81 @@ class _LocationPickerModalState extends State<LocationPickerModal> {
     }
   }
 
+  void _handleTap(TapPosition tapPosition, LatLng latlng) {
+    setState(() {
+      _selectedLocation = latlng;
+      _getAddressFromLatLng(latlng);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return SizedBox(
       height: MediaQuery.of(context).size.height * 0.8,
       child: Column(
         children: [
           AppBar(
-            title: Text('Pick Meeting Location'),
+            title: const Text('Pick Meeting Location'),
             actions: [
-              if (selectedLocation != null)
+              if (_selectedLocation != null)
                 TextButton(
                   onPressed: () {
-                    if (selectedLocation != null && selectedAddress != null && selectedName != null) {
+                    if (_selectedLocation != null && _selectedAddress != null && _selectedName != null) {
                       widget.onLocationPicked(
-                        selectedName!,
-                        selectedAddress!,
-                        selectedLocation!.latitude,
-                        selectedLocation!.longitude,
+                        _selectedName!,
+                        _selectedAddress!,
+                        _selectedLocation!.latitude,
+                        _selectedLocation!.longitude,
                       );
                       Navigator.pop(context);
                     }
                   },
-                  child: Text('Confirm', style: TextStyle(color: Colors.white)),
+                  child: const Text('Confirm', style: TextStyle(color: Colors.white)),
                 ),
             ],
           ),
           Expanded(
-            child: isLoading
-                ? Center(child: CircularProgressIndicator())
-                : Stack(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : FlutterMap(
+                    mapController: _mapController,
+                    options: MapOptions(
+                      center: _selectedLocation ?? LatLng(0, 0),
+                      zoom: 15,
+                      onTap: _handleTap,
+                    ),
                     children: [
-                      GoogleMap(
-                        initialCameraPosition: CameraPosition(
-                          target: selectedLocation ?? LatLng(0, 0),
-                          zoom: 15,
-                        ),
-                        onMapCreated: (controller) => mapController = controller,
-                        onTap: (LatLng position) {
-                          setState(() {
-                            selectedLocation = position;
-                            _getAddressFromLatLng(position);
-                          });
-                        },
-                        markers: selectedLocation == null
-                            ? {}
-                            : {
-                                Marker(
-                                  markerId: MarkerId('selected'),
-                                  position: selectedLocation!,
-                                ),
-                              },
+                      TileLayer(
+                        urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                        subdomains: const ['a', 'b', 'c'],
                       ),
-                      if (selectedAddress != null)
-                        Positioned(
-                          bottom: 16,
-                          left: 16,
-                          right: 16,
-                          child: Card(
-                            child: Padding(
-                              padding: EdgeInsets.all(16),
-                              child: Text(selectedAddress!),
+                      if (_selectedLocation != null)
+                        MarkerLayer(
+                          markers: [
+                            Marker(
+                              width: 80.0,
+                              height: 80.0,
+                              point: _selectedLocation!,
+                              child: const Icon(
+                                Icons.location_pin,
+                                color: Colors.red,
+                                size: 40,
+                              ),
                             ),
-                          ),
+                          ],
                         ),
                     ],
                   ),
           ),
+          if (_selectedAddress != null)
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text(
+                _selectedAddress!,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ),
         ],
       ),
     );
