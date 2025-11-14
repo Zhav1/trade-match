@@ -9,43 +9,39 @@ use Illuminate\Http\JsonResponse;
 class TradeController extends Controller
 {
     /**
-     * Confirm a trade between two users.
-     *
-     * @param Request $request
-     * @param BarterMatch $match
-     * @return JsonResponse
+     * Confirm a trade for a match.
      */
     public function confirmTrade(Request $request, BarterMatch $match): JsonResponse
     {
+        $this->authorize('update', $match);
+
         $user = $request->user();
+        $isItemAOwner = $match->itemA->user_id === $user->id;
+        $isItemBOwner = $match->itemB->user_id === $user->id;
 
-        // Check if user is part of the match
-        if ($match->user_a_id !== $user->id && $match->user_b_id !== $user->id) {
-            return response()->json(['message' => 'You are not authorized to confirm this trade'], 403);
+        if (!$isItemAOwner && !$isItemBOwner) {
+            return response()->json(['message' => 'You are not authorized to confirm this trade.'], 403);
         }
 
-        // Determine user roles
-        $currentUserRole = ($match->user_a_id === $user->id) ? 'a' : 'b';
-        $otherUserRole = ($currentUserRole === 'a') ? 'b' : 'a';
-
-        // Check if this is the second confirmation
-        if ($match->status === "{$otherUserRole}_confirmed") {
-            $match->status = 'exchanged';
-            $match->item_a->update(['status' => 'exchanged']);
-            $match->item_b->update(['status' => 'exchanged']);
+        if ($isItemAOwner) {
+            $match->item_a_owner_confirmed = true;
         }
-        // Check if this is the first confirmation
-        elseif ($match->status === 'active') {
-            $match->status = "{$currentUserRole}_confirmed";
-        } else {
-            return response()->json(['message' => 'Invalid match status for confirmation'], 400);
+
+        if ($isItemBOwner) {
+            $match->item_b_owner_confirmed = true;
+        }
+
+        if ($match->item_a_owner_confirmed && $match->item_b_owner_confirmed) {
+            $match->status = 'trade_complete';
+            $match->itemA->update(['status' => 'traded']);
+            $match->itemB->update(['status' => 'traded']);
         }
 
         $match->save();
 
         return response()->json([
-            'message' => 'Trade confirmation updated successfully',
-            'match' => $match->load(['item_a', 'item_b'])
+            'message' => 'Trade confirmation updated successfully.',
+            'match' => $match->load(['itemA', 'itemB']),
         ]);
     }
 }

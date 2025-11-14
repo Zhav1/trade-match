@@ -15,25 +15,26 @@ class Message extends Model
      *
      * @var array<string>
      */
-    protected $fillable = [
-        'match_id',
-        'user_id',
-        'content',
-    ];
-
-    /**
-     * Get the match that this message belongs to.
-     */
-    public function match(): BelongsTo
-    {
-        return $this->belongsTo(BarterMatch::class, 'match_id');
+        protected $fillable = [
+            'match_id',
+            'sender_user_id',
+            'message_text',
+        ];
+    
+        /**
+         * Get the match that this message belongs to.
+         */
+        public function match(): BelongsTo
+        {
+            return $this->belongsTo(BarterMatch::class, 'match_id');
+        }
+    
+        /**
+         * Get the user who sent this message.
+         */
+        public function sender(): BelongsTo
+        {
+            return $this->belongsTo(User::class, 'sender_user_id');
+        }
     }
-
-    /**
-     * Get the user who sent this message.
-     */
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
-    }
-}
+    

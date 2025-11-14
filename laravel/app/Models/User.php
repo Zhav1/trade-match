@@ -21,17 +21,18 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
-        'phone',
         'password',
-        'fcm_token',
-        'lat',
-        'lng',
+        'profile_picture_url',
+        'default_location_city',
+        'default_lat',
+        'default_lon',
+        'rating',
     ];
 
     /**
      * The attributes that should be hidden for serialization.
      *
-     * @var list<string>
+     * @var array<int, string>
      */
     protected $hidden = [
         'password',
@@ -39,55 +40,38 @@ class User extends Authenticatable
     ];
 
     /**
-     * Get the attributes that should be cast.
+     * The attributes that should be cast.
      *
-     * @return array<string, string>
+     * @var array<string, string>
      */
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
     }
 
     /**
-     * Get all likes given by the user.
+     * Get the items for the user.
      */
-    public function likes(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function items()
     {
-        return $this->hasMany(Like::class);
+        return $this->hasMany(Item::class);
     }
 
     /**
-     * Get all matches where user is participant A
+     * Get all swipes made by the user.
      */
-    public function matchesAsUserA(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function swipes()
     {
-        return $this->hasMany(BarterMatch::class, 'user_a_id');
+        return $this->hasMany(Swipe::class, 'swiper_user_id');
     }
 
     /**
-     * Get all matches where user is participant B
+     * Get all messages sent by the user.
      */
-    public function matchesAsUserB(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function messages()
     {
-        return $this->hasMany(BarterMatch::class, 'user_b_id');
+        return $this->hasMany(Message::class, 'sender_user_id');
     }
-
-    /**
-     * Get all matches for the user (both as A and B)
-     */
-    public function matches()
-    {
-        return $this->matchesAsUserA()->orWhere('user_b_id', $this->id);
-    }
-
-        /**
-         * Get all messages sent by the user.
-         */
-        public function messages(): \Illuminate\Database\Eloquent\Relations\HasMany
-        {
-            return $this->hasMany(Message::class)->orderBy('created_at', 'desc');
-        }
 }

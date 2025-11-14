@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use App\Models\BarterMatch;
+use App\Models\Message;
 
 class ChatController extends Controller
 {
@@ -13,14 +14,9 @@ class ChatController extends Controller
      */
     public function getMessages(Request $request, BarterMatch $match)
     {
-        $user = $request->user();
+        $this->authorize('view', $match);
 
-        // Authorization: ensure user is participant A or B
-        if ($user->id !== $match->user_a_id && $user->id !== $match->user_b_id) {
-            return response()->json(['message' => 'Forbidden'], Response::HTTP_FORBIDDEN);
-        }
-
-        $messages = $match->messages()->with('user:id,name')->orderBy('created_at', 'asc')->get();
+        $messages = $match->messages()->with('sender:id,name')->orderBy('created_at', 'asc')->get();
 
         return response()->json($messages);
     }
@@ -30,23 +26,18 @@ class ChatController extends Controller
      */
     public function sendMessage(Request $request, BarterMatch $match)
     {
-        $user = $request->user();
-
-        // Authorization
-        if ($user->id !== $match->user_a_id && $user->id !== $match->user_b_id) {
-            return response()->json(['message' => 'Forbidden'], Response::HTTP_FORBIDDEN);
-        }
+        $this->authorize('update', $match);
 
         $validated = $request->validate([
-            'content' => 'required|string|max:2000',
+            'message_text' => 'required|string|max:2000',
         ]);
 
         $message = $match->messages()->create([
-            'user_id' => $user->id,
-            'content' => $validated['content'],
+            'sender_user_id' => $request->user()->id,
+            'message_text' => $validated['message_text'],
         ]);
 
-        $message->load('user:id,name');
+        $message->load('sender:id,name');
 
         // TODO: Add real-time event dispatch here (e.g., NewChatMessage::dispatch($message))
 
