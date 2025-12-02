@@ -1,47 +1,55 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:trade_match/models/category.dart';
+import 'package:trade_match/models/barter_item.dart'; // Added import
+import 'package:trade_match/services/api_service.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:appinio_swiper/appinio_swiper.dart';
+
 import 'package:shimmer/shimmer.dart';
-import '../models/barter_item.dart';
-import '../services/api_service.dart'; // Import the ApiService
 
 class ExploreScreen extends StatefulWidget {
-  const ExploreScreen({Key? key}) : super(key: key);
+  const ExploreScreen({super.key});
 
   @override
-  _ExploreScreenState createState() => _ExploreScreenState();
+  State<ExploreScreen> createState() => _ExploreScreenState();
 }
 
 class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProviderStateMixin {
-  final AppinioSwiperController _swiperController = AppinioSwiperController();
-  late final AnimationController _likeController;
-  late final Animation<double> _likeScale;
-  bool _showLike = false;
-
-  late Future<List<BarterItem>> _itemsFuture;
   final ApiService _apiService = ApiService();
+  final AppinioSwiperController _swiperController = AppinioSwiperController();
+  late AnimationController _likeController;
+  late Animation<double> _likeScale;
+  bool _showLike = false;
+  late Future<List<BarterItem>> _itemsFuture;
 
   @override
   void initState() {
     super.initState();
-    _itemsFuture = _apiService.getFeed(); // Fetch items from the API
-
-    _likeController = AnimationController(vsync: this, duration: const Duration(milliseconds: 700))
-      ..addStatusListener((status) {
-        if (status == AnimationStatus.completed) {
-          Future.delayed(const Duration(milliseconds: 300), () {
-            if (mounted) setState(() => _showLike = false);
-          });
-        }
-      });
+    _itemsFuture = _apiService.getExploreItems();
+    _likeController = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
     _likeScale = TweenSequence<double>([
-      TweenSequenceItem(tween: Tween(begin: 0.4, end: 1.3).chain(CurveTween(curve: Curves.easeOutBack)), weight: 70),
-      TweenSequenceItem(tween: Tween(begin: 1.3, end: 1.0).chain(CurveTween(curve: Curves.easeIn)), weight: 30),
+      TweenSequenceItem(tween: Tween(begin: 0.0, end: 1.2).chain(CurveTween(curve: Curves.elasticOut)), weight: 40),
+      TweenSequenceItem(tween: Tween(begin: 1.2, end: 1.0).chain(CurveTween(curve: Curves.easeOut)), weight: 20),
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.5).chain(CurveTween(curve: Curves.easeOut)), weight: 40),
     ]).animate(_likeController);
+
+    _likeController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        setState(() => _showLike = false);
+        _likeController.reset();
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final Color primary = Theme.of(context).colorScheme.primary;
+    // A placeholder for the item the user is offering.
+    // In a real app, this would be selected by the user.
+    const int _currentUserItemId = 1;
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -70,7 +78,7 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
                           ],
                         ),
                       ),
-                      IconButton(onPressed: () {}, icon: const Icon(Icons.notifications_outlined, color: Colors.grey)),
+                      IconButton(onPressed: () => Navigator.pushNamed(context, '/notifications'), icon: const Icon(Icons.notifications_outlined, color: Colors.grey)),
                       const SizedBox(width: 6),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
@@ -78,7 +86,7 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                         ),
-                        onPressed: () {},
+                        onPressed: () => Navigator.pushNamed(context, '/search'),
                         child: const Icon(Icons.filter_list, color: Colors.white),
                       ),
                     ],
@@ -104,6 +112,14 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
                             controller: _swiperController,
                             cardCount: items.length,
                             loop: true,
+                            onSwipeEnd: (previousIndex, targetIndex, direction) {
+                              final item = items[previousIndex];
+                              if (direction == AxisDirection.right) {
+                                _apiService.swipe(_currentUserItemId, item.id, 'like');
+                              } else if (direction == AxisDirection.left) {
+                                _apiService.swipe(_currentUserItemId, item.id, 'dislike');
+                              }
+                            },
                             cardBuilder: (context, index) => _buildCard(items[index]),
                           );
                         }
@@ -122,9 +138,9 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
                       _bigAction(icon: Icons.favorite, color: primary, onTap: () {
                         setState(() => _showLike = true);
                         _likeController.forward(from: 0);
-                        _swiperController.unswipe();
+                        _swiperController.swipeRight();
                       }),
-                      _smallAction(icon: Icons.star, color: primary, onTap: () => _swiperController.swipeUp()),
+                      _smallAction(icon: Icons.star, color: Colors.amber, onTap: () => _swiperController.swipeUp()),
                     ],
                   ),
                 ),
@@ -161,15 +177,13 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
     return Shimmer.fromColors(
       baseColor: Colors.grey[300]!,
       highlightColor: Colors.grey[100]!,
-      child: Column(
-        children: List.generate(3, (i) => Container(
-          margin: const EdgeInsets.symmetric(vertical: 12),
-          height: 320,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-          ),
-        )),
+      child: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+        ),
       ),
     );
   }
@@ -177,10 +191,14 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
   @override
   void dispose() {
     _likeController.dispose();
+    _swiperController.dispose();
     super.dispose();
   }
 
   Widget _buildCard(BarterItem item) {
+    // Placeholder for distance calculation
+    const String distance = "2 km";
+
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
@@ -192,7 +210,14 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
         child: Stack(
           fit: StackFit.expand,
           children: [
-            Image.network(item.imageUrl, fit: BoxFit.cover, errorBuilder: (c, e, s) => const Center(child: Icon(Icons.broken_image))),
+            if (item.images.isNotEmpty)
+              Image.network(
+                item.images.first.imageUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (c, e, s) => const Center(child: Icon(Icons.broken_image, color: Colors.grey)),
+              )
+            else
+              const Center(child: Icon(Icons.image_not_supported, color: Colors.grey, size: 50)),
             Positioned(
               left: 16,
               right: 16,
@@ -204,7 +229,7 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(color: Colors.black.withOpacity(0.68), borderRadius: BorderRadius.circular(12)),
                     child: Text(
-                      '${item.namaBarang} • ${item.kondisi}',
+                      '${item.title} • ${item.condition}',
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -216,14 +241,23 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      const CircleAvatar(radius: 14, backgroundImage: AssetImage('assets/images/pp-1.png')),
+                      CircleAvatar(
+                        radius: 14,
+                        backgroundImage: item.user.profilePictureUrl != null
+                            ? NetworkImage(item.user.profilePictureUrl!)
+                            : const AssetImage('assets/images/pp-1.png') as ImageProvider,
+                      ),
                       const SizedBox(width: 8),
-                      Text('Ditawarkan oleh ${item.namaUser}', style: const TextStyle(color: Colors.white70)),
+                      Text('Offered by ${item.user.name}', style: const TextStyle(color: Colors.white, shadows: [Shadow(color: Colors.black, blurRadius: 4)])),
                       const Spacer(),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                         decoration: BoxDecoration(color: Colors.black.withOpacity(0.6), borderRadius: BorderRadius.circular(10)),
-                        child: Row(children: [const Icon(Icons.location_on, size: 14, color: Colors.white), const SizedBox(width: 4), Text(item.jarak, style: const TextStyle(color: Colors.white, shadows: [Shadow(color: Colors.black45, blurRadius: 4, offset: Offset(0, 1))]))]),
+                        child: Row(children: [
+                          const Icon(Icons.location_on, size: 14, color: Colors.white),
+                          const SizedBox(width: 4),
+                          Text(distance, style: const TextStyle(color: Colors.white, shadows: [Shadow(color: Colors.black45, blurRadius: 4, offset: Offset(0, 1))]))
+                        ]),
                       )
                     ],
                   )
@@ -241,18 +275,15 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
       color: Colors.white,
       shape: const CircleBorder(),
       elevation: 4,
+      shadowColor: Colors.black.withOpacity(0.2),
       child: InkWell(
         onTap: onTap,
         customBorder: const CircleBorder(),
-        splashColor: Theme.of(context).colorScheme.primary.withOpacity(0.12),
-        child: AnimatedScale(
-          scale: 1.0,
-          duration: const Duration(milliseconds: 100),
-          child: SizedBox(
-            width: 64,
-            height: 64,
-            child: Icon(icon, color: color, size: 30),
-          ),
+        splashColor: color.withOpacity(0.12),
+        child: SizedBox(
+          width: 64,
+          height: 64,
+          child: Icon(icon, color: color, size: 30),
         ),
       ),
     );
@@ -263,18 +294,15 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
       color: color,
       shape: const CircleBorder(),
       elevation: 6,
+      shadowColor: color.withOpacity(0.4),
       child: InkWell(
         onTap: onTap,
         customBorder: const CircleBorder(),
-        splashColor: Theme.of(context).colorScheme.onPrimary.withOpacity(0.12),
-        child: AnimatedScale(
-          scale: 1.0,
-          duration: const Duration(milliseconds: 100),
-          child: SizedBox(
-            width: 84,
-            height: 84,
-            child: Icon(icon, color: Colors.white, size: 38),
-          ),
+        splashColor: Colors.white.withOpacity(0.2),
+        child: SizedBox(
+          width: 84,
+          height: 84,
+          child: Icon(icon, color: Colors.white, size: 38),
         ),
       ),
     );

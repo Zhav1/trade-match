@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:Flutter/models/barter_item.dart';
+import 'package:trade_match/models/barter_item.dart';
 
 class TradeOfferPage extends StatefulWidget {
   final BarterItem? theirItem;
@@ -48,7 +48,7 @@ class _TradeOfferPageState extends State<TradeOfferPage> {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(8),
                     image: DecorationImage(
-                      image: NetworkImage(widget.theirItem?.imageUrl ?? 'https://picsum.photos/60/60'),
+                      image: NetworkImage(widget.theirItem?.images.isNotEmpty == true ? widget.theirItem!.images.first.imageUrl : 'https://picsum.photos/60/60'),
                       fit: BoxFit.cover,
                     ),
                   ),
@@ -66,7 +66,7 @@ class _TradeOfferPageState extends State<TradeOfferPage> {
                         ),
                       ),
                       Text(
-                        widget.theirItem?.namaBarang ?? 'Item',
+                        widget.theirItem?.title ?? 'Item',
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,

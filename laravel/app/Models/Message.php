@@ -16,17 +16,17 @@ class Message extends Model
      * @var array<string>
      */
         protected $fillable = [
-            'match_id',
+            'swap_id',
             'sender_user_id',
             'message_text',
         ];
     
         /**
-         * Get the match that this message belongs to.
+         * Get the swap that this message belongs to.
          */
-        public function match(): BelongsTo
+        public function swap(): BelongsTo
         {
-            return $this->belongsTo(BarterMatch::class, 'match_id');
+            return $this->belongsTo(Swap::class, 'swap_id');
         }
     
         /**

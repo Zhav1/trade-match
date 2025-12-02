@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'location_picker_modal.dart';
-import 'location_message_bubble.dart';
+import 'package:pusher_channels_flutter/pusher_channels_flutter.dart';
+import 'package:trade_match/chat/location_picker_modal.dart';
+import 'package:trade_match/chat/location_message_bubble.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import '../widget_Template/loading_overlay.dart';
-import '../services/constants.dart';
+import 'package:trade_match/widget_Template/loading_overlay.dart';
+import 'package:trade_match/services/constants.dart';
 
 class ChatDetailPage extends StatefulWidget {
   final String matchId;
@@ -29,13 +30,51 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   String? currentUserId;
   bool isLoading = false;
 
+  PusherChannelsFlutter pusher = PusherChannelsFlutter.getInstance();
+
   @override
   void initState() {
     super.initState();
     _loadMessages();
-  // TODO: Wire this to your auth service. For local dev you can set
-  // AUTH_USER_ID in `lib/services/constants.dart`.
-  currentUserId = AUTH_USER_ID;
+    // TODO: Wire this to your auth service. For local dev you can set
+    // AUTH_USER_ID in `lib/services/constants.dart`.
+    currentUserId = AUTH_USER_ID;
+    _initPusher();
+  }
+
+  void _initPusher() async {
+    try {
+      await pusher.init(
+        apiKey: PUSHER_KEY,
+        cluster: PUSHER_CLUSTER,
+        onEvent: _onEvent,
+      );
+      await pusher.subscribe(channelName: "swap.${widget.matchId}");
+      await pusher.connect();
+    } catch (e) {
+      print("ERROR: $e");
+    }
+  }
+
+  void _onEvent(PusherEvent event) {
+    if (event.eventName == "App\\Events\\NewChatMessage") {
+       final data = jsonDecode(event.data);
+       // data['message'] contains the message object
+       if (mounted) {
+         setState(() {
+           // Avoid duplicates if message is already in list (e.g. from local send)
+           // But local send adds it immediately.
+           // Ideally we should replace the local optimistic message or check ID.
+           // For simplicity, we just add if not present or just add.
+           // Let's check if ID exists.
+           bool exists = messages.any((m) => m['id'] == data['message']['id']);
+           if (!exists) {
+             messages.add(data['message']);
+             _scrollToBottom();
+           }
+         });
+       }
+    }
   }
 
   Future<void> _loadMessages() async {
@@ -45,7 +84,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
 
     try {
       final response = await http.get(
-        Uri.parse('$API_BASE/api/chat/${widget.matchId}/messages'),
+        Uri.parse('$API_BASE/api/swaps/${widget.matchId}/messages'),
         headers: {
           'Authorization': 'Bearer $AUTH_TOKEN',
         },
@@ -94,7 +133,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       }
 
       final response = await http.post(
-        Uri.parse('$API_BASE/api/chat/${widget.matchId}/messages'),
+        Uri.parse('$API_BASE/api/swaps/${widget.matchId}/messages'),
         headers: {
           'Authorization': 'Bearer $AUTH_TOKEN',
           'Content-Type': 'application/json',
@@ -137,10 +176,12 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   Future<void> _agreeToLocation(String messageId) async {
     try {
       final response = await http.post(
-        Uri.parse('$API_BASE/api/chat/${widget.matchId}/messages/$messageId/agree'),
+        Uri.parse('$API_BASE/api/swaps/${widget.matchId}/accept-location'),
         headers: {
           'Authorization': 'Bearer $AUTH_TOKEN',
+          'Content-Type': 'application/json',
         },
+        body: json.encode({'message_id': messageId}),
       );
 
       if (response.statusCode == 200) {
@@ -330,6 +371,8 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
 
   @override
   void dispose() {
+    pusher.unsubscribe(channelName: "swap.${widget.matchId}");
+    pusher.disconnect();
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();

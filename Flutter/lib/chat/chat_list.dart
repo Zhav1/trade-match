@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:Flutter/chat/chat_detail.dart';
+import 'package:trade_match/chat/chat_detail.dart';
 
 class ChatListScreen extends StatefulWidget {
   const ChatListScreen({super.key});

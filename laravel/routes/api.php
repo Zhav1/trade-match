@@ -1,37 +1,41 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\ExploreController;
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\ItemController;
-
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\ExploreController;
 use App\Http\Controllers\ImageUploadController;
+use App\Http\Controllers\ItemController;
+use App\Http\Controllers\SwapController;
+use App\Http\Controllers\SwipeController;
 
 // Public authentication routes
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
+// All routes below require authentication
 Route::middleware('auth:sanctum')->group(function () {
-    // Auth route that requires authentication
+    // Auth
     Route::post('/logout', [AuthController::class, 'logout']);
-    
-    // Item management routes
+    Route::get('/user', [AuthController::class, 'getAuthenticatedUser']); // As per GEMINI.md
+
+    // Items & Categories
     Route::apiResource('items', ItemController::class);
     Route::get('/categories', [CategoryController::class, 'index']);
     Route::post('/upload/image', [ImageUploadController::class, 'upload']);
     
-    // Explore and swipe routes
+    // Explore & Swipe (Core Loop)
 	Route::get('/explore', [ExploreController::class, 'getFeed']);
-	Route::post('/swipe', [\App\Http\Controllers\SwipeController::class, 'store']);
+	Route::post('/swipe', [SwipeController::class, 'store']);
 
-	// Chat routes: fetch history and send messages for a match
-	Route::get('/chat/{match}/messages', [\App\Http\Controllers\ChatController::class, 'getMessages']);
-	Route::post('/chat/{match}/messages', [\App\Http\Controllers\ChatController::class, 'sendMessage']);
-	Route::post('/chat/{match}/messages/{message}/agree', [\App\Http\Controllers\ChatController::class, 'agreeToLocation']);
-
-    Route::get('/matches', [\App\Http\Controllers\BarterMatchController::class, 'index']);
-	// Trade confirmation route
-	Route::post('/trade/{match}/confirm', [\App\Http\Controllers\TradeController::class, 'confirmTrade']);
+	// Swaps, Chat, and Trade Confirmation
+    Route::get('/swaps', [SwapController::class, 'index']);
+    Route::get('/swaps/{swap}/messages', [SwapController::class, 'getMessages']);
+    Route::post('/swaps/{swap}/messages', [SwapController::class, 'sendMessage']);
+    Route::post('/swaps/{swap}/confirm', [SwapController::class, 'confirmTrade']);
+    
+    // Location Negotiation (as per GEMINI.md)
+    Route::post('/swaps/{swap}/suggest-location', [SwapController::class, 'suggestLocation']);
+    Route::post('/swaps/{swap}/accept-location', [SwapController::class, 'acceptLocation']);
 });
 

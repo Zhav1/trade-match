@@ -1,4 +1,4 @@
-name: Flutter
+name: trade_match
 description: "A Project for My Mobile Programming Subject."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -34,7 +34,7 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
-  appinio_swiper: ^2.1.1
+  appinio_swiper: 2.1.0
   google_fonts: ^6.0.0
   flutter_map: ^6.1.0
   latlong2: ^0.9.0
@@ -44,6 +44,10 @@ dependencies:
   image_picker: ^1.0.7
   path: ^1.8.3
   shimmer: ^3.0.0
+  google_sign_in: ^6.2.1
+  flutter_secure_storage: ^9.0.0
+  pusher_channels_flutter: ^2.4.0
+  intl: ^0.20.2
 
 dev_dependencies:
   flutter_test:

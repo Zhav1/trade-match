@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:Flutter/auth/forgot_password.dart';
-import '../services/api_service.dart';
-import '../services/constants.dart';
-import '../screens/explore_screen.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:trade_match/services/api_service.dart';
+import 'package:trade_match/main.dart';
+import 'package:trade_match/auth/forgot_password.dart';
+import 'package:trade_match/services/constants.dart';
 
 class AuthPage extends StatefulWidget {
   final int initialTabIndex;
+
   const AuthPage({super.key, this.initialTabIndex = 0});
 
   @override
@@ -25,6 +27,26 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
   final _phoneController = TextEditingController();
 
   final ApiService _apiService = ApiService();
+  final GoogleSignIn _googleSignIn = GoogleSignIn(scopes: ['email']);
+
+  InputDecoration _inputDecoration(String label, IconData icon) {
+    return InputDecoration(
+      labelText: label,
+      prefixIcon: Icon(icon, color: Theme.of(context).colorScheme.primary),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Colors.grey),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Colors.grey),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Theme.of(context).colorScheme.primary),
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -164,6 +186,21 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
               ),
             ),
             const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: OutlinedButton.icon(
+                onPressed: _isLoading ? null : _handleGoogleSignIn,
+                icon: const Icon(Icons.login),
+                label: const Text('Sign in with Google'),
+                style: OutlinedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
             TextButton(
               onPressed: () {
                 Navigator.push(context, MaterialPageRoute(builder: (context) => const ForgotPasswordPage()));
@@ -274,25 +311,6 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
     );
   }
 
-  InputDecoration _inputDecoration(String label, IconData icon) {
-    return InputDecoration(
-      labelText: label,
-  prefixIcon: Icon(icon, color: Theme.of(context).colorScheme.primary),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.grey),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.grey),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Theme.of(context).colorScheme.primary),
-      ),
-    );
-  }
-
   void _handleSignIn() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
@@ -301,11 +319,11 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
           _emailController.text,
           _passwordController.text,
         );
-        AUTH_TOKEN = response['token'];
+        await _apiService.saveToken(response['token']);
         AUTH_USER_ID = response['user']['id'].toString();
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const ExploreScreen()),
+          MaterialPageRoute(builder: (context) => const MainPage()),
         );
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -329,11 +347,11 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
           _phoneController.text,
           _passwordController.text,
         );
-        AUTH_TOKEN = response['token'];
+        await _apiService.saveToken(response['token']);
         AUTH_USER_ID = response['user']['id'].toString();
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const ExploreScreen()),
+          MaterialPageRoute(builder: (context) => const MainPage()),
         );
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -343,6 +361,43 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
         if (mounted) {
           setState(() => _isLoading = false);
         }
+      }
+    }
+  }
+
+  void _handleGoogleSignIn() async {
+    setState(() => _isLoading = true);
+    try {
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) {
+        setState(() => _isLoading = false);
+        return; // User canceled
+      }
+
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final String? idToken = googleAuth.idToken;
+
+      if (idToken != null) {
+        final response = await _apiService.googleLogin(idToken);
+        await _apiService.saveToken(response['token']);
+        AUTH_USER_ID = response['user']['id'].toString();
+        
+        if (mounted) {
+           Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const MainPage()),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to sign in with Google: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
       }
     }
   }

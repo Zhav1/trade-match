@@ -1,0 +1,181 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Message;
+use App\Models\Swap;
+use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+
+class SwapController extends Controller
+{
+    /**
+     * Get the list of swaps for the authenticated user.
+     */
+    public function index(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        
+        $swaps = Swap::where(function ($query) use ($user) {
+                $query->whereHas('itemA', fn($q) => $q->where('user_id', $user->id))
+                      ->orWhereHas('itemB', fn($q) => $q->where('user_id', $user->id));
+            })
+            ->with(['itemA.images', 'itemB.images', 'itemA.user', 'itemB.user'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json($swaps);
+    }
+
+    /**
+     * Get message history for a swap.
+     */
+    public function getMessages(Request $request, Swap $swap): JsonResponse
+    {
+        $this->authorize('view', $swap);
+
+        $messages = $swap->messages()->with('sender:id,name')->orderBy('created_at', 'asc')->get();
+
+        return response()->json($messages);
+    }
+
+    /**
+     * Send a new message in a swap chat.
+     */
+    /**
+     * Send a new message in a swap chat.
+     */
+    public function sendMessage(Request $request, Swap $swap): JsonResponse
+    {
+        $this->authorize('update', $swap);
+
+        $validated = $request->validate([
+            'message_text' => 'required|string|max:2000',
+        ]);
+
+        $message = $swap->messages()->create([
+            'sender_user_id' => $request->user()->id,
+            'message_text' => $validated['message_text'],
+            'type' => 'text',
+        ]);
+
+        $message->load('sender:id,name');
+
+        broadcast(new \App\Events\NewChatMessage($message))->toOthers();
+
+        return response()->json($message);
+    }
+
+    /**
+     * Confirm a trade for a swap from the user's side.
+     */
+    public function confirmTrade(Request $request, Swap $swap): JsonResponse
+    {
+        $this->authorize('update', $swap);
+
+        $user = $request->user();
+        
+        if ($swap->itemA->user_id === $user->id) {
+            $swap->item_a_owner_confirmed = true;
+        } elseif ($swap->itemB->user_id === $user->id) {
+            $swap->item_b_owner_confirmed = true;
+        } else {
+            return response()->json(['message' => 'You are not authorized to confirm this trade.'], 403);
+        }
+
+        // If both parties have confirmed, finalize the trade
+        if ($swap->item_a_owner_confirmed && $swap->item_b_owner_confirmed) {
+            $swap->status = 'trade_complete';
+            $swap->itemA->update(['status' => 'traded']);
+            $swap->itemB->update(['status' => 'traded']);
+        }
+
+        $swap->save();
+
+        return response()->json([
+            'message' => 'Trade confirmation updated successfully.',
+            'swap' => $swap->load(['itemA', 'itemB']),
+        ]);
+    }
+
+    /**
+     * Suggest a location for the trade.
+     */
+    public function suggestLocation(Request $request, Swap $swap): JsonResponse
+    {
+        $this->authorize('update', $swap);
+        
+        $validated = $request->validate([
+            'lat' => 'required|numeric',
+            'lng' => 'required|numeric',
+            'location_name' => 'required|string',
+            'location_address' => 'required|string',
+        ]);
+
+        $user = $request->user();
+        $isUserA = $swap->itemA->user_id === $user->id;
+
+        $message = $swap->messages()->create([
+            'sender_user_id' => $user->id,
+            'message_text' => 'Suggested a location: ' . $validated['location_name'],
+            'type' => 'location',
+            'lat' => $validated['lat'],
+            'lng' => $validated['lng'],
+            'location_name' => $validated['location_name'],
+            'location_address' => $validated['location_address'],
+            'location_agreed_by_user_a' => $isUserA,
+            'location_agreed_by_user_b' => !$isUserA,
+        ]);
+
+        $swap->update(['status' => 'location_suggested']);
+
+        $message->load('sender:id,name');
+        broadcast(new \App\Events\NewChatMessage($message))->toOthers();
+
+        return response()->json($message);
+    }
+
+    /**
+     * Accept a location for the trade.
+     */
+    public function acceptLocation(Request $request, Swap $swap): JsonResponse
+    {
+        $this->authorize('update', $swap);
+        
+        $validated = $request->validate([
+            'message_id' => 'required|exists:messages,id',
+        ]);
+
+        $message = Message::find($validated['message_id']);
+
+        if ($message->swap_id !== $swap->id) {
+            return response()->json(['message' => 'Message does not belong to this swap.'], 403);
+        }
+
+        $user = $request->user();
+        $isUserA = $swap->itemA->user_id === $user->id;
+
+        if ($isUserA) {
+            $message->location_agreed_by_user_a = true;
+        } else {
+            $message->location_agreed_by_user_b = true;
+        }
+        $message->save();
+
+        if ($message->location_agreed_by_user_a && $message->location_agreed_by_user_b) {
+            $swap->update(['status' => 'location_agreed']);
+            
+            // Create a system message or notification
+            $systemMessage = $swap->messages()->create([
+                'sender_user_id' => $user->id, // Or system ID
+                'message_text' => 'Location agreed: ' . $message->location_name,
+                'type' => 'location_agreement',
+            ]);
+            
+            $systemMessage->load('sender:id,name');
+            broadcast(new \App\Events\NewChatMessage($systemMessage))->toOthers();
+        }
+
+        return response()->json(['message' => 'Location accepted', 'data' => $message]);
+    }
+}

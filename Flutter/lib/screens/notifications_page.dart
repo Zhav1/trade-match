@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:Flutter/theme.dart';
+import 'package:trade_match/theme.dart';
 
 class NotificationsPage extends StatefulWidget {
   const NotificationsPage({super.key});

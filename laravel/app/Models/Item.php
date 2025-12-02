@@ -83,7 +83,7 @@ class Item extends Model
          */
         public function matchesAsItemA()
         {
-            return $this->hasMany(BarterMatch::class, 'item_a_id');
+            return $this->hasMany(Swap::class, 'item_a_id');
         }
     
         /**
@@ -91,7 +91,7 @@ class Item extends Model
          */
         public function matchesAsItemB()
         {
-            return $this->hasMany(BarterMatch::class, 'item_b_id');
+            return $this->hasMany(Swap::class, 'item_b_id');
         }
     
         /**

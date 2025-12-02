@@ -1,292 +1,322 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:shimmer/shimmer.dart';
-
-import '../widget_Template/loading_overlay.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:trade_match/models/category.dart';
+import 'package:trade_match/services/api_service.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
 
 class AddItemPage extends StatefulWidget {
   const AddItemPage({super.key});
 
   @override
-  State<AddItemPage> createState() => _AddItemPageState();
+  _AddItemPageState createState() => _AddItemPageState();
 }
 
 class _AddItemPageState extends State<AddItemPage> {
   final _formKey = GlobalKey<FormState>();
-  final List<String> _selectedImages = [];
-  final List<String> _categories = [
-    'Electronics',
-    'Fashion',
-    'Books',
-    'Sports',
-    'Home & Living',
-    'Gaming',
-    'Others'
-  ];
-  String? _selectedCategory;
-  bool _isLoading = false;
+  final _apiService = ApiService();
 
-  // Controllers
-  final _titleController = TextEditingController();
-  final _descriptionController = TextEditingController();
-  final _estimatedValueController = TextEditingController();
-  final _preferredItemsController = TextEditingController();
-  final _locationController = TextEditingController();
+  // Form values
+  String _title = '';
+  String _description = '';
+  double? _estimatedValue;
+  String _condition = 'new';
+  int? _categoryId;
+  String _locationCity = '';
+  double _locationLat = 0.0;
+  double _locationLon = 0.0;
+  String? _wantsDescription;
+  final List<String> _imageUrls = [];
+  final List<int> _wantedCategoryIds = [];
+
+  // Image picking
+  final ImagePicker _picker = ImagePicker();
+  List<XFile> _imageFiles = [];
+
+  // Categories
+  List<Category> _categories = [];
+  bool _isLoadingCategories = true;
 
   @override
-  void dispose() {
-    _titleController.dispose();
-    _descriptionController.dispose();
-    _estimatedValueController.dispose();
-    _preferredItemsController.dispose();
-    _locationController.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    _fetchCategories();
+    _getCurrentLocation();
+  }
+
+  Future<void> _fetchCategories() async {
+    try {
+      final categories = await _apiService.getCategories();
+      setState(() {
+        _categories = List<Category>.from(categories);
+        _isLoadingCategories = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoadingCategories = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to load categories: $e')),
+      );
+    }
+  }
+
+  Future<void> _getCurrentLocation() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      return Future.error('Location services are disabled.');
+    }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        return Future.error('Location permissions are denied');
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      return Future.error(
+          'Location permissions are permanently denied, we cannot request permissions.');
+    }
+
+    Position position = await Geolocator.getCurrentPosition();
+    List<Placemark> placemarks =
+        await placemarkFromCoordinates(position.latitude, position.longitude);
+    setState(() {
+      _locationLat = position.latitude;
+      _locationLon = position.longitude;
+      _locationCity = placemarks.first.locality ?? '';
+    });
+  }
+
+  Future<void> _pickImages() async {
+    final List<XFile> selectedImages = await _picker.pickMultiImage();
+    if (selectedImages.isNotEmpty) {
+      setState(() {
+        _imageFiles.addAll(selectedImages);
+      });
+    }
+  }
+
+  Future<void> _submitForm() async {
+    if (_formKey.currentState!.validate()) {
+      _formKey.currentState!.save();
+
+      try {
+        // Upload images and get URLs
+        for (var imageFile in _imageFiles) {
+          final imageUrl = await _apiService.uploadImage(File(imageFile.path));
+          _imageUrls.add(imageUrl);
+        }
+
+        final itemData = {
+          'title': _title,
+          'description': _description,
+          'category_id': _categoryId,
+          'condition': _condition,
+          'estimated_value': _estimatedValue,
+          'currency': 'USD',
+          'location_city': _locationCity,
+          'location_lat': _locationLat,
+          'location_lon': _locationLon,
+          'wants_description': _wantsDescription,
+          'image_urls': _imageUrls,
+          'wanted_category_ids': _wantedCategoryIds,
+        };
+
+        await _apiService.createItem(itemData);
+        Navigator.pop(context);
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to create item: $e')),
+        );
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return LoadingOverlay(
-      isLoading: _isLoading,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Add New Item'),
-          backgroundColor: Colors.white,
-          elevation: 0,
-        ),
-        body: Form(
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Add New Item'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Form(
           key: _formKey,
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Image Upload Section
-                Container(
-                  height: 200,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: _selectedImages.isEmpty
-                      ? Shimmer.fromColors(
-                          baseColor: Colors.grey[300]!,
-                          highlightColor: Colors.grey[100]!,
-                          child: Center(
-                            child: Icon(Icons.add_photo_alternate, size: 40),
-                          ),
-                        )
-                      : ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: _selectedImages.length + 1,
-                          itemBuilder: (context, index) {
-                            if (index == _selectedImages.length) {
-                              return Center(
-                                child: IconButton(
-                                  icon: const Icon(Icons.add_photo_alternate),
-                                  onPressed: _handleImageSelection,
-                                ),
-                              );
-                            }
-                            return Stack(
-                              children: [
-                                Image.network(
-                                  _selectedImages[index],
-                                  fit: BoxFit.cover,
-                                ),
-                                Positioned(
-                                  top: 5,
-                                  right: 5,
-                                  child: IconButton(
-                                    icon: const Icon(Icons.remove_circle),
-                                    color: Colors.red,
-                                    onPressed: () =>
-                                        _removeImage(_selectedImages[index]),
-                                  ),
-                                ),
-                              ],
-                            );
-                          },
-                        ),
-                ),
-                const SizedBox(height: 24),
-
-                // Title
-                TextFormField(
-                  controller: _titleController,
-                  decoration: _buildInputDecoration('Item Title',
-                      'Give your item a catchy title'),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter an item title';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                // Category Dropdown
-                DropdownButtonFormField<String>(
-                  value: _selectedCategory,
-                  decoration: _buildInputDecoration('Category',
-                      'Select item category'),
-                  items: _categories.map((String category) {
-                    return DropdownMenuItem(
-                      value: category,
-                      child: Text(category),
-                    );
-                  }).toList(),
-                  onChanged: (String? newValue) {
-                    setState(() {
-                      _selectedCategory = newValue;
-                    });
-                  },
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please select a category';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                // Description
-                TextFormField(
-                  controller: _descriptionController,
-                  decoration: _buildInputDecoration(
-                    'Description',
-                    'Describe your item (condition, age, special features)',
-                  ),
-                  maxLines: 3,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter a description';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                // Estimated Value
-                TextFormField(
-                  controller: _estimatedValueController,
-                  decoration: _buildInputDecoration(
-                    'Estimated Value',
-                    'Approximate value in IDR',
-                  ),
-                  keyboardType: TextInputType.number,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter an estimated value';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                // Preferred Items for Trade
-                TextFormField(
-                  controller: _preferredItemsController,
-                  decoration: _buildInputDecoration(
-                    'What would you like in return?',
-                    'List items you\'d like to trade for',
-                  ),
-                  maxLines: 2,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your trade preferences';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                // Location
-                TextFormField(
-                  controller: _locationController,
-                  decoration: _buildInputDecoration(
-                    'Location',
-                    'Where is the item located?',
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter a location';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 24),
-
-                // Submit Button
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      setState(() => _isLoading = true);
-                      await Future.delayed(Duration(seconds: 2)); // Simulate upload
-                      _handleSubmit();
-                      setState(() => _isLoading = false);
-                    },
-                    style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            Theme.of(context).colorScheme.primary,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    child: const Text(
-                      'List Item',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+          child: ListView(
+            children: [
+              // Image uploader
+              _buildImageUploader(),
+              const SizedBox(height: 16),
+              // Title
+              TextFormField(
+                decoration: const InputDecoration(labelText: 'Title'),
+                validator: (value) =>
+                    value!.isEmpty ? 'Please enter a title' : null,
+                onSaved: (value) => _title = value!,
+              ),
+              const SizedBox(height: 16),
+              // Description
+              TextFormField(
+                decoration: const InputDecoration(labelText: 'Description'),
+                maxLines: 3,
+                validator: (value) =>
+                    value!.isEmpty ? 'Please enter a description' : null,
+                onSaved: (value) => _description = value!,
+              ),
+              const SizedBox(height: 16),
+              // Estimated Value
+              TextFormField(
+                decoration: const InputDecoration(labelText: 'Estimated Value'),
+                keyboardType: TextInputType.number,
+                onSaved: (value) => _estimatedValue = double.tryParse(value!),
+              ),
+              const SizedBox(height: 16),
+              // Condition
+              _buildConditionSelector(),
+              const SizedBox(height: 16),
+              // Category
+              _buildCategorySelector(),
+              const SizedBox(height: 16),
+              // Location
+              _buildLocationPicker(),
+              const SizedBox(height: 16),
+              // Wants Description
+              TextFormField(
+                decoration:
+                    const InputDecoration(labelText: 'What I Want (Description)'),
+                maxLines: 3,
+                onSaved: (value) => _wantsDescription = value,
+              ),
+              const SizedBox(height: 16),
+              // Wanted Categories
+              _buildWantedCategoriesSelector(),
+              const SizedBox(height: 32),
+              // Submit Button
+              ElevatedButton(
+                onPressed: _submitForm,
+                child: const Text('Add Item'),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  InputDecoration _buildInputDecoration(String label, String hint) {
-    return InputDecoration(
-      labelText: label,
-      hintText: hint,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.grey),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Theme.of(context).colorScheme.primary),
-      ),
+  Widget _buildImageUploader() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Images', style: TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            crossAxisSpacing: 8,
+            mainAxisSpacing: 8,
+          ),
+          itemCount: _imageFiles.length + 1,
+          itemBuilder: (context, index) {
+            if (index == _imageFiles.length) {
+              return GestureDetector(
+                onTap: _pickImages,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.grey[200],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.add_a_photo),
+                ),
+              );
+            }
+            return Image.file(File(_imageFiles[index].path), fit: BoxFit.cover);
+          },
+        ),
+      ],
     );
   }
 
-  void _handleImageSelection() {
-    // TODO: Implement image selection
-    setState(() {
-      _selectedImages.add('https://placeholder.com/150');
-    });
+  Widget _buildConditionSelector() {
+    return DropdownButtonFormField<String>(
+      decoration: const InputDecoration(labelText: 'Condition'),
+      value: _condition,
+      items: ['new', 'like_new', 'good', 'fair']
+          .map((condition) => DropdownMenuItem(
+                value: condition,
+                child: Text(condition.replaceAll('_', ' ').toUpperCase()),
+              ))
+          .toList(),
+      onChanged: (value) => setState(() => _condition = value!),
+    );
   }
 
-  void _removeImage(String image) {
-    setState(() {
-      _selectedImages.remove(image);
-    });
+  Widget _buildCategorySelector() {
+    return DropdownButtonFormField<int>(
+      decoration: const InputDecoration(labelText: 'Category'),
+      value: _categoryId,
+      items: _categories
+          .map((category) => DropdownMenuItem(
+                value: category.id,
+                child: Text(category.name),
+              ))
+          .toList(),
+      onChanged: (value) => setState(() => _categoryId = value),
+      validator: (value) => value == null ? 'Please select a category' : null,
+    );
   }
 
-  void _handleSubmit() {
-    if (_formKey.currentState!.validate()) {
-      // TODO: Implement item submission
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Processing Data')),
-      );
-    }
+  Widget _buildLocationPicker() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Location', style: TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        Text('$_locationCity ($_locationLat, $_locationLon)'),
+        TextButton.icon(
+          onPressed: _getCurrentLocation,
+          icon: const Icon(Icons.location_on),
+          label: const Text('Update Location'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWantedCategoriesSelector() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('What I Want (Categories)',
+            style: TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          children: _categories
+              .map((category) => FilterChip(
+                    label: Text(category.name),
+                    selected: _wantedCategoryIds.contains(category.id),
+                    onSelected: (selected) {
+                      setState(() {
+                        if (selected) {
+                          _wantedCategoryIds.add(category.id);
+                        }
+                        else {
+                          _wantedCategoryIds.remove(category.id);
+                        }
+                      });
+                    },
+                  ))
+              .toList(),
+        ),
+      ],
+    );
   }
 }

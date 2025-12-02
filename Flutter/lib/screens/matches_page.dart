@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:Flutter/chat/chat_detail.dart';
-import 'package:Flutter/models/barter_item.dart';
-import 'package:shimmer/shimmer.dart';
+import 'package:trade_match/chat/chat_detail.dart';
+import 'package:trade_match/models/barter_item.dart';
+import 'package:trade_match/services/api_service.dart';
+import 'package:trade_match/models/user.dart';
+import 'package:trade_match/models/category.dart';
+import 'package:trade_match/models/item_image.dart';
 
 class MatchesPage extends StatefulWidget {
   const MatchesPage({super.key});
@@ -12,11 +15,14 @@ class MatchesPage extends StatefulWidget {
 
 class _MatchesPageState extends State<MatchesPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final ApiService _apiService = ApiService();
+  late Future<List<BarterMatch>> _swapsFuture;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _swapsFuture = _apiService.getSwaps();
   }
 
   @override
@@ -54,38 +60,76 @@ class _MatchesPageState extends State<MatchesPage> with SingleTickerProviderStat
   }
 
   Widget _buildMatchesTab() {
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: 10, // Replace with actual matches count
-      itemBuilder: (context, index) {
-        return AnimatedScale(
-          scale: 1.0,
-          duration: Duration(milliseconds: 100),
-          child: _buildMatchCard(
-            isMatch: true,
-            name: 'User ${index + 1}',
-            item: 'Item Name ${index + 1}',
-            matchDate: DateTime.now().subtract(Duration(days: index)),
-          ),
+    return FutureBuilder<List<BarterMatch>>(
+      future: _swapsFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const Center(child: Text('No matches yet'));
+        }
+
+        final swaps = snapshot.data!;
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: swaps.length,
+          itemBuilder: (context, index) {
+            final swap = swaps[index];
+            // Determine which item is the "other" item (not the current user's)
+            // For simplicity in this demo, we'll assume itemB is the other item
+            // In a real app, check current user ID against itemA/itemB owner
+            final otherItem = swap.itemB; 
+            
+            return AnimatedScale(
+              scale: 1.0,
+              duration: const Duration(milliseconds: 100),
+              child: _buildMatchCard(
+                isMatch: true,
+                name: otherItem.user.name,
+                item: otherItem.title,
+                matchDate: swap.itemA.updatedAt, // Using update time as match time
+                barterItem: otherItem,
+                matchId: swap.id.toString(),
+              ),
+            );
+          },
         );
       },
     );
   }
 
   Widget _buildLikesTab() {
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: 15, // Replace with actual likes count
-      itemBuilder: (context, index) {
-        return AnimatedScale(
-          scale: 1.0,
-          duration: Duration(milliseconds: 100),
-          child: _buildMatchCard(
-            isMatch: false,
-            name: 'User ${index + 1}',
-            item: 'Item Name ${index + 1}',
-            matchDate: DateTime.now().subtract(Duration(hours: index)),
-          ),
+    return FutureBuilder<List<BarterItem>>(
+      future: _apiService.getLikes(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const Center(child: Text('No likes yet'));
+        }
+
+        final likes = snapshot.data!;
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: likes.length,
+          itemBuilder: (context, index) {
+            final item = likes[index];
+            return AnimatedScale(
+              scale: 1.0,
+              duration: const Duration(milliseconds: 100),
+              child: _buildMatchCard(
+                isMatch: false,
+                name: item.user.name,
+                item: item.title,
+                matchDate: DateTime.now(), // Placeholder as we don't have like date
+                barterItem: item,
+              ),
+            );
+          },
         );
       },
     );
@@ -96,6 +140,8 @@ class _MatchesPageState extends State<MatchesPage> with SingleTickerProviderStat
     required String name,
     required String item,
     required DateTime matchDate,
+    BarterItem? barterItem,
+    String? matchId,
   }) {
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
@@ -105,9 +151,39 @@ class _MatchesPageState extends State<MatchesPage> with SingleTickerProviderStat
       elevation: 2,
       child: InkWell(
         onTap: () {
-          // Open item detail for this match (demo item created locally)
-          final demoItem = BarterItem(namaBarang: item, kondisi: 'Baik', namaUser: name, imageUrl: 'https://picsum.photos/500/300', jarak: '3 km');
-          Navigator.pushNamed(context, '/item_detail', arguments: demoItem);
+          if (barterItem != null) {
+             Navigator.pushNamed(context, '/item_detail', arguments: barterItem);
+          } else {
+             // Fallback for demo likes
+             final demoItem = BarterItem(
+              id: 0,
+              title: item,
+              description: 'Description for $item',
+              condition: 'Good',
+              estimatedValue: 100000,
+              currency: 'IDR',
+              locationCity: 'Jakarta',
+              locationLat: -6.2088,
+              locationLon: 106.8456,
+              wantsDescription: 'Anything',
+              status: 'active',
+              createdAt: DateTime.now(),
+              updatedAt: DateTime.now(),
+              user: User(
+                id: 0,
+                name: name,
+                email: 'user@example.com',
+                profilePictureUrl: 'https://picsum.photos/200',
+                defaultLocationCity: 'Jakarta',
+              ),
+              category: Category(id: 0, name: 'General', iconUrl: null),
+              images: [
+                ItemImage(id: 0, itemId: 0, imageUrl: 'https://picsum.photos/500/300', sortOrder: 0)
+              ],
+              wants: [],
+            );
+            Navigator.pushNamed(context, '/item_detail', arguments: demoItem);
+          }
         },
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -162,21 +238,24 @@ class _MatchesPageState extends State<MatchesPage> with SingleTickerProviderStat
                   icon: const Icon(Icons.chat_bubble_outline),
                   color: Theme.of(context).colorScheme.primary,
                   onPressed: () {
-                    // Use a demo matchId for now, replace with real matchId in production
-                    Navigator.of(context).push(MaterialPageRoute(
-                      builder: (_) => ChatDetailPage(
-                        matchId: 'match_${name}_$item',
-                        otherUserName: name,
-                        otherUserImage: 'pp-1.png',
-                      ),
-                    ));
+                    if (matchId != null) {
+                      Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => ChatDetailPage(
+                          matchId: matchId,
+                          otherUserName: name,
+                          otherUserImage: 'pp-1.png', // Placeholder
+                        ),
+                      ));
+                    }
                   },
                 )
               else
                 TextButton(
                   onPressed: () {
-                    final demoItem = BarterItem(namaBarang: item, kondisi: 'Baik', namaUser: name, imageUrl: 'https://picsum.photos/500/300', jarak: '5 km');
-                    Navigator.pushNamed(context, '/item_detail', arguments: demoItem);
+                     // View item logic same as tap
+                     if (barterItem != null) {
+                        Navigator.pushNamed(context, '/item_detail', arguments: barterItem);
+                     }
                   },
                   style: TextButton.styleFrom(
                     foregroundColor: Theme.of(context).colorScheme.primary,

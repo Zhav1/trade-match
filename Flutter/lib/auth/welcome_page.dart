@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:Flutter/auth/auth_page.dart';
+import 'package:trade_match/auth/auth_page.dart';
 
 class WelcomePage extends StatelessWidget {
   const WelcomePage({Key? key}) : super(key: key);
