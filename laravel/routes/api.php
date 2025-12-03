@@ -8,16 +8,23 @@ use App\Http\Controllers\ImageUploadController;
 use App\Http\Controllers\ItemController;
 use App\Http\Controllers\SwapController;
 use App\Http\Controllers\SwipeController;
+use App\Http\Controllers\UserController;
 
 // Public authentication routes
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/auth/google', [AuthController::class, 'googleLogin']);
+Route::post('/auth/google/register', [AuthController::class, 'googleRegister']);
 
 // All routes below require authentication
 Route::middleware('auth:sanctum')->group(function () {
     // Auth
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'getAuthenticatedUser']); // As per GEMINI.md
+
+    // User Profile Management
+    Route::put('/user/profile', [UserController::class, 'updateProfile']);
+    Route::post('/user/profile-picture', [UserController::class, 'uploadProfilePicture']);
 
     // Items & Categories
     Route::apiResource('items', ItemController::class);
@@ -38,4 +45,3 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/swaps/{swap}/suggest-location', [SwapController::class, 'suggestLocation']);
     Route::post('/swaps/{swap}/accept-location', [SwapController::class, 'acceptLocation']);
 });
-
