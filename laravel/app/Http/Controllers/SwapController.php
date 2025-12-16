@@ -55,9 +55,6 @@ class SwapController extends Controller
     /**
      * Send a new message in a swap chat.
      */
-    /**
-     * Send a new message in a swap chat.
-     */
     public function sendMessage(Request $request, Swap $swap): JsonResponse
     {
         $this->authorize('update', $swap);
@@ -75,6 +72,17 @@ class SwapController extends Controller
         $message->load('sender:id,name');
 
         broadcast(new \App\Events\NewChatMessage($message))->toOthers();
+
+        // Create notification for the recipient
+        $recipientUserId = $swap->itemA->user_id === $request->user()->id 
+            ? $swap->itemB->user_id 
+            : $swap->itemA->user_id;
+        
+        app(\App\Services\NotificationService::class)->createMessageNotification(
+            $recipientUserId,
+            $swap->id,
+            $request->user()->name
+        );
 
         return response()->json($message);
     }

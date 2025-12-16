@@ -5,7 +5,6 @@ namespace App\Jobs;
 use App\Models\Item;
 use App\Models\Swipe;
 use App\Models\Swap;
-use App\Jobs\SendSwapNotificationJob;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -81,8 +80,20 @@ class ProcessSwipeJob implements ShouldQueue
             $itemB->load('user');
 
             if ($itemA->user && $itemB->user) {
-                SendSwapNotificationJob::dispatch($itemA->user, $swap);
-                SendSwapNotificationJob::dispatch($itemB->user, $swap);
+                // Create notifications for both users using NotificationService
+                $notificationService = app(\App\Services\NotificationService::class);
+                
+                $notificationService->createSwapNotification(
+                    $itemA->user->id,
+                    $swap->id,
+                    $itemB->user->name
+                );
+                
+                $notificationService->createSwapNotification(
+                    $itemB->user->id,
+                    $swap->id,
+                    $itemA->user->name
+                );
             } else {
                 Log::error('Could not dispatch notification because user was missing.', ['swap_id' => $swap->id]);
             }

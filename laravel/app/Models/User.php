@@ -76,4 +76,20 @@ class User extends Authenticatable
     {
         return $this->hasMany(Message::class, 'sender_user_id');
     }
+
+    /**
+     * Get all reviews received by the user.
+     */
+    public function reviewsReceived()
+    {
+        return $this->hasMany(Review::class, 'reviewed_user_id');
+    }
+
+    /**
+     * Get all reviews given by the user.
+     */
+    public function reviewsGiven()
+    {
+        return $this->hasMany(Review::class, 'reviewer_user_id');
+    }
 }

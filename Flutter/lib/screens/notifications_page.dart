@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:trade_match/theme.dart';
+import 'package:trade_match/models/notification.dart' as app;
+import 'package:trade_match/services/api_service.dart';
+import 'package:trade_match/chat/chat_detail.dart';
+import 'package:trade_match/screens/trade_history_page.dart';
 
 class NotificationsPage extends StatefulWidget {
   const NotificationsPage({super.key});
@@ -9,30 +13,40 @@ class NotificationsPage extends StatefulWidget {
 }
 
 class _NotificationsPageState extends State<NotificationsPage> {
-  final List<NotificationItem> _notifications = [
-    NotificationItem(
-      type: NotificationType.tradeOffer,
-      title: 'New Trade Offer',
-      message: 'John wants to trade their Camera for your Laptop',
-      time: DateTime.now().subtract(const Duration(minutes: 5)),
-      isRead: false,
-    ),
-    NotificationItem(
-      type: NotificationType.match,
-      title: 'New Match!',
-      message: 'You and Sarah both liked each other\'s items',
-      time: DateTime.now().subtract(const Duration(hours: 2)),
-      isRead: false,
-    ),
-    NotificationItem(
-      type: NotificationType.message,
-      title: 'New Message',
-      message: 'Mike: Is this item still available?',
-      time: DateTime.now().subtract(const Duration(hours: 5)),
-      isRead: true,
-    ),
-    // Add more notifications as needed
-  ];
+  final ApiService _apiService = ApiService();
+  List<app.AppNotification> _notifications = [];
+  bool _isLoading = true;
+  int _unreadCount = 0;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+   _loadNotifications();
+  }
+
+  Future<void> _loadNotifications() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final response = await _apiService.getNotifications();
+      setState(() {
+        _notifications = (response['notifications'] as List)
+            .map((json) => app.AppNotification.fromJson(json))
+            .toList();
+        _unreadCount = response['unread_count'] ?? 0;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = 'Failed to load notifications: $e';
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,20 +56,46 @@ class _NotificationsPageState extends State<NotificationsPage> {
         backgroundColor: Colors.white,
         elevation: 0,
         actions: [
-          TextButton(
-            onPressed: _markAllAsRead,
-            child: const Text('Mark all as read'),
+          if (_unreadCount > 0)
+            TextButton(
+              onPressed: _markAllAsRead,
+              child: const Text('Mark all as read'),
+            ),
+        ],
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? _buildErrorState()
+              : _notifications.isEmpty
+                  ? _buildEmptyState()
+                  : RefreshIndicator(
+                      onRefresh: _loadNotifications,
+                      child: ListView.builder(
+                        itemCount: _notifications.length,
+                        itemBuilder: (context, index) {
+                          return _buildNotificationItem(_notifications[index]);
+                        },
+                      ),
+                    ),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
+          const SizedBox(height: 16),
+          Text(_error ?? 'An error occurred', style: TextStyle(color: Colors.grey[600])),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: _loadNotifications,
+            child: const Text('Retry'),
           ),
         ],
       ),
-      body: _notifications.isEmpty
-          ? _buildEmptyState()
-          : ListView.builder(
-              itemCount: _notifications.length,
-              itemBuilder: (context, index) {
-                return _buildNotificationItem(_notifications[index]);
-              },
-            ),
     );
   }
 
@@ -90,7 +130,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
     );
   }
 
-  Widget _buildNotificationItem(NotificationItem notification) {
+  Widget _buildNotificationItem(app.AppNotification notification) {
     return InkWell(
       onTap: () => _handleNotificationTap(notification),
       child: Container(
@@ -140,7 +180,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    _formatTime(notification.time),
+                    _formatTime(notification.createdAt),
                     style: TextStyle(
                       color: Colors.grey[500],
                       fontSize: 12,
@@ -165,28 +205,28 @@ class _NotificationsPageState extends State<NotificationsPage> {
     );
   }
 
-  Color _getNotificationColor(NotificationType type) {
+  Color _getNotificationColor(app.NotificationType type) {
     switch (type) {
-      case NotificationType.tradeOffer:
-        return Colors.blue;
-      case NotificationType.match:
+      case app.NotificationType.newSwap:
         return Colors.green;
-      case NotificationType.message:
+      case app.NotificationType.newMessage:
         return AppColors.primary;
-      case NotificationType.system:
+      case app.NotificationType.swapStatusChange:
+        return Colors.blue;
+      case app.NotificationType.system:
         return Colors.orange;
     }
   }
 
-  IconData _getNotificationIcon(NotificationType type) {
+  IconData _getNotificationIcon(app.NotificationType type) {
     switch (type) {
-      case NotificationType.tradeOffer:
-        return Icons.swap_horiz;
-      case NotificationType.match:
+      case app.NotificationType.newSwap:
         return Icons.favorite;
-      case NotificationType.message:
+      case app.NotificationType.newMessage:
         return Icons.chat_bubble;
-      case NotificationType.system:
+      case app.NotificationType.swapStatusChange:
+        return Icons.swap_horiz;
+      case app.NotificationType.system:
         return Icons.info;
     }
   }
@@ -202,41 +242,89 @@ class _NotificationsPageState extends State<NotificationsPage> {
     }
   }
 
-  void _handleNotificationTap(NotificationItem notification) {
-    setState(() {
-      notification.isRead = true;
-    });
-    // TODO: Navigate based on notification type
-  }
-
-  void _markAllAsRead() {
-    setState(() {
-      for (var notification in _notifications) {
-        notification.isRead = true;
+  Future<void> _handleNotificationTap(app.AppNotification notification) async {
+    // Mark as read
+    if (!notification.isRead) {
+      try {
+        await _apiService.markNotificationAsRead(notification.id);
+        setState(() {
+          notification = app.AppNotification(
+            id: notification.id,
+            userId: notification.userId,
+            type: notification.type,
+            title: notification.title,
+            message: notification.message,
+            data: notification.data,
+            isRead: true,
+            createdAt: notification.createdAt,
+          );
+          _unreadCount = _unreadCount > 0 ? _unreadCount - 1 : 0;
+        });
+      } catch (e) {
+        // Silently fail if marking as read fails
       }
-    });
+    }
+
+    // Navigate based on notification type
+    if (!mounted) return;
+
+    switch (notification.type) {
+      case app.NotificationType.newSwap:
+      case app.NotificationType.newMessage:
+        // Navigate to chat detail if swap_id is available
+        final swapId = notification.data?['swap_id'];
+        if (swapId != null) {
+          // Note: ChatDetailPage expects a BarterMatch object, but we only have swap_id
+          // For now, navigate to Trade History where they can see all swaps
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const TradeHistoryPage()),
+          );
+        }
+        break;
+      case app.NotificationType.swapStatusChange:
+        // Navigate to trade history
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const TradeHistoryPage()),
+        );
+        break;
+      case app.NotificationType.system:
+        // No navigation for system notifications
+        break;
+    }
   }
-}
 
-enum NotificationType {
-  tradeOffer,
-  match,
-  message,
-  system,
-}
-
-class NotificationItem {
-  final NotificationType type;
-  final String title;
-  final String message;
-  final DateTime time;
-  bool isRead;
-
-  NotificationItem({
-    required this.type,
-    required this.title,
-    required this.message,
-    required this.time,
-    this.isRead = false,
-  });
+  Future<void> _markAllAsRead() async {
+    try {
+      await _apiService.markAllNotificationsAsRead();
+      setState(() {
+        for (var i = 0; i < _notifications.length; i++) {
+          final n = _notifications[i];
+          _notifications[i] = app.AppNotification(
+            id: n.id,
+            userId: n.userId,
+            type: n.type,
+            title: n.title,
+            message: n.message,
+            data: n.data,
+            isRead: true,
+            createdAt: n.createdAt,
+          );
+        }
+        _unreadCount = 0;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('All notifications marked as read')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to mark all as read: $e')),
+        );
+      }
+    }
+  }
 }

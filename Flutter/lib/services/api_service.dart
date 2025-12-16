@@ -410,4 +410,91 @@ class ApiService {
       throw Exception('Failed to upload profile picture');
     }
   }
+
+  // ===== REVIEWS API (Stage 6) =====
+
+  /// Get reviews for a specific user with statistics
+  Future<Map<String, dynamic>> getUserReviews(int userId, {int page = 1}) async {
+    final response = await http.get(
+      Uri.parse('$API_BASE/api/user/$userId/reviews?page=$page'),
+      headers: {
+        'Authorization': 'Bearer $AUTH_TOKEN',
+        'Accept': 'application/json',
+      },
+    ).timeout(const Duration(seconds: 10));
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to load reviews');
+    }
+  }
+
+  /// Submit a new review
+  Future<Map<String, dynamic>> createReview(Map<String, dynamic> reviewData) async {
+    final response = await http.post(
+      Uri.parse('$API_BASE/api/reviews'),
+      headers: {
+        'Authorization': 'Bearer $AUTH_TOKEN',
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: jsonEncode(reviewData),
+    ).timeout(const Duration(seconds: 10));
+
+    if (response.statusCode == 201) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to create review: ${response.body}');
+    }
+  }
+
+  // ===== NOTIFICATIONS API (Stage 6) =====
+
+  /// Get notifications for authenticated user
+  Future<Map<String, dynamic>> getNotifications({int page = 1}) async {
+    final response = await http.get(
+      Uri.parse('$API_BASE/api/notifications?page=$page'),
+      headers: {
+        'Authorization': 'Bearer $AUTH_TOKEN',
+        'Accept': 'application/json',
+      },
+    ).timeout(const Duration(seconds: 10));
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to load notifications');
+    }
+  }
+
+  /// Mark a notification as read
+  Future<void> markNotificationAsRead(int notificationId) async {
+    final response = await http.put(
+      Uri.parse('$API_BASE/api/notifications/$notificationId/mark-read'),
+      headers: {
+        'Authorization': 'Bearer $AUTH_TOKEN',
+        'Accept': 'application/json',
+      },
+    ).timeout(const Duration(seconds: 10));
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to mark notification as read');
+    }
+  }
+
+  /// Mark all notifications as read
+  Future<void> markAllNotificationsAsRead() async {
+    final response = await http.post(
+      Uri.parse('$API_BASE/api/notifications/mark-all-read'),
+      headers: {
+        'Authorization': 'Bearer $AUTH_TOKEN',
+        'Accept': 'application/json',
+      },
+    ).timeout(const Duration(seconds: 10));
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to mark all notifications as read');
+    }
+  }
 }

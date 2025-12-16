@@ -9,6 +9,8 @@ use App\Http\Controllers\ItemController;
 use App\Http\Controllers\SwapController;
 use App\Http\Controllers\SwipeController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\Api\ReviewController;
+use App\Http\Controllers\Api\NotificationController;
 
 // Public authentication routes
 Route::post('/register', [AuthController::class, 'register']);
@@ -44,4 +46,14 @@ Route::middleware('auth:sanctum')->group(function () {
     // Location Negotiation (as per GEMINI.md)
     Route::post('/swaps/{swap}/suggest-location', [SwapController::class, 'suggestLocation']);
     Route::post('/swaps/{swap}/accept-location', [SwapController::class, 'acceptLocation']);
+    
+    // Reviews (Stage 6)
+    Route::get('/user/{userId}/reviews', [ReviewController::class, 'getUserReviews']);
+    Route::post('/reviews', [ReviewController::class, 'store']);
+    Route::get('/reviews/{id}', [ReviewController::class, 'show']);
+    
+    // Notifications (Stage 6)
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::put('/notifications/{id}/mark-read', [NotificationController::class, 'markAsRead']);
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead']);
 });
