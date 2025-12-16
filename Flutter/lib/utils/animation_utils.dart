@@ -106,7 +106,7 @@ class AnimatedNavigation {
   }) {
     return Navigator.push<T>(
       context,
-      SlidePageRoute(page: page, direction: direction),
+      SlidePageRoute(page: page, direction: direction) as Route<T>,
     );
   }
   
@@ -114,7 +114,7 @@ class AnimatedNavigation {
   static Future<T?> fadeToPage<T>(BuildContext context, Widget page) {
     return Navigator.push<T>(
       context,
-      FadePageRoute(page: page),
+      FadePageRoute(page: page) as Route<T>,
     );
   }
   
@@ -122,7 +122,7 @@ class AnimatedNavigation {
   static Future<T?> scaleToPage<T>(BuildContext context, Widget page) {
     return Navigator.push<T>(
       context,
-      ScalePageRoute(page: page),
+      ScalePageRoute(page: page) as Route<T>,
     );
   }
   

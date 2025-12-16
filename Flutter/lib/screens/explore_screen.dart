@@ -59,7 +59,8 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
   @override
   void dispose() {
     _likeController.dispose(); // CRITICAL FIX: Prevent memory leak
-    super.dispose();
+    _swiperController.dispose();
+    super.dispose();    
   }
   
   /// Load user's data for dynamic item selection and location
@@ -331,11 +332,6 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
   }
 
   @override
-  void dispose() {
-    _likeController.dispose();
-    _swiperController.dispose();
-    super.dispose();
-  }
 
   Widget _buildCard(BarterItem item) {
     final String? distance = _calculateDistance(item);
