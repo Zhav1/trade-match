@@ -12,6 +12,7 @@ class User {
   final double? defaultLat;
   final double? defaultLon;
   final double? rating;
+  final DateTime? createdAt;
 
   User({
     required this.id,
@@ -25,6 +26,7 @@ class User {
     this.defaultLat,
     this.defaultLon,
     this.rating,
+    this.createdAt,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -40,6 +42,7 @@ class User {
       defaultLat: json['default_lat'] != null ? double.tryParse(json['default_lat'].toString()) : null,
       defaultLon: json['default_lon'] != null ? double.tryParse(json['default_lon'].toString()) : null,
       rating: json['rating'] != null ? double.tryParse(json['rating'].toString()) : null,
+      createdAt: json['created_at'] != null ? DateTime.parse(json['created_at']) : null,
     );
   }
 }
