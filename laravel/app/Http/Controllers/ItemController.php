@@ -9,6 +9,8 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
+use App\Http\Resources\ItemResource;
+use App\Http\Requests\CreateItemRequest;
 
 class ItemController extends Controller
 {
@@ -22,30 +24,17 @@ class ItemController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        return response()->json(['items' => $items]);
+        return ItemResource::collection($items);
     }
 
     /**
      * Store a newly created item.
+     * Uses CreateItemRequest for input validation (MASTER_ARCHITECTURE.md Issue #5)
      */
-    public function store(Request $request): JsonResponse
+    public function store(CreateItemRequest $request): JsonResponse
     {
-        $validatedData = $request->validate([
-            'category_id' => 'required|exists:categories,id',
-            'title' => 'required|string|max:255',
-            'description' => 'required|string',
-            'condition' => ['required', Rule::in(['new', 'like_new', 'good', 'fair'])],
-            'estimated_value' => 'nullable|numeric|min:0',
-            'currency' => 'required|string|size:3',
-            'location_city' => 'required|string|max:255',
-            'location_lat' => 'required|numeric',
-            'location_lon' => 'required|numeric',
-            'wants_description' => 'nullable|string',
-            'image_urls' => 'required|array',
-            'image_urls.*' => 'url',
-            'wanted_category_ids' => 'array',
-            'wanted_category_ids.*' => 'exists:categories,id',
-        ]);
+        // Validation already handled by CreateItemRequest
+        $validatedData = $request->validated();
 
         $item = null;
 
@@ -86,10 +75,10 @@ class ItemController extends Controller
 
         $item->load(['category', 'images', 'wants.category']);
 
-        return response()->json([
-            'message' => 'Item created successfully',
-            'item' => $item
-        ], 201);
+        return (new ItemResource($item))
+            ->additional(['message' => 'Item created successfully'])
+            ->response()
+            ->setStatusCode(201);
     }
 
     /**
@@ -102,7 +91,7 @@ class ItemController extends Controller
 
         $item->load(['user', 'category', 'images', 'wants.category']);
 
-        return response()->json(['item' => $item]);
+        return new ItemResource($item);
     }
 
     /**
@@ -130,10 +119,8 @@ class ItemController extends Controller
 
         $item->load(['user', 'category', 'images', 'wants.category']);
 
-        return response()->json([
-            'message' => 'Item updated successfully',
-            'item' => $item
-        ]);
+        return (new ItemResource($item))
+            ->additional(['message' => 'Item updated successfully']);
     }
 
     /**

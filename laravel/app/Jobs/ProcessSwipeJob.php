@@ -11,6 +11,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class ProcessSwipeJob implements ShouldQueue
 {
@@ -58,20 +59,32 @@ class ProcessSwipeJob implements ShouldQueue
             return;
         }
         
-        // 5. Create the swap record.
+        // 5. Create the swap record with race condition protection.
+        // SECURITY FIX: Use DB transaction with lockForUpdate() to prevent
+        // duplicate swaps or missing swaps (MASTER_ARCHITECTURE.md Issue #3)
         // Ensure consistent ordering of item_a and item_b to prevent duplicates.
         $item1_id = min($itemA->id, $itemB->id);
         $item2_id = max($itemA->id, $itemB->id);
 
-        $swap = Swap::firstOrCreate(
-            [
+        DB::transaction(function () use ($item1_id, $item2_id, &$swap) {
+            // Check if swap already exists with row lock to prevent race conditions
+            $existing = Swap::where('item_a_id', $item1_id)
+                ->where('item_b_id', $item2_id)
+                ->lockForUpdate()
+                ->first();
+            
+            if ($existing) {
+                $swap = $existing;
+                return;
+            }
+            
+            // Create new swap
+            $swap = Swap::create([
                 'item_a_id' => $item1_id,
                 'item_b_id' => $item2_id,
-            ],
-            [
-                'status' => 'active' // as per GEMINI.md
-            ]
-        );
+                'status' => 'active',
+            ]);
+        });
 
         // 6. Dispatch notifications if the swap was just created.
         if ($swap->wasRecentlyCreated) {

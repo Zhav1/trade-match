@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Item;
 use App\Models\Swipe;
+use App\Http\Resources\ItemResource;
 
 class ExploreController extends Controller
 {
@@ -38,6 +39,8 @@ class ExploreController extends Controller
         // 4. Apply simple randomization or sorting if needed (e.g. shuffle)
         $feedItems = $feedItems->shuffle()->take(50);
 
-        return response()->json($feedItems);
+        // SECURITY FIX: Wrap with ItemResource to filter sensitive data
+        // (MASTER_ARCHITECTURE.md Issue #2: Data Exposure)
+        return ItemResource::collection($feedItems);
     }
 }

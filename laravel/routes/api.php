@@ -30,17 +30,21 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Items & Categories
     Route::apiResource('items', ItemController::class);
+    // SECURITY: Rate limit item creation to prevent spam (10 items per hour)
+    Route::post('/items', [ItemController::class, 'store'])->middleware('throttle:10,60');
     Route::get('/categories', [CategoryController::class, 'index']);
     Route::post('/upload/image', [ImageUploadController::class, 'upload']);
     
     // Explore & Swipe (Core Loop)
 	Route::get('/explore', [ExploreController::class, 'getFeed']);
-	Route::post('/swipe', [SwipeController::class, 'store']);
+	// SECURITY: Rate limit swipes to prevent spam (100 swipes per minute)
+	Route::post('/swipe', [SwipeController::class, 'store'])->middleware('throttle:100,1');
 
 	// Swaps, Chat, and Trade Confirmation
     Route::get('/swaps', [SwapController::class, 'index']);
     Route::get('/swaps/{swap}/messages', [SwapController::class, 'getMessages']);
-    Route::post('/swaps/{swap}/messages', [SwapController::class, 'sendMessage']);
+    // SECURITY: Rate limit messages to prevent spam (60 messages per minute)
+    Route::post('/swaps/{swap}/messages', [SwapController::class, 'sendMessage'])->middleware('throttle:60,1');
     Route::post('/swaps/{swap}/confirm', [SwapController::class, 'confirmTrade']);
     
     // Location Negotiation (as per GEMINI.md)

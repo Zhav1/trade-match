@@ -6,6 +6,9 @@ use App\Models\Message;
 use App\Models\Swap;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use App\Http\Resources\SwapResource;
+use App\Http\Requests\SendMessageRequest;
+use App\Http\Requests\SuggestLocationRequest;
 
 class SwapController extends Controller
 {
@@ -37,7 +40,7 @@ class SwapController extends Controller
             ->orderBy('updated_at', 'desc')
             ->get();
 
-        return response()->json(['swaps' => $swaps]);
+        return SwapResource::collection($swaps);
     }
 
     /**
@@ -54,14 +57,14 @@ class SwapController extends Controller
 
     /**
      * Send a new message in a swap chat.
+     * Uses SendMessageRequest for validation (MASTER_ARCHITECTURE.md Issue #5)
      */
-    public function sendMessage(Request $request, Swap $swap): JsonResponse
+    public function sendMessage(SendMessageRequest $request, Swap $swap): JsonResponse
     {
         $this->authorize('update', $swap);
 
-        $validated = $request->validate([
-            'message_text' => 'required|string|max:2000',
-        ]);
+        // Validation already handled by SendMessageRequest
+        $validated = $request->validated();
 
         $message = $swap->messages()->create([
             'sender_user_id' => $request->user()->id,
@@ -121,17 +124,14 @@ class SwapController extends Controller
 
     /**
      * Suggest a location for the trade.
+     * Uses SuggestLocationRequest for validation (MASTER_ARCHITECTURE.md Issue #5)
      */
-    public function suggestLocation(Request $request, Swap $swap): JsonResponse
+    public function suggestLocation(SuggestLocationRequest $request, Swap $swap): JsonResponse
     {
         $this->authorize('update', $swap);
         
-        $validated = $request->validate([
-            'lat' => 'required|numeric',
-            'lng' => 'required|numeric',
-            'location_name' => 'required|string',
-            'location_address' => 'required|string',
-        ]);
+        // Validation already handled by SuggestLocationRequest
+        $validated = $request->validated();
 
         $user = $request->user();
         $isUserA = $swap->itemA->user_id === $user->id;
@@ -148,7 +148,11 @@ class SwapController extends Controller
             'location_agreed_by_user_b' => !$isUserA,
         ]);
 
-        $swap->update(['status' => 'location_suggested']);
+        // SECURITY FIX: Set timeout tracking timestamp (MASTER_ARCHITECTURE.md Issue #4)
+        $swap->update([
+            'status' => 'location_suggested',
+            'location_suggested_at' => now()
+        ]);
 
         $message->load('sender:id,name');
         broadcast(new \App\Events\NewChatMessage($message))->toOthers();
