@@ -1,9 +1,84 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:trade_match/models/review.dart';
+import 'package:trade_match/services/api_service.dart';
 
-class ReviewsPage extends StatelessWidget {
-  const ReviewsPage({super.key});
+class ReviewsPage extends StatefulWidget {
+  final int userId;
   
-  bool _hasPhotos() => true; // Mock data - in real app, check if review has photos
+  const ReviewsPage({super.key, required this.userId});
+
+  @override
+  State<ReviewsPage> createState() => _ReviewsPageState();
+}
+
+class _ReviewsPageState extends State<ReviewsPage> {
+  final ApiService _apiService = ApiService();
+  List<Review> _reviews = [];
+  RatingStats? _ratingStats;
+  bool _isLoading = true;
+  String? _error;
+  int _currentPage = 1;
+  bool _hasMore = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadReviews();
+  }
+
+  Future<void> _loadReviews({bool refresh = false}) async {
+    if (refresh) {
+      setState(() {
+        _currentPage = 1;
+        _reviews.clear();
+        _hasMore = true;
+        _isLoading = true;
+        _error = null;
+      });
+    }
+
+    if (!_hasMore && !refresh) return;
+
+    try {
+      final response = await _apiService.getUserReviews(widget.userId, page: _currentPage);
+      
+      setState(() {
+        final newReviews = (response['reviews'] as List)
+            .map((json) => Review.fromJson(json))
+            .toList();
+        
+        if (refresh) {
+          _reviews = newReviews;
+        } else {
+          _reviews.addAll(newReviews);
+        }
+
+        // Parse rating stats
+        if (response['rating_stats'] != null) {
+          _ratingStats = RatingStats.fromJson(response['rating_stats']);
+        }
+
+        // Check pagination
+        final pagination = response['pagination'];
+        if (pagination != null) {
+          _hasMore = pagination['current_page'] < pagination['last_page'];
+          if (_hasMore) {
+            _currentPage++;
+          }
+        } else {
+          _hasMore = false;
+        }
+
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = 'Failed to load reviews: $e';
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -13,75 +88,148 @@ class ReviewsPage extends StatelessWidget {
         backgroundColor: Colors.white,
         elevation: 0,
       ),
-      body: Column(
+      body: _isLoading && _reviews.isEmpty
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null && _reviews.isEmpty
+              ? _buildErrorState()
+              : _reviews.isEmpty
+                  ? _buildEmptyState()
+                  : RefreshIndicator(
+                      onRefresh: () => _loadReviews(refresh: true),
+                      child: Column(
+                        children: [
+                          if (_ratingStats != null) _buildRatingSummary(),
+                          const Divider(height: 1),
+                          Expanded(
+                            child: ListView.builder(
+                              padding: const EdgeInsets.all(16),
+                              itemCount: _reviews.length + (_hasMore ? 1 : 0),
+                              itemBuilder: (context, index) {
+                                if (index == _reviews.length) {
+                                  // Load more indicator
+                                  _loadReviews();
+                                  return const Padding(
+                                    padding: EdgeInsets.all(16),
+                                    child: Center(child: CircularProgressIndicator()),
+                                  );
+                                }
+                                return _buildReviewCard(_reviews[index]);
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Rating Summary
-          Container(
-            padding: const EdgeInsets.all(24),
-            color: Colors.white,
-            child: Row(
+          Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
+          const SizedBox(height: 16),
+          Text(_error ?? 'An error occurred', style: TextStyle(color: Colors.grey[600])),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: () => _loadReviews(refresh: true),
+            child: const Text('Retry'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.rate_review_outlined, size: 64, color: Colors.grey[400]),
+          const SizedBox(height: 16),
+          Text(
+            'No reviews yet',
+            style: TextStyle(
+              fontSize: 18,
+              color: Colors.grey[600],
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'This user hasn\'t received any reviews',
+            style: TextStyle(color: Colors.grey[600]),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRatingSummary() {
+    final stats = _ratingStats!;
+    
+    return Container(
+      padding: const EdgeInsets.all(24),
+      color: Colors.white,
+      child: Row(
+        children: [
+          // Overall Rating
+          Expanded(
+            flex: 2,
+            child: Column(
               children: [
-                // Overall Rating
-                Expanded(
-                  flex: 2,
-                  child: Column(
-                    children: [
-                      Text(
-                        '4.8',
-                        style: TextStyle(
-                          fontSize: 48,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(5, (index) {
-                          return Icon(
-                            index < 4 ? Icons.star : Icons.star_half,
-                            color: Theme.of(context).colorScheme.primary,
-                            size: 20,
-                          );
-                        }),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Based on 128 reviews',
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
+                Text(
+                  stats.averageRating.toStringAsFixed(1),
+                  style: TextStyle(
+                    fontSize: 48,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
-                // Rating Bars
-                Expanded(
-                  flex: 3,
-                  child: Column(
-                    children: [
-                      _buildRatingBar(context, 5, 0.8),
-                      _buildRatingBar(context, 4, 0.15),
-                      _buildRatingBar(context, 3, 0.03),
-                      _buildRatingBar(context, 2, 0.01),
-                      _buildRatingBar(context, 1, 0.01),
-                    ],
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(5, (index) {
+                    final whole = stats.averageRating.floor();
+                    final hasHalf = stats.averageRating - whole >= 0.5;
+                    
+                    return Icon(
+                      index < whole 
+                          ? Icons.star 
+                          : (index == whole && hasHalf) 
+                              ? Icons.star_half 
+                              : Icons.star_border,
+                      color: Theme.of(context).colorScheme.primary,
+                      size: 20,
+                    );
+                  }),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Based on ${stats.totalReviews} review${stats.totalReviews != 1 ? 's' : ''}',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 12,
                   ),
                 ),
               ],
             ),
           ),
-          const Divider(height: 1),
-
-          // Reviews List
+          // Rating Bars
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: 10,
-              itemBuilder: (context, index) {
-                return _buildReviewCard(context);
-              },
+            flex: 3,
+            child: Column(
+              children: [
+                for (int i = 5; i >= 1; i--)
+                  _buildRatingBar(
+                    context,
+                    i,
+                    stats.totalReviews > 0
+                        ? stats.ratingDistribution[i]! / stats.totalReviews
+                        : 0,
+                  ),
+              ],
             ),
           ),
         ],
@@ -139,7 +287,7 @@ class ReviewsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildReviewCard(BuildContext context) {
+  Widget _buildReviewCard(Review review) {
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       shape: RoundedRectangleBorder(
@@ -156,21 +304,26 @@ class ReviewsPage extends StatelessWidget {
                 CircleAvatar(
                   radius: 20,
                   backgroundColor: Colors.grey[200],
-                  child: const Icon(Icons.person),
+                  backgroundImage: review.reviewer.profilePictureUrl != null
+                      ? NetworkImage(review.reviewer.profilePictureUrl!)
+                      : null,
+                  child: review.reviewer.profilePictureUrl == null
+                      ? const Icon(Icons.person)
+                      : null,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'John Doe',
-                        style: TextStyle(
+                      Text(
+                        review.reviewer.name,
+                        style: const TextStyle(
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       Text(
-                        'Oct 15, 2025',
+                        DateFormat.yMMMd().format(review.createdAt),
                         style: TextStyle(
                           color: Colors.grey[600],
                           fontSize: 12,
@@ -184,7 +337,7 @@ class ReviewsPage extends StatelessWidget {
                     return Icon(
                       Icons.star,
                       size: 16,
-                      color: index < 4
+                      color: index < review.rating
                           ? Theme.of(context).colorScheme.primary
                           : Colors.grey[300],
                     );
@@ -208,28 +361,38 @@ class ReviewsPage extends StatelessWidget {
                     height: 48,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(8),
-                      image: const DecorationImage(
-                        image: NetworkImage('https://picsum.photos/48/48'),
-                        fit: BoxFit.cover,
-                      ),
+                      color: Colors.grey[200],
+                      image: review.swap.itemA.primaryImageUrl != null
+                          ? DecorationImage(
+                              image: NetworkImage(review.swap.itemA.primaryImageUrl!),
+                              fit: BoxFit.cover,
+                            )
+                          : null,
                     ),
+                    child: review.swap.itemA.primaryImageUrl == null
+                        ? const Icon(Icons.image_not_supported, size: 24)
+                        : null,
                   ),
                   const SizedBox(width: 12),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Vintage Camera',
-                          style: TextStyle(
+                          review.swap.itemA.name,
+                          style: const TextStyle(
                             fontWeight: FontWeight.bold,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         Text(
-                          'Traded with DSLR Camera',
-                          style: TextStyle(
+                          'Traded with ${review.swap.itemB.name}',
+                          style: const TextStyle(
                             fontSize: 12,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
@@ -237,22 +400,24 @@ class ReviewsPage extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 12),
 
             // Review Text
-            const Text(
-              'Great trade! The item was exactly as described and the trading process was smooth. Very happy with the exchange and would definitely trade with this user again.',
-              style: TextStyle(height: 1.5),
-            ),
+            if (review.comment != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                review.comment!,
+                style: const TextStyle(height: 1.5),
+              ),
+            ],
 
             // Review Photos
-            if (_hasPhotos()) ...[
+            if (review.photos != null && review.photos!.isNotEmpty) ...[
               const SizedBox(height: 12),
               SizedBox(
                 height: 60,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
-                  itemCount: 3, // Mock data count
+                  itemCount: review.photos!.length,
                   itemBuilder: (context, index) {
                     return Container(
                       width: 60,
@@ -261,7 +426,7 @@ class ReviewsPage extends StatelessWidget {
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(8),
                         image: DecorationImage(
-                          image: NetworkImage('https://picsum.photos/60/60?random=$index'),
+                          image: NetworkImage(review.photos![index]),
                           fit: BoxFit.cover,
                         ),
                       ),

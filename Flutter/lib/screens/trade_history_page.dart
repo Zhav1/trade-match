@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:trade_match/models/barter_item.dart';
 import 'package:trade_match/services/api_service.dart';
 import 'package:trade_match/services/constants.dart';
+import 'package:trade_match/screens/submit_review_page.dart';
 
 class TradeHistoryPage extends StatefulWidget {
   const TradeHistoryPage({super.key});
@@ -208,6 +209,38 @@ class _TradeHistoryPageState extends State<TradeHistoryPage> {
                 ),
               ],
             ),
+            if (swap.status == 'trade_complete') ...[
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () async {
+                    final result = await Navigator.push<bool>(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => SubmitReviewPage(swap: swap),
+                      ),
+                    );
+                    
+                    if (result == true && mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Review submitted successfully!'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.rate_review),
+                  label: const Text('Write Review'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Theme.of(context).colorScheme.primary,
+                    side: BorderSide(color: Theme.of(context).colorScheme.primary),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              ),
+            ],
             if (swap.status == 'active') ...[
               const SizedBox(height: 16),
               Row(
