@@ -4,10 +4,12 @@ import 'package:image_picker/image_picker.dart';
 import 'package:trade_match/models/category.dart';
 import 'package:trade_match/models/barter_item.dart'; // Added import
 import 'package:trade_match/services/api_service.dart';
+import 'package:trade_match/services/permission_service.dart'; // Technical Implementation: Permissions
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:appinio_swiper/appinio_swiper.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:cached_network_image/cached_network_image.dart'; // Phase 3: Performance
 import 'package:trade_match/theme.dart';
 
 class ExploreScreen extends StatefulWidget {
@@ -31,6 +33,7 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
   double? _userLat;
   double? _userLon;
   bool _isLoadingUserData = true;
+  bool _hasLocationPermission = false; // Track location permission status
 
   @override
   void initState() {
@@ -53,9 +56,20 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
     _loadUserData();
   }
   
+  @override
+  void dispose() {
+    _likeController.dispose(); // CRITICAL FIX: Prevent memory leak
+    super.dispose();
+  }
+  
   /// Load user's data for dynamic item selection and location
   Future<void> _loadUserData() async {
     try {
+      // PHASE 1: Request location permission (lazy request pattern)
+      if (mounted) {
+        _hasLocationPermission = await PermissionService.requestLocationPermission(context);
+      }
+      
       // Get user profile for location
       final userData = await _apiService.getUser();
       
@@ -65,8 +79,16 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
       if (mounted) {
         setState(() {
           _userLocation = userData['default_location_city'] ?? 'Unknown';
-          _userLat = userData['default_lat'] != null ? double.tryParse(userData['default_lat'].toString()) : null;
-          _userLon = userData['default_lon'] != null ? double.tryParse(userData['default_lon'].toString()) : null;
+          
+          // Only set coordinates if permission granted
+          if (_hasLocationPermission) {
+            _userLat = userData['default_lat'] != null ? double.tryParse(userData['default_lat'].toString()) : null;
+            _userLon = userData['default_lon'] != null ? double.tryParse(userData['default_lon'].toString()) : null;
+          } else {
+            // Graceful degradation: no coordinates if permission denied
+            _userLat = null;
+            _userLon = null;
+          }
           
           // Select user's first active item, or null if none
           if (userItems.isNotEmpty) {
@@ -89,9 +111,11 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
   }
   
   /// Calculate distance between user and item using Haversine formula
-  String _calculateDistance(BarterItem item) {
-    if (_userLat == null || _userLon == null) {
-      return 'Unknown';
+  /// Returns null if location permission denied (graceful degradation)
+  String? _calculateDistance(BarterItem item) {
+    // Graceful degradation: Return null if no permission or coordinates
+    if (!_hasLocationPermission || _userLat == null || _userLon == null) {
+      return null;
     }
     
     try {
@@ -109,7 +133,7 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
       }
       return '${distanceInKm.toStringAsFixed(1)} km';
     } catch (e) {
-      return 'Unknown';
+      return null;
     }
   }
 
@@ -314,7 +338,7 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
   }
 
   Widget _buildCard(BarterItem item) {
-    final String distance = _calculateDistance(item);
+    final String? distance = _calculateDistance(item);
 
     return Container(
       decoration: BoxDecoration(
@@ -328,10 +352,19 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
           fit: StackFit.expand,
           children: [
             if (item.images.isNotEmpty)
-              Image.network(
-                item.images.first.imageUrl,
+              CachedNetworkImage(
+                imageUrl: item.images.first.imageUrl,
                 fit: BoxFit.cover,
-                errorBuilder: (c, e, s) => const Center(child: Icon(Icons.broken_image, color: Colors.grey)),
+                memCacheWidth: 1200, // Optimize memory for card-sized images
+                placeholder: (context, url) => Container(
+                  color: Colors.grey[300],
+                  child: const Center(
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ),
+                errorWidget: (context, url, error) => const Center(
+                  child: Icon(Icons.broken_image, color: Colors.grey, size: 50),
+                ),
               )
             else
               const Center(child: Icon(Icons.image_not_supported, color: Colors.grey, size: 50)),
@@ -367,15 +400,17 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
                       const SizedBox(width: AppSpacing.sm),
                       Text('Offered by ${item.user.name}', style: const TextStyle(color: Colors.white, shadows: [Shadow(color: Colors.black, blurRadius: 4)])),
                       const Spacer(),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                        decoration: BoxDecoration(color: Colors.black.withOpacity(0.6), borderRadius: BorderRadius.circular(10)),
-                        child: Row(children: [
-                          const Icon(Icons.location_on, size: 14, color: Colors.white),
-                          const SizedBox(width: 4),
-                          Text(distance, style: const TextStyle(color: Colors.white, shadows: [Shadow(color: Colors.black45, blurRadius: 4, offset: Offset(0, 1))]))
-                        ]),
-                      )
+                      // Graceful degradation: Only show distance if location permission granted
+                      if (distance != null)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                          decoration: BoxDecoration(color: Colors.black.withOpacity(0.6), borderRadius: BorderRadius.circular(10)),
+                          child: Row(children: [
+                            const Icon(Icons.location_on, size: 14, color: Colors.white),
+                            const SizedBox(width: 4),
+                            Text(distance, style: const TextStyle(color: Colors.white, shadows: [Shadow(color: Colors.black45, blurRadius: 4, offset: Offset(0, 1))]))
+                          ]),
+                        ),
                     ],
                   )
                 ],

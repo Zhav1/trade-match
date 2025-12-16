@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:trade_match/models/barter_item.dart';
 import 'package:trade_match/services/api_service.dart';
 import 'package:trade_match/services/constants.dart';
+import 'package:cached_network_image/cached_network_image.dart'; // Phase 3: Performance
 import 'package:trade_match/screens/submit_review_page.dart';
 import 'package:trade_match/theme/app_colors.dart';
 
@@ -355,10 +356,14 @@ class _TradeHistoryPageState extends State<TradeHistoryPage> {
               child: imageUrl != null
                   ? ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      child: Image.network(
-                        imageUrl,
+                      child: CachedNetworkImage(
+                        imageUrl: imageUrl,
                         fit: BoxFit.cover,
-                        errorBuilder: (c, e, s) => const Icon(Icons.broken_image),
+                        memCacheWidth: 150, // Small thumbnail
+                        placeholder: (context, url) => Container(
+                          color: Colors.grey[300],
+                        ),
+                        errorWidget: (context, url, error) => const Icon(Icons.broken_image, size: 20),
                       ),
                     )
                   : const Icon(Icons.image_not_supported, color: Colors.grey),
