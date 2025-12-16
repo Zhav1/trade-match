@@ -9,9 +9,13 @@ import 'package:trade_match/models/barter_item.dart' hide Category;
 import 'constants.dart';
 
 class ApiService {
-  Future<List<BarterMatch>> getSwaps() async {
+  Future<List<BarterMatch>> getSwaps({String? status}) async {
+    final uri = status != null
+        ? Uri.parse('$API_BASE/api/swaps?status=$status')
+        : Uri.parse('$API_BASE/api/swaps');
+    
     final response = await http.get(
-      Uri.parse('$API_BASE/api/swaps'),
+      uri,
       headers: {
         'Authorization': 'Bearer $AUTH_TOKEN',
         'Accept': 'application/json',
@@ -80,6 +84,24 @@ class ApiService {
       return categories;
     } else {
       throw Exception('Failed to load categories');
+    }
+  }
+
+  /// Confirm trade completion
+  Future<Map<String, dynamic>> confirmTrade(int swapId) async {
+    final response = await http.post(
+      Uri.parse('$API_BASE/api/swaps/$swapId/confirm'),
+      headers: {
+        'Authorization': 'Bearer $AUTH_TOKEN',
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+    ).timeout(const Duration(seconds: 10));
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to confirm trade');
     }
   }
 

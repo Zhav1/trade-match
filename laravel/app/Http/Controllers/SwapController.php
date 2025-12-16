@@ -11,16 +11,23 @@ class SwapController extends Controller
 {
     /**
      * Get the list of swaps for the authenticated user.
+     * Supports optional ?status query parameter for filtering.
      */
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
         
-        $swaps = Swap::where(function ($query) use ($user) {
-                $query->whereHas('itemA', fn($q) => $q->where('user_id', $user->id))
-                      ->orWhereHas('itemB', fn($q) => $q->where('user_id', $user->id));
-            })
-            ->with([
+        $query = Swap::where(function ($q) use ($user) {
+                $q->whereHas('itemA', fn($q2) => $q2->where('user_id', $user->id))
+                  ->orWhereHas('itemB', fn($q2) => $q2->where('user_id', $user->id));
+            });
+        
+        // Optional status filtering
+        if ($request->has('status')) {
+            $query->where('status', $request->status);
+        }
+        
+        $swaps = $query->with([
                 'itemA.images', 
                 'itemB.images', 
                 'itemA.user', 

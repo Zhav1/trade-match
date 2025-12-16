@@ -1,7 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:trade_match/models/barter_item.dart';
+import 'package:trade_match/services/api_service.dart';
+import 'package:trade_match/services/constants.dart';
 
-class TradeHistoryPage extends StatelessWidget {
+class TradeHistoryPage extends StatefulWidget {
   const TradeHistoryPage({super.key});
+
+  @override
+  State<TradeHistoryPage> createState() => _TradeHistoryPageState();
+}
+
+class _TradeHistoryPageState extends State<TradeHistoryPage> {
+  final ApiService _apiService = ApiService();
 
   @override
   Widget build(BuildContext context) {
@@ -38,9 +48,9 @@ class TradeHistoryPage extends StatelessWidget {
             Expanded(
               child: TabBarView(
                 children: [
-                  _buildTradeList(TradeStatus.active),
-                  _buildTradeList(TradeStatus.completed),
-                  _buildTradeList(TradeStatus.cancelled),
+                  _buildTradeList('active'),
+                  _buildTradeList('trade_complete'),
+                  _buildTradeList('cancelled'),
                 ],
               ),
             ),
@@ -50,24 +60,68 @@ class TradeHistoryPage extends StatelessWidget {
     );
   }
 
-  Widget _buildTradeList(TradeStatus status) {
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: 10,
-      itemBuilder: (context, index) {
-        return _buildTradeCard(
-          context,
-          status: status,
-          tradeDate: DateTime.now().subtract(Duration(days: index)),
+  Widget _buildTradeList(String status) {
+    return FutureBuilder<List<BarterMatch>>(
+      future: _apiService.getSwaps(status: status),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasError) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
+                const SizedBox(height: 16),
+                Text('Error: ${snapshot.error}'),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () => setState(() {}),
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          );
+        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.inbox_outlined, size: 80, color: Colors.grey[300]),
+                const SizedBox(height: 16),
+                Text(
+                  'No ${status == 'active' ? 'active' : status == 'trade_complete' ? 'completed' : 'cancelled'} trades',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        final trades = snapshot.data!;
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: trades.length,
+          itemBuilder: (context, index) {
+            final swap = trades[index];
+            return _buildTradeCard(context, swap: swap);
+          },
         );
       },
     );
   }
 
-  Widget _buildTradeCard(BuildContext context, {
-    required TradeStatus status,
-    required DateTime tradeDate,
-  }) {
+  Widget _buildTradeCard(BuildContext context, {required BarterMatch swap}) {
+    // Determine which item belongs to current user and which is the other
+    final currentUserId = int.tryParse(AUTH_USER_ID) ?? 0;
+    final isUserItemA = swap.itemA.user.id == currentUserId;
+    final myItem = isUserItemA ? swap.itemA : swap.itemB;
+    final theirItem = isUserItemA ? swap.itemB : swap.itemA;
+    final otherUser = isUserItemA ? swap.itemB.user : swap.itemA.user;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       shape: RoundedRectangleBorder(
@@ -83,12 +137,12 @@ class TradeHistoryPage extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Trade #${tradeDate.millisecondsSinceEpoch.toString().substring(7)}',
+                  'Trade #${swap.id}',
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                _buildStatusChip(status),
+                _buildStatusChip(swap.status),
               ],
             ),
             const SizedBox(height: 16),
@@ -99,8 +153,8 @@ class TradeHistoryPage extends StatelessWidget {
                 Expanded(
                   child: _buildTradeItemPreview(
                     title: 'Your Item',
-                    itemName: 'Vintage Camera',
-                    imagePath: 'https://picsum.photos/60/60?random=1',
+                    itemName: myItem.title,
+                    imageUrl: myItem.images.isNotEmpty ? myItem.images.first.imageUrl : null,
                   ),
                 ),
                 Container(
@@ -113,8 +167,8 @@ class TradeHistoryPage extends StatelessWidget {
                 Expanded(
                   child: _buildTradeItemPreview(
                     title: 'Their Item',
-                    itemName: 'DSLR Camera',
-                    imagePath: 'https://picsum.photos/60/60?random=2',
+                    itemName: theirItem.title,
+                    imageUrl: theirItem.images.isNotEmpty ? theirItem.images.first.imageUrl : null,
                   ),
                 ),
               ],
@@ -127,18 +181,26 @@ class TradeHistoryPage extends StatelessWidget {
                 CircleAvatar(
                   radius: 16,
                   backgroundColor: Colors.grey[200],
-                  child: const Icon(Icons.person, size: 20),
+                  backgroundImage: otherUser.profilePictureUrl != null && otherUser.profilePictureUrl!.isNotEmpty
+                      ? NetworkImage(otherUser.profilePictureUrl!)
+                      : null,
+                  child: otherUser.profilePictureUrl == null || otherUser.profilePictureUrl!.isEmpty
+                      ? Text(
+                          otherUser.name.isNotEmpty ? otherUser.name[0].toUpperCase() : '?',
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                        )
+                      : null,
                 ),
                 const SizedBox(width: 8),
-                const Text(
-                  'John Doe',
-                  style: TextStyle(
+                Text(
+                  otherUser.name,
+                  style: const TextStyle(
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 const Spacer(),
                 Text(
-                  _formatDate(tradeDate),
+                  _formatDate(swap.updatedAt),
                   style: TextStyle(
                     color: Colors.grey[600],
                     fontSize: 12,
@@ -146,15 +208,13 @@ class TradeHistoryPage extends StatelessWidget {
                 ),
               ],
             ),
-            if (status == TradeStatus.active) ...[
+            if (swap.status == 'active') ...[
               const SizedBox(height: 16),
               Row(
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: () {
-                        // TODO: Handle cancel
-                      },
+                      onPressed: () => _handleCancel(swap.id),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.red,
                         side: const BorderSide(color: Colors.red),
@@ -166,9 +226,7 @@ class TradeHistoryPage extends StatelessWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () {
-                        // TODO: Handle completion
-                      },
+                      onPressed: () => _handleComplete(swap.id),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Theme.of(context).colorScheme.primary,
                         padding: const EdgeInsets.symmetric(vertical: 12),
@@ -185,10 +243,60 @@ class TradeHistoryPage extends StatelessWidget {
     );
   }
 
+  Future<void> _handleCancel(int swapId) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cancel Trade'),
+        content: const Text('Are you sure you want to cancel this trade?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('No'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Yes', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      // TODO: Call API to cancel swap (update status to 'cancelled')
+      // For now, just refresh the list
+      setState(() {});
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Trade cancelled')),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleComplete(int swapId) async {
+    try {
+      // Call the confirm endpoint
+      final response = await _apiService.confirmTrade(swapId);
+      if (mounted) {
+        setState(() {}); // Refresh the list
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Trade confirmed!')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
+  }
+
   Widget _buildTradeItemPreview({
     required String title,
     required String itemName,
-    required String imagePath,
+    String? imageUrl,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -208,11 +316,18 @@ class TradeHistoryPage extends StatelessWidget {
               height: 48,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(8),
-                image: DecorationImage(
-                  image: NetworkImage(imagePath),
-                  fit: BoxFit.cover,
-                ),
+                color: Colors.grey[200],
               ),
+              child: imageUrl != null
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        imageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (c, e, s) => const Icon(Icons.broken_image),
+                      ),
+                    )
+                  : const Icon(Icons.image_not_supported, color: Colors.grey),
             ),
             const SizedBox(width: 8),
             Expanded(
@@ -221,6 +336,8 @@ class TradeHistoryPage extends StatelessWidget {
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                 ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
@@ -229,27 +346,34 @@ class TradeHistoryPage extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusChip(TradeStatus status) {
+  Widget _buildStatusChip(String status) {
     Color backgroundColor;
     Color textColor;
     String text;
 
     switch (status) {
-      case TradeStatus.active:
+      case 'active':
+      case 'chatting':
+      case 'location_suggested':
+      case 'location_agreed':
         backgroundColor = Colors.blue.withOpacity(0.1);
         textColor = Colors.blue;
         text = 'Active';
         break;
-      case TradeStatus.completed:
+      case 'trade_complete':
         backgroundColor = Colors.green.withOpacity(0.1);
         textColor = Colors.green;
         text = 'Completed';
         break;
-      case TradeStatus.cancelled:
+      case 'cancelled':
         backgroundColor = Colors.red.withOpacity(0.1);
         textColor = Colors.red;
         text = 'Cancelled';
         break;
+      default:
+        backgroundColor = Colors.grey.withOpacity(0.1);
+        textColor = Colors.grey;
+        text = status;
     }
 
     return Container(
@@ -275,10 +399,4 @@ class TradeHistoryPage extends StatelessWidget {
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';
   }
-}
-
-enum TradeStatus {
-  active,
-  completed,
-  cancelled,
 }
