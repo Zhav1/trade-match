@@ -1,11 +1,7 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:trade_match/models/category.dart';
 import 'package:trade_match/models/barter_item.dart'; // Added import
 import 'package:trade_match/services/api_service.dart';
 import 'package:trade_match/services/permission_service.dart'; // Technical Implementation: Permissions
-import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:appinio_swiper/appinio_swiper.dart';
 import 'package:shimmer/shimmer.dart';

@@ -42,7 +42,12 @@ class ApiService {
     ).timeout(const Duration(seconds: 10));
 
     if (response.statusCode == 200) {
-      List<dynamic> body = jsonDecode(response.body)['items'];
+      final jsonResponse = jsonDecode(response.body);
+      final body = jsonResponse['items'];
+      if (body == null) {
+        print('Warning: items field is null in explore response');
+        return []; // Return empty list instead of crashing
+      }
       return body.map((dynamic item) => BarterItem.fromJson(item)).toList();
     } else {
       throw Exception('Failed to load explore items');
@@ -119,7 +124,12 @@ class ApiService {
     ).timeout(const Duration(seconds: 10));
 
     if (response.statusCode == 200) {
-      List<dynamic> body = jsonDecode(response.body)['categories'];
+      final jsonResponse = jsonDecode(response.body);
+      final body = jsonResponse['categories'];
+      if (body == null) {
+        print('Warning: categories field is null in categories response');
+        return []; // Return empty list instead of crashing
+      }
       List<Category> categories = body.map((dynamic item) => Category.fromJson(item)).toList();
       
       // STEP 6: Update cache (best-effort - doesn't fail if Hive unavailable)
@@ -196,7 +206,12 @@ class ApiService {
     ).timeout(const Duration(seconds: 10));
 
     if (response.statusCode == 201) {
-      return Item.fromJson(jsonDecode(response.body)['item']);
+      final jsonResponse = jsonDecode(response.body);
+      final itemData = jsonResponse['item'];
+      if (itemData == null) {
+        throw Exception('Item creation failed: no item data in response');
+      }
+      return Item.fromJson(itemData);
     } else {
       throw Exception('Failed to create item');
     }
@@ -247,7 +262,12 @@ class ApiService {
     ).timeout(const Duration(seconds: 10));
 
     if (response.statusCode == 200) {
-      List<dynamic> body = jsonDecode(response.body)['items'];
+      final jsonResponse = jsonDecode(response.body);
+      final body = jsonResponse['items'];
+      if (body == null) {
+        print('Warning: items field is null in user items response');
+        return []; // Return empty list instead of crashing
+      }
       return body.map((dynamic item) => Item.fromJson(item)).toList();
     } else {
       throw Exception('Failed to load items');
@@ -284,7 +304,7 @@ class ApiService {
           'password': password,
           'password_confirmation': password
         }),
-      ).timeout(const Duration(seconds: 10));
+      ).timeout(const Duration(seconds: 60));  // Tingkatkan timeout ke 60 detik
 
       print('Register response status: ${response.statusCode}');
       print('Register response body: ${response.body}');

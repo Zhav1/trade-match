@@ -232,7 +232,8 @@ class _AddItemPageState extends State<AddItemPage> {
               padding: ResponsiveUtils.getResponsivePadding(context),
               child: Form(
             key: _formKey,
-            child: ListView(
+            child: Column(  // Changed from ListView to Column to avoid layout issues
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Image uploader
                 _buildImageUploader(),

@@ -50,12 +50,12 @@ class AppTheme {
       // overlayColor is resolved per state so pressed/hover get a light tint of primary
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ButtonStyle(
-          backgroundColor: MaterialStateProperty.all(AppColors.primary),
-          foregroundColor: MaterialStateProperty.all(Colors.white),
-          overlayColor: MaterialStateProperty.resolveWith((states) {
-            if (states.contains(MaterialState.pressed)) return AppColors.primary.withOpacity(0.12);
-            if (states.contains(MaterialState.hovered)) return AppColors.primary.withOpacity(0.08);
-            if (states.contains(MaterialState.focused)) return AppColors.primary.withOpacity(0.06);
+          backgroundColor: WidgetStateProperty.all(AppColors.primary),
+          foregroundColor: WidgetStateProperty.all(Colors.white),
+          overlayColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.pressed)) return AppColors.primary.withOpacity(0.12);
+            if (states.contains(WidgetState.hovered)) return AppColors.primary.withOpacity(0.08);
+            if (states.contains(WidgetState.focused)) return AppColors.primary.withOpacity(0.06);
             return null;
           }),
           splashFactory: InkRipple.splashFactory,
@@ -63,11 +63,11 @@ class AppTheme {
       ),
       textButtonTheme: TextButtonThemeData(
         style: ButtonStyle(
-          foregroundColor: MaterialStateProperty.all(AppColors.primary),
-          overlayColor: MaterialStateProperty.resolveWith((states) {
-            if (states.contains(MaterialState.pressed)) return AppColors.primary.withOpacity(0.12);
-            if (states.contains(MaterialState.hovered)) return AppColors.primary.withOpacity(0.08);
-            if (states.contains(MaterialState.focused)) return AppColors.primary.withOpacity(0.06);
+          foregroundColor: WidgetStateProperty.all(AppColors.primary),
+          overlayColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.pressed)) return AppColors.primary.withOpacity(0.12);
+            if (states.contains(WidgetState.hovered)) return AppColors.primary.withOpacity(0.08);
+            if (states.contains(WidgetState.focused)) return AppColors.primary.withOpacity(0.06);
             return null;
           }),
           splashFactory: InkRipple.splashFactory,
@@ -75,12 +75,12 @@ class AppTheme {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: ButtonStyle(
-          foregroundColor: MaterialStateProperty.all(AppColors.primary),
-          side: MaterialStateProperty.all(BorderSide(color: AppColors.primary)),
-          overlayColor: MaterialStateProperty.resolveWith((states) {
-            if (states.contains(MaterialState.pressed)) return AppColors.primary.withOpacity(0.12);
-            if (states.contains(MaterialState.hovered)) return AppColors.primary.withOpacity(0.08);
-            if (states.contains(MaterialState.focused)) return AppColors.primary.withOpacity(0.06);
+          foregroundColor: WidgetStateProperty.all(AppColors.primary),
+          side: WidgetStateProperty.all(BorderSide(color: AppColors.primary)),
+          overlayColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.pressed)) return AppColors.primary.withOpacity(0.12);
+            if (states.contains(WidgetState.hovered)) return AppColors.primary.withOpacity(0.08);
+            if (states.contains(WidgetState.focused)) return AppColors.primary.withOpacity(0.06);
             return null;
           }),
           splashFactory: InkRipple.splashFactory,

@@ -7,6 +7,7 @@ part 'cache_metadata.g.dart';
 /// Used to determine if cached data is still valid or needs refresh.
 @HiveType(typeId: 250) // High typeId to avoid conflicts with future models
 class CacheMetadata extends HiveObject {
+  @override
   @HiveField(0)
   final String key; // e.g., "user_items", "categories"
   

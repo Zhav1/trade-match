@@ -13,11 +13,11 @@ class ChatDetailPage extends StatefulWidget {
   final String? otherUserImage;
 
   const ChatDetailPage({
-    Key? key,
+    super.key,
     required this.matchId,
     required this.otherUserName,
     this.otherUserImage,
-  }) : super(key: key);
+  });
 
   @override
   _ChatDetailPageState createState() => _ChatDetailPageState();

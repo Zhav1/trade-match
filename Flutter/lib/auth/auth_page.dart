@@ -380,27 +380,44 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
     if (_registerFormKey.currentState!.validate()) {
       setState(() => _isLoading = true);
       try {
+        print("--- Register Button Pressed ---");
+        print("Starting API Call with name: ${_nameController.text}, email: ${_emailController.text}");
+        
+        // Tambahkan timeout untuk mencegah hang
         final response = await _apiService.register(
           _nameController.text,
           _emailController.text,
           _phoneController.text,
           _passwordController.text,
-        );
+        ).timeout(const Duration(seconds: 30), onTimeout: () {
+          throw Exception('Registration timed out. Please check your connection.');
+        });
+        
+        print("API Response received: $response");
         await _apiService.saveToken(response['token']);
         AUTH_USER_ID = response['user']['id'].toString();
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const MainPage()),
         );
-      } catch (e) {
+      } catch (e, stackTrace) {
+        print("Exception in _handleRegister: $e\nStack Trace: $stackTrace");
+        String errorMessage = 'Failed to register';
+        if (e.toString().contains('timeout')) {
+          errorMessage = 'Registration timed out. Please try again.';
+        } else if (e.toString().contains('network')) {
+          errorMessage = 'Network error. Check your internet connection.';
+        }
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to register: ${e.toString()}')),
+          SnackBar(content: Text('$errorMessage: ${e.toString()}')),
         );
       } finally {
         if (mounted) {
           setState(() => _isLoading = false);
         }
       }
+    } else {
+      print("Validation FAILED. Check text fields for red error messages.");
     }
   }
 

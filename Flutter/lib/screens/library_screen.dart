@@ -7,7 +7,7 @@ import 'package:trade_match/theme.dart';
 import 'package:cached_network_image/cached_network_image.dart'; // Phase 3: Performance
 
 class LibraryScreen extends StatefulWidget {
-  const LibraryScreen({Key? key}) : super(key: key);
+  const LibraryScreen({super.key});
 
   @override
   State<LibraryScreen> createState() => _LibraryScreenState();

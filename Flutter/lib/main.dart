@@ -179,9 +179,9 @@ class _MainPageState extends State<MainPage> {
       body: _pages[_selectedIndex],
       floatingActionButton: FloatingActionButton(
         onPressed: () => Navigator.pushNamed(context, '/add_item'),
-        child: const Icon(Icons.add, color: Colors.white),
         backgroundColor: Theme.of(context).colorScheme.primary,
         elevation: 2.0,
+        child: const Icon(Icons.add, color: Colors.white),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: BottomAppBar(

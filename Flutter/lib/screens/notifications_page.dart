@@ -3,7 +3,6 @@ import 'package:shimmer/shimmer.dart';
 import 'package:trade_match/theme.dart';
 import 'package:trade_match/models/notification.dart' as app;
 import 'package:trade_match/services/api_service.dart';
-import 'package:trade_match/chat/chat_detail.dart';
 import 'package:trade_match/screens/trade_history_page.dart';
 
 class NotificationsPage extends StatefulWidget {
