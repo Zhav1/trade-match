@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart'; // Technical Implementation: Phase 2
 import 'package:trade_match/theme.dart';
 import 'package:trade_match/auth/auth_page.dart';
 import 'package:trade_match/auth/welcome_page.dart';
@@ -20,8 +21,28 @@ import 'package:trade_match/models/barter_item.dart';
 
 import 'package:trade_match/services/api_service.dart';
 import 'package:trade_match/services/constants.dart';
+import 'package:trade_match/services/storage_service.dart'; // Phase 2
+import 'package:trade_match/services/cache_manager.dart'; // Phase 2
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // PHASE 2: Initialize Hive + StorageService + CacheManager with fallback
+  // CRITICAL: App continues even if init fails (zero regression)
+  try {
+    await Hive.initFlutter();
+    print('✅ Hive initialized successfully');
+    
+    // Initialize StorageService (register adapters, open boxes)
+    await StorageService.init();
+    
+    // Cleanup expired cache entries on startup
+    await CacheManager.cleanupExpiredData();
+  } catch (e) {
+    print('⚠️ Storage initialization failed, app will continue without caching: $e');
+    // App continues normally - caching features will gracefully degrade
+  }
+  
   runApp(const MyApp());
 }
 

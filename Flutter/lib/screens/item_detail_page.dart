@@ -6,6 +6,7 @@ import 'package:trade_match/profile/profile.dart';
 import 'package:trade_match/screens/trade_offer_page.dart';
 import 'package:trade_match/services/api_service.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:cached_network_image/cached_network_image.dart'; // Phase 3: Performance
 import 'package:trade_match/theme.dart';
 
 final currencyFormatter = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
@@ -112,18 +113,18 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
                   if (widget.item.images.isEmpty) {
                     return const Center(child: Icon(Icons.image_not_supported));
                   }
-                  return Image.network(
-                    widget.item.images[index].imageUrl,
+                  return CachedNetworkImage(
+                    imageUrl: widget.item.images[index].imageUrl,
                     fit: BoxFit.cover,
-                    errorBuilder: (c, e, s) => const Center(child: Icon(Icons.broken_image)),
-                    loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return Shimmer.fromColors(
-                        baseColor: Colors.grey[300]!,
-                        highlightColor: Colors.grey[100]!,
-                        child: Container(color: Colors.white),
-                      );
-                    },
+                    memCacheWidth: 1200, // Full-size detail images
+                    placeholder: (context, url) => Shimmer.fromColors(
+                      baseColor: Colors.grey[300]!,
+                      highlightColor: Colors.grey[100]!,
+                      child: Container(color: Colors.white),
+                    ),
+                    errorWidget: (context, url, error) => const Center(
+                      child: Icon(Icons.broken_image, size: 50),
+                    ),
                   );
                 },
               ),

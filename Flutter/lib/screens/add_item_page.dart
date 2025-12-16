@@ -4,8 +4,10 @@ import 'package:image_picker/image_picker.dart';
 import 'package:trade_match/models/category.dart';
 import 'package:trade_match/models/item.dart';
 import 'package:trade_match/services/api_service.dart';
+import 'package:trade_match/services/permission_service.dart'; // Technical Implementation: Permissions
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:cached_network_image/cached_network_image.dart'; // Phase 3: Performance
 import 'package:trade_match/theme.dart';
 
 class AddItemPage extends StatefulWidget {
@@ -132,6 +134,23 @@ class _AddItemPageState extends State<AddItemPage> {
   }
 
   Future<void> _pickImages() async {
+    // PHASE 1: Request image permissions with rationale
+    final hasPermission = await PermissionService.requestImagePermission(
+      context,
+      purpose: 'upload photos of your item',
+    );
+    
+    // Graceful degradation: Exit if permission denied
+    if (!hasPermission) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Photo permission required to add images')),
+        );
+      }
+      return;
+    }
+    
+    // Permission granted, proceed with image picking
     final List<XFile> selectedImages = await _picker.pickMultiImage();
     if (selectedImages.isNotEmpty) {
       setState(() {
@@ -319,7 +338,16 @@ class _AddItemPageState extends State<AddItemPage> {
                return Stack(
                  fit: StackFit.expand,
                  children: [
-                   Image.network(_imageUrls[index], fit: BoxFit.cover),
+                   CachedNetworkImage(
+                     imageUrl: _imageUrls[index],
+                     fit: BoxFit.cover,
+                     memCacheWidth: 600, // Medium-sized preview
+                     placeholder: (context, url) => Container(
+                       color: Colors.grey[200],
+                       child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                     ),
+                     errorWidget: (context, url, error) => const Center(child: Icon(Icons.broken_image)),
+                   ),
                    Positioned(
                      right: 0,
                      top: 0,

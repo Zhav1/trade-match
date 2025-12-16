@@ -6,6 +6,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:trade_match/models/item.dart';
 import 'package:trade_match/models/category.dart';
 import 'package:trade_match/models/barter_item.dart' hide Category;
+import 'package:trade_match/services/storage_service.dart'; // Phase 2: Cache access
 import 'constants.dart';
 
 class ApiService {
@@ -69,7 +70,46 @@ class ApiService {
     }
   }
 
+  /// Get all categories with intelligent caching (30 day TTL)
+  /// 
+  /// CHECKPOINT 4: Cache-first strategy with API fallback
+  /// - Check cache first (fast!)
+  /// - If cache valid → return instantly
+  /// - If cache expired/missing → fetch from API, update cache
+  /// - If Hive fails → gracefully fall back to API only
   Future<List<Category>> getCategories() async {
+    const cacheKey = 'categories';
+    const cacheTTL = Duration(days: 30); // Categories rarely change
+    
+    try {
+      // STEP 1: Check if StorageService is available
+      final categoriesBox = StorageService.categoriesBox;
+      final metadataBox = StorageService.metadataBox;
+      
+      if (categoriesBox != null && metadataBox != null) {
+        // STEP 2: Check cache metadata
+        final metadata = metadataBox.get(cacheKey);
+        
+        // STEP 3: If cache is valid, return cached data (FAST PATH)
+        if (metadata != null && !metadata.isExpired) {
+          final cachedCategories = categoriesBox.values.toList();
+          if (cachedCategories.isNotEmpty) {
+            print('✅ Categories loaded from cache (${cachedCategories.length} items)');
+            return cachedCategories;
+          }
+        }
+        
+        // STEP 4: Cache expired/empty - fetch from API
+        print('⏳ Cache expired/empty, fetching categories from API...');
+      } else {
+        print('⚠️ StorageService not initialized, fetching from API');
+      }
+    } catch (e) {
+      // Hive operation failed - gracefully fall back to API
+      print('⚠️ Cache read error: $e - falling back to API');
+    }
+    
+    // STEP 5: Fetch from API (either cache expired or Hive failed)
     final response = await http.get(
       Uri.parse('$API_BASE/api/categories'),
       headers: {
@@ -81,6 +121,21 @@ class ApiService {
     if (response.statusCode == 200) {
       List<dynamic> body = jsonDecode(response.body)['categories'];
       List<Category> categories = body.map((dynamic item) => Category.fromJson(item)).toList();
+      
+      // STEP 6: Update cache (best-effort - doesn't fail if Hive unavailable)
+      try {
+        final categoriesBox = StorageService.categoriesBox;
+        if (categoriesBox != null) {
+          await categoriesBox.clear();
+          await categoriesBox.addAll(categories);
+          await StorageService.saveCacheMetadata(cacheKey, cacheTTL);
+          print('✅ Categories cached successfully (${categories.length} items)');
+        }
+      } catch (e) {
+        print('⚠️ Failed to update cache: $e (continuing without caching)');
+        // Don't throw - cache update is optional
+      }
+      
       return categories;
     } else {
       throw Exception('Failed to load categories');

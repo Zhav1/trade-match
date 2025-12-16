@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:trade_match/models/item.dart';
 import 'package:trade_match/services/api_service.dart';
 import 'package:trade_match/theme.dart';
+import 'package:cached_network_image/cached_network_image.dart'; // Phase 3: Performance
 
 class LibraryScreen extends StatefulWidget {
   const LibraryScreen({Key? key}) : super(key: key);
@@ -197,7 +198,17 @@ class _LibraryScreenState extends State<LibraryScreen> {
                                   child: ClipRRect(
                                     borderRadius: BorderRadius.only(topLeft: Radius.circular(AppRadius.card), topRight: Radius.circular(AppRadius.card)),
                                     child: (it.images != null && it.images!.isNotEmpty)
-                                        ? Image.network(it.images!.first.imageUrl, width: double.infinity, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Center(child: Icon(Icons.broken_image)))
+                                        ? CachedNetworkImage(
+                                            imageUrl: it.images!.first.imageUrl,
+                                            width: double.infinity,
+                                            fit: BoxFit.cover,
+                                            memCacheWidth: 600, // Smaller thumbnail
+                                            placeholder: (context, url) => Container(
+                                              color: Colors.grey[200],
+                                              child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                                            ),
+                                            errorWidget: (context, url, error) => const Center(child: Icon(Icons.broken_image)),
+                                          )
                                         : const Center(child: Icon(Icons.image, size: 50, color: Colors.grey)),
                                   ),
                                 ),

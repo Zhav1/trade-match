@@ -1,8 +1,22 @@
-class Category {
+import 'package:hive/hive.dart';
+
+part 'category.g.dart'; // Generated file
+
+@HiveType(typeId: 1) // TypeId 1 for Category
+class Category extends HiveObject {
+  @HiveField(0)
   final int id;
+  
+  @HiveField(1)
   final String name;
+  
+  @HiveField(2)
   final int? parentId;
+  
+  @HiveField(3)
   final String? iconUrl;
+  
+  @HiveField(4)
   final List<Category>? children;
 
   Category({
