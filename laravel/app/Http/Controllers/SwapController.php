@@ -20,11 +20,17 @@ class SwapController extends Controller
                 $query->whereHas('itemA', fn($q) => $q->where('user_id', $user->id))
                       ->orWhereHas('itemB', fn($q) => $q->where('user_id', $user->id));
             })
-            ->with(['itemA.images', 'itemB.images', 'itemA.user', 'itemB.user'])
-            ->orderBy('created_at', 'desc')
+            ->with([
+                'itemA.images', 
+                'itemB.images', 
+                'itemA.user', 
+                'itemB.user',
+                'latestMessage' => fn($q) => $q->latest()->limit(1),
+            ])
+            ->orderBy('updated_at', 'desc')
             ->get();
 
-        return response()->json($swaps);
+        return response()->json(['swaps' => $swaps]);
     }
 
     /**

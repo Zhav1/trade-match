@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:trade_match/chat/chat_detail.dart';
+import 'package:trade_match/models/barter_item.dart';
+import 'package:trade_match/models/user.dart';
+import 'package:trade_match/services/api_service.dart';
+import 'package:trade_match/services/constants.dart';
 
 class ChatListScreen extends StatefulWidget {
   const ChatListScreen({super.key});
@@ -9,10 +13,100 @@ class ChatListScreen extends StatefulWidget {
 }
 
 class _ChatListScreenState extends State<ChatListScreen> {
+  List<BarterMatch> _swaps = [];
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSwaps();
+  }
+
+  Future<void> _loadSwaps() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final swaps = await ApiService().getSwaps();
+      if (mounted) {
+        setState(() {
+          _swaps = swaps;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  /// Determine the "other user" in a swap based on current user
+  User _getOtherUser(BarterMatch swap) {
+    // Compare current user ID with item owners
+    final currentUserId = int.tryParse(AUTH_USER_ID) ?? 0;
+    if (swap.itemA.user.id == currentUserId) {
+      return swap.itemB.user;
+    }
+    return swap.itemA.user;
+  }
+
+  /// Get other user's item for display
+  BarterItem _getOtherItem(BarterMatch swap) {
+    final currentUserId = int.tryParse(AUTH_USER_ID) ?? 0;
+    if (swap.itemA.user.id == currentUserId) {
+      return swap.itemB;
+    }
+    return swap.itemA;
+  }
+
+  /// Format time ago
+  String _formatTimeAgo(DateTime dateTime) {
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+
+    if (difference.inMinutes < 1) {
+      return 'Just now';
+    } else if (difference.inMinutes < 60) {
+      return '${difference.inMinutes} min';
+    } else if (difference.inHours < 24) {
+      return '${difference.inHours} hr';
+    } else if (difference.inDays == 1) {
+      return 'Yesterday';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays} days';
+    } else {
+      return '${dateTime.day}/${dateTime.month}';
+    }
+  }
+
+  /// Get message preview text
+  String _getMessagePreview(BarterMatch swap) {
+    if (swap.latestMessage == null) {
+      return 'Start chatting about the trade...';
+    }
+    
+    final msg = swap.latestMessage!;
+    switch (msg.type) {
+      case 'location':
+        return '📍 Meeting location suggested';
+      case 'location_agreement':
+        return '✅ Location agreed!';
+      default:
+        return msg.messageText;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-  final Color primary = Theme.of(context).colorScheme.primary;
-  final Color background = Theme.of(context).scaffoldBackgroundColor;
+    final Color primary = Theme.of(context).colorScheme.primary;
+    final Color background = Theme.of(context).scaffoldBackgroundColor;
 
     return Scaffold(
       backgroundColor: background,
@@ -30,7 +124,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF441606), // warna cokelat tua
+                      color: Color(0xFF441606),
                     ),
                   ),
                   Container(
@@ -84,18 +178,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
               const SizedBox(height: 25),
 
               Expanded(
-                child: ListView(
-                  physics: const BouncingScrollPhysics(),
-                  children: [
-                    _conversationTile(context, '1', 'Emilie', 'pp-1.png', 'Halo 👋', '23 min'),
-                    _conversationTile(context, '2', 'Rafi', 'pp-1.png', 'Itu HP-nya ada minus di bagian mana ya?', '3 min'),
-                    _conversationTile(context, '3', 'Tania', 'pp-2.png', 'Kalau aku tukar sama headset JBL boleh gak?', '10 min'),
-                    _conversationTile(context, '4', 'Johan', 'pp-3.png', 'Kardus dan chargernya masih lengkap?', '28 min'),
-                    _conversationTile(context, '5', 'Mira', 'pp-4.png', 'Kondisi barang masih mulus ya? pengen liat fotonya 📸', '1 hr'),
-                    _conversationTile(context, '6', 'Dina', 'pp-5.png', 'Tuker sama sepatu Nike size 42 mau gak?', '2 hr'),
-                    _conversationTile(context, '7', 'Andra', 'pp-6.png', 'Oke, nanti aku kirim lewat kurir aja ya ', 'Yesterday'),
-                  ],
-                ),
+                child: _buildContent(),
               ),
             ],
           ),
@@ -103,33 +186,175 @@ class _ChatListScreenState extends State<ChatListScreen> {
       ),
 
       floatingActionButton: FloatingActionButton(
-        onPressed: () {},
+        onPressed: () {
+          // TODO: Navigate to new conversation or matches
+        },
         backgroundColor: primary,
         child: const Icon(Icons.message_rounded, color: Colors.white),
       ),
     );
   }
 
-  Widget _conversationTile(BuildContext context, String matchId, String name, String image, String preview, String time) {
+  Widget _buildContent() {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
+
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text(
+              'Failed to load conversations',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 8),
+            ElevatedButton(
+              onPressed: _loadSwaps,
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_swaps.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.chat_bubble_outline, size: 80, color: Colors.grey[300]),
+            const SizedBox(height: 16),
+            Text(
+              'No conversations yet',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'When you match with someone,\nyour chat will appear here',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[500],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _loadSwaps,
+      child: ListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
+        itemCount: _swaps.length,
+        itemBuilder: (context, index) {
+          final swap = _swaps[index];
+          final otherUser = _getOtherUser(swap);
+          final otherItem = _getOtherItem(swap);
+          
+          return _conversationTile(
+            context,
+            swap.id.toString(),
+            otherUser.name,
+            otherUser.profilePictureUrl,
+            otherItem.title,
+            _getMessagePreview(swap),
+            _formatTimeAgo(swap.updatedAt),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _conversationTile(
+    BuildContext context,
+    String swapId,
+    String name,
+    String? imageUrl,
+    String itemTitle,
+    String preview,
+    String time,
+  ) {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(vertical: 8.0),
-      leading: CircleAvatar(radius: 26, backgroundImage: AssetImage('assets/images/$image')),
-      title: Text(name, style: const TextStyle(fontWeight: FontWeight.w700)),
-      subtitle: Text(preview, maxLines: 1, overflow: TextOverflow.ellipsis),
-          trailing: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+      leading: CircleAvatar(
+        radius: 26,
+        backgroundColor: Colors.grey[200],
+        backgroundImage: imageUrl != null && imageUrl.isNotEmpty
+            ? NetworkImage(imageUrl)
+            : null,
+        child: imageUrl == null || imageUrl.isEmpty
+            ? Text(
+                name.isNotEmpty ? name[0].toUpperCase() : '?',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              )
+            : null,
+      ),
+      title: Row(
         children: [
-          Text(time, style: const TextStyle(color: Colors.grey, fontSize: 12)),
-          const SizedBox(height: 6),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(color: Theme.of(context).colorScheme.primary, borderRadius: BorderRadius.circular(12)),
-            child: const Text('1', style: TextStyle(color: Colors.white, fontSize: 12)),
+          Expanded(
+            child: Text(
+              name,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          Text(
+            time,
+            style: const TextStyle(color: Colors.grey, fontSize: 12),
+          ),
+        ],
+      ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Re: $itemTitle',
+            style: TextStyle(
+              fontSize: 12,
+              color: Theme.of(context).colorScheme.primary,
+              fontWeight: FontWeight.w500,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 2),
+          Text(
+            preview,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(color: Colors.grey[600]),
           ),
         ],
       ),
       onTap: () {
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => ChatDetailPage(matchId: matchId, otherUserName: name, otherUserImage: image)));
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => ChatDetailPage(
+              matchId: swapId,
+              otherUserName: name,
+              otherUserImage: imageUrl,
+            ),
+          ),
+        );
       },
     );
   }

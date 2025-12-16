@@ -190,16 +190,18 @@ class _MatchesPageState extends State<MatchesPage> with SingleTickerProviderStat
           child: Row(
             children: [
               // Profile Image
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.grey[200],
-                ),
-                child: const Center(
-                  child: Icon(Icons.person, size: 30, color: Colors.grey),
-                ),
+              CircleAvatar(
+                radius: 30,
+                backgroundColor: Colors.grey[200],
+                backgroundImage: barterItem?.user.profilePictureUrl != null && barterItem!.user.profilePictureUrl!.isNotEmpty
+                    ? NetworkImage(barterItem.user.profilePictureUrl!)
+                    : null,
+                child: barterItem?.user.profilePictureUrl == null || barterItem.user.profilePictureUrl!.isEmpty
+                    ? Text(
+                        name.isNotEmpty ? name[0].toUpperCase() : '?',
+                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.grey),
+                      )
+                    : null,
               ),
               const SizedBox(width: 16),
               // Info
@@ -238,12 +240,12 @@ class _MatchesPageState extends State<MatchesPage> with SingleTickerProviderStat
                   icon: const Icon(Icons.chat_bubble_outline),
                   color: Theme.of(context).colorScheme.primary,
                   onPressed: () {
-                    if (matchId != null) {
+                    if (matchId != null && barterItem != null) {
                       Navigator.of(context).push(MaterialPageRoute(
                         builder: (_) => ChatDetailPage(
                           matchId: matchId,
                           otherUserName: name,
-                          otherUserImage: 'pp-1.png', // Placeholder
+                          otherUserImage: barterItem.user.profilePictureUrl,
                         ),
                       ));
                     }

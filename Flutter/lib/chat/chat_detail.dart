@@ -256,10 +256,25 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
         iconTheme: const IconThemeData(color: Colors.black87),
         title: Row(
           children: [
-            if (widget.otherUserImage != null)
+            if (widget.otherUserImage != null && widget.otherUserImage!.isNotEmpty)
               CircleAvatar(
                 radius: 18,
-                backgroundImage: AssetImage('assets/images/${widget.otherUserImage}')
+                backgroundColor: Colors.grey[200],
+                backgroundImage: widget.otherUserImage!.startsWith('http')
+                    ? NetworkImage(widget.otherUserImage!)
+                    : AssetImage('assets/images/${widget.otherUserImage}') as ImageProvider,
+              )
+            else
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: Theme.of(context).primaryColor.withOpacity(0.2),
+                child: Text(
+                  widget.otherUserName.isNotEmpty ? widget.otherUserName[0].toUpperCase() : '?',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).primaryColor,
+                  ),
+                ),
               ),
             const SizedBox(width: 10),
             Column(

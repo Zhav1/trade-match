@@ -71,4 +71,12 @@ class Swap extends Model
     {
         return $this->hasMany(Message::class, 'swap_id')->orderBy('created_at');
     }
+
+    /**
+     * Get the latest message in this swap's chat.
+     */
+    public function latestMessage(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Message::class, 'swap_id')->latestOfMany();
+    }
 }

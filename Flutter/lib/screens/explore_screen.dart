@@ -24,6 +24,13 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
   late Animation<double> _likeScale;
   bool _showLike = false;
   late Future<List<BarterItem>> _itemsFuture;
+  
+  // Dynamic user data
+  int? _currentUserItemId;
+  String _userLocation = 'Loading...';
+  double? _userLat;
+  double? _userLon;
+  bool _isLoadingUserData = true;
 
   @override
   void initState() {
@@ -42,14 +49,73 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
         _likeController.reset();
       }
     });
+    
+    _loadUserData();
+  }
+  
+  /// Load user's data for dynamic item selection and location
+  Future<void> _loadUserData() async {
+    try {
+      // Get user profile for location
+      final userData = await _apiService.getUser();
+      
+      // Get user's items to select one for offering
+      final userItems = await _apiService.getUserItems();
+      
+      if (mounted) {
+        setState(() {
+          _userLocation = userData['default_location_city'] ?? 'Unknown';
+          _userLat = userData['default_lat'] != null ? double.tryParse(userData['default_lat'].toString()) : null;
+          _userLon = userData['default_lon'] != null ? double.tryParse(userData['default_lon'].toString()) : null;
+          
+          // Select user's first active item, or null if none
+          if (userItems.isNotEmpty) {
+            final activeItems = userItems.where((item) => item.status == 'active').toList();
+            _currentUserItemId = activeItems.isNotEmpty ? activeItems.first.id : userItems.first.id;
+          }
+          
+          _isLoadingUserData = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading user data: $e');
+      if (mounted) {
+        setState(() {
+          _userLocation = 'Unknown';
+          _isLoadingUserData = false;
+        });
+      }
+    }
+  }
+  
+  /// Calculate distance between user and item using Haversine formula
+  String _calculateDistance(BarterItem item) {
+    if (_userLat == null || _userLon == null) {
+      return 'Unknown';
+    }
+    
+    try {
+      final distanceInMeters = Geolocator.distanceBetween(
+        _userLat!,
+        _userLon!,
+        item.locationLat,
+        item.locationLon,
+      );
+      
+      final distanceInKm = distanceInMeters / 1000;
+      
+      if (distanceInKm < 1) {
+        return '${distanceInMeters.toStringAsFixed(0)} m';
+      }
+      return '${distanceInKm.toStringAsFixed(1)} km';
+    } catch (e) {
+      return 'Unknown';
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final Color primary = Theme.of(context).colorScheme.primary;
-    // A placeholder for the item the user is offering.
-    // In a real app, this would be selected by the user.
-    const int _currentUserItemId = 1;
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -71,10 +137,10 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
-                            Text('Discover', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                            SizedBox(height: 2),
-                            Text('Nearby • Jakarta', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                          children: [
+                            const Text('Discover', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 2),
+                            Text('Nearby • $_userLocation', style: const TextStyle(color: Colors.grey, fontSize: 13)),
                           ],
                         ),
                       ),
@@ -115,10 +181,19 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
                             onSwipeEnd: (previousIndex, targetIndex, direction) {
                               final int idx = (previousIndex is int) ? previousIndex : int.parse(previousIndex.toString());
                               final item = items[idx];
+                              
+                              // Only proceed if user has selected an item to offer
+                              if (_currentUserItemId == null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Please add an item to start trading')),
+                                );
+                                return;
+                              }
+                              
                               if (direction == AxisDirection.right) {
-                                _apiService.swipe(_currentUserItemId, item.id, 'like');
+                                _apiService.swipe(_currentUserItemId!, item.id, 'like');
                               } else if (direction == AxisDirection.left) {
-                                _apiService.swipe(_currentUserItemId, item.id, 'dislike');
+                                _apiService.swipe(_currentUserItemId!, item.id, 'dislike');
                               }
                             },
                             cardBuilder: (context, index) {
@@ -200,8 +275,7 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
   }
 
   Widget _buildCard(BarterItem item) {
-    // Placeholder for distance calculation
-    const String distance = "2 km";
+    final String distance = _calculateDistance(item);
 
     return Container(
       decoration: BoxDecoration(

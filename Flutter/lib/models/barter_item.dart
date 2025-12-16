@@ -79,6 +79,8 @@ class BarterMatch {
   final bool itemBOwnerConfirmed;
   final BarterItem itemA;
   final BarterItem itemB;
+  final ChatMessage? latestMessage;
+  final DateTime updatedAt;
 
   BarterMatch({
     required this.id,
@@ -89,6 +91,8 @@ class BarterMatch {
     required this.itemBOwnerConfirmed,
     required this.itemA,
     required this.itemB,
+    this.latestMessage,
+    required this.updatedAt,
   });
 
   factory BarterMatch.fromJson(Map<String, dynamic> json) {
@@ -96,11 +100,39 @@ class BarterMatch {
       id: json['id'],
       itemAId: json['item_a_id'],
       itemBId: json['item_b_id'],
-      status: json['status'],
-      itemAOwnerConfirmed: json['item_a_owner_confirmed'] == 1,
-      itemBOwnerConfirmed: json['item_b_owner_confirmed'] == 1,
+      status: json['status'] ?? 'active',
+      itemAOwnerConfirmed: json['item_a_owner_confirmed'] == 1 || json['item_a_owner_confirmed'] == true,
+      itemBOwnerConfirmed: json['item_b_owner_confirmed'] == 1 || json['item_b_owner_confirmed'] == true,
       itemA: BarterItem.fromJson(json['item_a']),
       itemB: BarterItem.fromJson(json['item_b']),
+      latestMessage: json['latest_message'] != null 
+          ? ChatMessage.fromJson(json['latest_message']) 
+          : null,
+      updatedAt: DateTime.parse(json['updated_at']),
+    );
+  }
+}
+
+/// Simple model for chat message preview in swap list
+class ChatMessage {
+  final int id;
+  final String messageText;
+  final String type;
+  final DateTime createdAt;
+
+  ChatMessage({
+    required this.id,
+    required this.messageText,
+    required this.type,
+    required this.createdAt,
+  });
+
+  factory ChatMessage.fromJson(Map<String, dynamic> json) {
+    return ChatMessage(
+      id: json['id'],
+      messageText: json['message_text'] ?? '',
+      type: json['type'] ?? 'text',
+      createdAt: DateTime.parse(json['created_at']),
     );
   }
 }
