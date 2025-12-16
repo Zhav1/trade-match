@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:trade_match/services/api_service.dart';
 import 'package:trade_match/models/item.dart';
 import 'settings_page.dart';
+import 'package:trade_match/theme.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -54,7 +55,7 @@ class _ProfilePageState extends State<ProfilePage> {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.surface,
         body: _isLoading
             ? const Center(child: CircularProgressIndicator())
             : _errorMessage.isNotEmpty
@@ -63,7 +64,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(_errorMessage),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: AppSpacing.md),
                         ElevatedButton(
                           onPressed: _loadData,
                           child: const Text('Retry'),
@@ -77,14 +78,14 @@ class _ProfilePageState extends State<ProfilePage> {
             SliverAppBar(
               pinned: true,
               elevation: 0,
-              backgroundColor: Colors.white,
+              backgroundColor: AppColors.surface,
               leading: IconButton(
-                icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black87),
+                icon: Icon(Icons.arrow_back_ios_new, color: AppColors.textPrimary),
                 onPressed: () => Navigator.of(context).maybePop(),
               ),
               actions: [
                 IconButton(
-                  icon: const Icon(Icons.settings, color: Colors.black87),
+                  icon: Icon(Icons.settings, color: AppColors.textPrimary),
                   onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsPage())),
                 ),
               ],
@@ -137,8 +138,8 @@ class _ProfilePageState extends State<ProfilePage> {
                 child: Padding(
                   padding: const EdgeInsets.only(bottom: 8.0),
                   child: TabBar(
-                    labelColor: Colors.black87,
-                    unselectedLabelColor: Colors.grey,
+                    labelColor: AppColors.textPrimary,
+                    unselectedLabelColor: AppColors.textSecondary,
                     indicatorColor: Theme.of(context).colorScheme.primary,
                     tabs: const [Tab(text: 'Ditawarkan'), Tab(text: 'Dicari')],
                   ),
@@ -194,10 +195,10 @@ class _ProfileInfo extends StatelessWidget {
 
     return Column(
       children: [
-        Text(name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 6),
-        Text(location, style: TextStyle(color: Colors.grey[700])),
-        const SizedBox(height: 16),
+        Text(name, style: AppTextStyles.heading3),
+        const SizedBox(height: AppSpacing.xs),
+        Text(location, style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary)),
+        const SizedBox(height: AppSpacing.md),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
@@ -206,7 +207,7 @@ class _ProfileInfo extends StatelessWidget {
             _StatItem(value: tradesCount, title: 'Trades'),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.sm),
       ],
     );
   }
@@ -222,9 +223,9 @@ class _StatItem extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 4),
-        Text(title, style: TextStyle(color: Colors.grey[700], fontSize: 13)),
+        Text(value, style: AppTextStyles.heading3),
+        const SizedBox(height: AppSpacing.xs),
+        Text(title, style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary)),
       ],
     );
   }
@@ -254,7 +255,7 @@ class _ItemList extends StatelessWidget {
     return ListView.separated(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
       itemCount: items.length,
-      separatorBuilder: (context, index) => Divider(color: Colors.grey[200]),
+      separatorBuilder: (context, index) => Divider(color: AppColors.divider),
       itemBuilder: (context, index) {
         final item = items[index];
         return ListTile(
@@ -263,7 +264,7 @@ class _ItemList extends StatelessWidget {
             height: 48,
             decoration: BoxDecoration(
               color: Colors.grey[200],
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
               image: (item.images != null && item.images!.isNotEmpty) 
                   ? DecorationImage(image: NetworkImage(item.images!.first.imageUrl), fit: BoxFit.cover)
                   : null
@@ -272,8 +273,8 @@ class _ItemList extends StatelessWidget {
                ? const Icon(Icons.inventory_2_outlined, color: Colors.black54) 
                : null,
           ),
-          title: Text(item.title, style: const TextStyle(fontWeight: FontWeight.w600)),
-          subtitle: Text(item.condition, style: TextStyle(color: Colors.grey[700])),
+          title: Text(item.title, style: AppTextStyles.labelBold),
+          subtitle: Text(item.condition, style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary)),
           trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
           onTap: () {
             // TODO: Navigate to item detail

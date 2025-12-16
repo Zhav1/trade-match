@@ -7,8 +7,8 @@ import 'package:trade_match/services/api_service.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:appinio_swiper/appinio_swiper.dart';
-
 import 'package:shimmer/shimmer.dart';
+import 'package:trade_match/theme.dart';
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
@@ -118,7 +118,7 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
     final Color primary = Theme.of(context).colorScheme.primary;
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Stack(
           children: [
@@ -126,31 +126,31 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
               children: [
                 // Header
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
                   child: Row(
                     children: [
                       GestureDetector(
                         onTap: () {},
                         child: const CircleAvatar(radius: 22, backgroundImage: AssetImage('assets/images/profile.jpg')),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: AppSpacing.sm),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('Discover', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                            Text('Discover', style: AppTextStyles.heading2),
                             const SizedBox(height: 2),
-                            Text('Nearby • $_userLocation', style: const TextStyle(color: Colors.grey, fontSize: 13)),
+                            Text('Nearby • $_userLocation', style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary)),
                           ],
                         ),
                       ),
-                      IconButton(onPressed: () => Navigator.pushNamed(context, '/notifications'), icon: const Icon(Icons.notifications_outlined, color: Colors.grey)),
-                      const SizedBox(width: 6),
+                      IconButton(onPressed: () => Navigator.pushNamed(context, '/notifications'), icon: Icon(Icons.notifications_outlined, color: AppColors.textSecondary)),
+                      const SizedBox(width: AppSpacing.xs),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: primary,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.button)),
+                          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 10),
                         ),
                         onPressed: () => Navigator.pushNamed(context, '/search'),
                         child: const Icon(Icons.filter_list, color: Colors.white),
@@ -161,13 +161,6 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
 
                 // Card stack / swiper
                 Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: FutureBuilder<List<BarterItem>>(
-                      future: _itemsFuture,
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return _buildShimmer();
                         } else if (snapshot.hasError) {
                           return Center(child: Text('Error: ${snapshot.error}'));
                         } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
@@ -253,15 +246,57 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
   }
 
   Widget _buildShimmer() {
-    return Shimmer.fromColors(
-      baseColor: Colors.grey[300]!,
-      highlightColor: Colors.grey[100]!,
-      child: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
+    return Center(
+      child: SizedBox(
+        width: ResponsiveUtils.getCardWidth(
+          context,
+          mobilePercentage: 0.9,
+          tabletPercentage: 0.75,
+          desktopPercentage: 0.6,
+        ),
+        height: MediaQuery.of(context).size.height * 0.6,
+        child: Shimmer.fromColors(
+          baseColor: Colors.grey[300]!,
+          highlightColor: Colors.grey[100]!,
+          child: GlassCard(
+            padding: EdgeInsets.zero,
+            child: Column(
+              children: [
+                // Image placeholder
+                Expanded(
+                  child: Container(
+                    color: Colors.white,
+                  ),
+                ),
+                // Details placeholder
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        height: 24,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        height: 16,
+                        width: 150,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -279,12 +314,12 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
 
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        color: AppColors.surface,
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 12, offset: const Offset(0, 8))],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(AppRadius.card),
         child: Stack(
           fit: StackFit.expand,
           children: [
@@ -305,7 +340,7 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(color: Colors.black.withOpacity(0.68), borderRadius: BorderRadius.circular(12)),
+                    decoration: BoxDecoration(color: Colors.black.withOpacity(0.68), borderRadius: BorderRadius.circular(AppRadius.button)),
                     child: Text(
                       '${item.title} • ${item.condition}',
                       style: const TextStyle(
@@ -325,7 +360,7 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
                             ? NetworkImage(item.user.profilePictureUrl!)
                             : const AssetImage('assets/images/pp-1.png') as ImageProvider,
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: AppSpacing.sm),
                       Text('Offered by ${item.user.name}', style: const TextStyle(color: Colors.white, shadows: [Shadow(color: Colors.black, blurRadius: 4)])),
                       const Spacer(),
                       Container(
@@ -350,7 +385,7 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
 
   Widget _smallAction({required IconData icon, required Color color, required VoidCallback onTap}) {
     return Material(
-      color: Colors.white,
+      color: AppColors.surface,
       shape: const CircleBorder(),
       elevation: 4,
       shadowColor: Colors.black.withOpacity(0.2),

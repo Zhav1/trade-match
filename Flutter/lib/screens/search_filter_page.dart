@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:trade_match/theme.dart';
 
 class SearchFilterPage extends StatefulWidget {
   const SearchFilterPage({super.key});
@@ -44,7 +45,7 @@ class _SearchFilterPageState extends State<SearchFilterPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Search & Filter'),
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.surface,
         elevation: 0,
         actions: [
           TextButton(
@@ -57,21 +58,21 @@ class _SearchFilterPageState extends State<SearchFilterPage> {
         children: [
           // Search Bar
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppSpacing.md),
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
                 hintText: 'Search items...',
                 prefixIcon: const Icon(Icons.search),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(AppRadius.button),
                 ),
                 enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(AppRadius.button),
                   borderSide: BorderSide(color: Colors.grey[300]!),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(AppRadius.button),
                   borderSide: BorderSide(color: Theme.of(context).colorScheme.primary),
                 ),
               ),
@@ -88,10 +89,7 @@ class _SearchFilterPageState extends State<SearchFilterPage> {
                   // Categories
                   const Text(
                     'Category',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: AppTextStyles.heading3,
                   ),
                   const SizedBox(height: 12),
                   SingleChildScrollView(
@@ -124,10 +122,7 @@ class _SearchFilterPageState extends State<SearchFilterPage> {
                     children: [
                       const Text(
                         'Price Range',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: AppTextStyles.heading3,
                       ),
                       Text(
                         'IDR ${_priceRange.start.round()} - ${_priceRange.end.round()}',
@@ -160,10 +155,7 @@ class _SearchFilterPageState extends State<SearchFilterPage> {
                     children: [
                       const Text(
                         'Maximum Distance',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: AppTextStyles.heading3,
                       ),
                       Text(
                         '${_maxDistance.round()} km',
@@ -193,10 +185,7 @@ class _SearchFilterPageState extends State<SearchFilterPage> {
                   // Condition
                   const Text(
                     'Condition',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: AppTextStyles.heading3,
                   ),
                   const SizedBox(height: 12),
                   Wrap(
@@ -239,25 +228,19 @@ class _SearchFilterPageState extends State<SearchFilterPage> {
                 ),
               ],
             ),
-            child: SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: _applyFilters,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+            child: Column( // Changed to Column to accommodate SizedBox and GradientButton
+              children: [
+                const SizedBox(height: AppSpacing.xl), // Added SizedBox as per instruction
+                // Apply Filters Button
+                SizedBox(
+                  width: double.infinity,
+                  child: GradientButton(
+                    text: 'Apply Filters',
+                    onPressed: () => Navigator.pop(context), // Changed onPressed and text
+                    icon: Icons.check,
                   ),
                 ),
-                child: const Text(
-                  'Show Results',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
+              ],
             ),
           ),
         ],

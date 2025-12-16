@@ -6,6 +6,7 @@ import 'package:trade_match/profile/profile.dart';
 import 'package:trade_match/screens/trade_offer_page.dart';
 import 'package:trade_match/services/api_service.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:trade_match/theme.dart';
 
 final currencyFormatter = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
 
@@ -132,7 +133,7 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
           // Item details
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppSpacing.md),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -144,9 +145,7 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
                       Expanded(
                         child: Text(
                           widget.item.title,
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: AppTextStyles.heading2,
                         ),
                       ),
                       const SizedBox(width: 16),
@@ -159,13 +158,13 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
                             ),
                             decoration: BoxDecoration(
                               color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(20),
+                              borderRadius: BorderRadius.circular(AppRadius.chip),
                             ),
                             child: Text(
                               currencyFormatter.format(widget.item.estimatedValue),
                               style: TextStyle(
                                 color: Theme.of(context).colorScheme.primary,
-                                fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
                           ),
@@ -198,18 +197,13 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
                           children: [
                             Text(
                               widget.item.user.name,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
+                              style: AppTextStyles.labelBold,
                             ),
                             Text(
                               widget.item.user.createdAt != null
                                   ? 'Joined ${DateFormat.yMMMd().format(widget.item.user.createdAt!)}'
                                   : 'Member',
-                              style: TextStyle(
-                                color: Colors.grey[600],
-                                fontSize: 12,
-                              ),
+                              style: AppTextStyles.caption,
                             ),
                           ],
                         ),
@@ -222,7 +216,7 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
                             ),
                             decoration: BoxDecoration(
                               color: Colors.green.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(AppRadius.button),
                             ),
                             child: Row(
                               children: [
@@ -250,16 +244,13 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
                   // Description
                   const Text(
                     'Description',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: AppTextStyles.heading3,
                   ),
                   const SizedBox(height: 8),
                   Text(
                     widget.item.description,
-                    style: TextStyle(
-                      color: Colors.grey[600],
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: AppColors.textSecondary,
                       height: 1.5,
                     ),
                   ),
@@ -268,10 +259,7 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
                   // Looking for
                   const Text(
                     'Looking to Trade For',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: AppTextStyles.heading3,
                   ),
                   const SizedBox(height: 8),
                   if (widget.item.wants.isNotEmpty)
@@ -285,7 +273,7 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
                         ),
                         decoration: BoxDecoration(
                           color: Colors.grey[200],
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(AppRadius.chip),
                         ),
                         child: Text(want.category?.name ?? 'Unknown'),
                       )).toList(),
@@ -293,17 +281,14 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
                   else
                     Text(
                       'Open to offers',
-                      style: TextStyle(color: Colors.grey[600]),
+                      style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
                     ),
                   const SizedBox(height: 24),
 
                   // Location
                   const Text(
                     'Location',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: AppTextStyles.heading3,
                   ),
                   const SizedBox(height: 8),
                   Row(
@@ -315,8 +300,8 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
                       const SizedBox(width: 8),
                       Text(
                         widget.item.locationCity,
-                        style: TextStyle(
-                          color: Colors.grey[600],
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          color: AppColors.textSecondary,
                         ),
                       ),
                     ],
@@ -357,7 +342,7 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
                   foregroundColor: Theme.of(context).colorScheme.primary,
                   side: BorderSide(color: Theme.of(context).colorScheme.primary),
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.button)),
                 ),
               ),
             ),
@@ -373,7 +358,7 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
                   backgroundColor: Theme.of(context).colorScheme.primary,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.button)),
                 ).copyWith(
                   elevation: MaterialStateProperty.all(0),
                 ),

@@ -53,7 +53,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Notifications'),
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.surface,
         elevation: 0,
         actions: [
           if (_unreadCount > 0)
@@ -64,7 +64,55 @@ class _NotificationsPageState extends State<NotificationsPage> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? ListView.builder(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              itemCount: 5,
+              itemBuilder: (context, index) {
+                return Shimmer.fromColors(
+                  baseColor: Colors.grey[300]!,
+                  highlightColor: Colors.grey[100]!,
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[400],
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                height: 14,
+                                width: double.infinity,
+                                color: Colors.grey[400],
+                              ),
+                              const SizedBox(height: 6),
+                              Container(
+                                height: 12,
+                                width: 150,
+                                color: Colors.grey[400],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            )
           : _error != null
               ? _buildErrorState()
               : _notifications.isEmpty
@@ -88,7 +136,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
         children: [
           Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
           const SizedBox(height: 16),
-          Text(_error ?? 'An error occurred', style: TextStyle(color: Colors.grey[600])),
+          Text(_error ?? 'An error occurred', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary)),
           const SizedBox(height: 16),
           ElevatedButton(
             onPressed: _loadNotifications,
@@ -112,17 +160,15 @@ class _NotificationsPageState extends State<NotificationsPage> {
           const SizedBox(height: 16),
           Text(
             'No notifications yet',
-            style: TextStyle(
-              fontSize: 18,
-              color: Colors.grey[600],
-              fontWeight: FontWeight.bold,
+            style: AppTextStyles.heading3.copyWith(
+              color: AppColors.textSecondary,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'We\'ll notify you when something happens',
-            style: TextStyle(
-              color: Colors.grey[600],
+            style: AppTextStyles.bodyMedium.copyWith(
+              color: AppColors.textSecondary,
             ),
           ),
         ],
@@ -134,7 +180,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
     return InkWell(
       onTap: () => _handleNotificationTap(notification),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.md),
         decoration: BoxDecoration(
           color: notification.isRead ? null : Theme.of(context).colorScheme.primary.withOpacity(0.05),
           border: Border(
@@ -166,24 +212,20 @@ class _NotificationsPageState extends State<NotificationsPage> {
                 children: [
                   Text(
                     notification.title,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
+                    style: AppTextStyles.labelBold,
                   ),
                   const SizedBox(height: 4),
                   Text(
                     notification.message,
-                    style: TextStyle(
-                      color: Colors.grey[600],
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: AppColors.textSecondary,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     _formatTime(notification.createdAt),
-                    style: TextStyle(
-                      color: Colors.grey[500],
-                      fontSize: 12,
+                    style: AppTextStyles.caption.copyWith(
+                      color: AppColors.textTertiary,
                     ),
                   ),
                 ],

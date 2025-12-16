@@ -4,6 +4,7 @@ import 'package:trade_match/models/barter_item.dart';
 import 'package:trade_match/models/user.dart';
 import 'package:trade_match/services/api_service.dart';
 import 'package:trade_match/services/constants.dart';
+import 'package:trade_match/theme.dart';
 
 class ChatListScreen extends StatefulWidget {
   const ChatListScreen({super.key});
@@ -112,18 +113,20 @@ class _ChatListScreenState extends State<ChatListScreen> {
       backgroundColor: background,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          padding: ResponsiveUtils.getResponsivePadding(
+            context,
+            mobile: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 10),
+            tablet: const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: 16),
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     "Messages",
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
+                    style: AppTextStyles.heading1.copyWith(
                       color: Color(0xFF441606),
                     ),
                   ),
@@ -132,7 +135,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                     height: 50,
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(15),
+                      borderRadius: BorderRadius.circular(AppRadius.card),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.1),
@@ -150,12 +153,12 @@ class _ChatListScreenState extends State<ChatListScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: AppSpacing.lg),
 
               Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(15),
+                  borderRadius: BorderRadius.circular(AppRadius.card),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.05),
@@ -167,7 +170,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                 child: const TextField(
                   decoration: InputDecoration(
                     hintText: "Search messages...",
-                    hintStyle: TextStyle(color: Colors.grey, fontSize: 14),
+                    hintStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
                     prefixIcon: Icon(Icons.search, color: Colors.grey),
                     border: InputBorder.none,
                     contentPadding: EdgeInsets.symmetric(vertical: 15),
@@ -175,7 +178,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                 ),
               ),
 
-              const SizedBox(height: 25),
+              const SizedBox(height: AppSpacing.lg),
 
               Expanded(
                 child: _buildContent(),
@@ -211,9 +214,8 @@ class _ChatListScreenState extends State<ChatListScreen> {
             const SizedBox(height: 16),
             Text(
               'Failed to load conversations',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey[600],
+              style: AppTextStyles.bodyLarge.copyWith(
+                color: AppColors.textSecondary,
               ),
             ),
             const SizedBox(height: 8),
@@ -235,19 +237,16 @@ class _ChatListScreenState extends State<ChatListScreen> {
             const SizedBox(height: 16),
             Text(
               'No conversations yet',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey[600],
+              style: AppTextStyles.heading3.copyWith(
+                color: AppColors.textSecondary,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               'When you match with someone,\nyour chat will appear here',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[500],
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: AppColors.textTertiary,
               ),
             ),
           ],
@@ -313,7 +312,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
           Expanded(
             child: Text(
               name,
-              style: const TextStyle(fontWeight: FontWeight.w700),
+              style: AppTextStyles.labelBold,
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -341,7 +340,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
             preview,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(color: Colors.grey[600]),
+            style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
           ),
         ],
       ),

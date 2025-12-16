@@ -6,6 +6,7 @@ import 'package:trade_match/models/item.dart';
 import 'package:trade_match/services/api_service.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:trade_match/theme.dart';
 
 class AddItemPage extends StatefulWidget {
   final Item? item; // If provided, we are in Edit mode
@@ -203,15 +204,20 @@ class _AddItemPageState extends State<AddItemPage> {
       ),
       body: _isLoading 
         ? const Center(child: CircularProgressIndicator())
-        : Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Form(
+        : SingleChildScrollView(
+          child: Center(
+            child: Container(
+              constraints: BoxConstraints(
+                maxWidth: ResponsiveUtils.getMaxContentWidth(context),
+              ),
+              padding: ResponsiveUtils.getResponsivePadding(context),
+              child: Form(
             key: _formKey,
             child: ListView(
               children: [
                 // Image uploader
                 _buildImageUploader(),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.md),
                 // Title
                 TextFormField(
                   initialValue: _title,
@@ -220,7 +226,7 @@ class _AddItemPageState extends State<AddItemPage> {
                       value!.isEmpty ? 'Please enter a title' : null,
                   onSaved: (value) => _title = value!,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.md),
                 // Description
                 TextFormField(
                   initialValue: _description,
@@ -230,7 +236,7 @@ class _AddItemPageState extends State<AddItemPage> {
                       value!.isEmpty ? 'Please enter a description' : null,
                   onSaved: (value) => _description = value!,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.md),
                 // Estimated Value
                 TextFormField(
                   initialValue: _estimatedValue?.toString(),
@@ -238,16 +244,16 @@ class _AddItemPageState extends State<AddItemPage> {
                   keyboardType: TextInputType.number,
                   onSaved: (value) => _estimatedValue = double.tryParse(value!),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.md),
                 // Condition
                 _buildConditionSelector(),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.md),
                 // Category
                 _buildCategorySelector(),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.md),
                 // Location
                 _buildLocationPicker(),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.md),
                 // Wants Description
                 TextFormField(
                   initialValue: _wantsDescription,
@@ -256,17 +262,19 @@ class _AddItemPageState extends State<AddItemPage> {
                   maxLines: 3,
                   onSaved: (value) => _wantsDescription = value,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.md),
                 // Wanted Categories
                 _buildWantedCategoriesSelector(),
-                const SizedBox(height: 32),
-                // Submit Button
-                ElevatedButton(
-                  onPressed: _submitForm,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                const SizedBox(height: AppSpacing.xl),
+                const SizedBox(height: AppSpacing.lg),
+                // Submit button with gradient
+                SizedBox(
+                  width: double.infinity,
+                  child: GradientButton(
+                    text: _isEditing ? 'Update Item' : 'Add Item',
+                    onPressed: _submitForm,
+                    icon: _isEditing ? Icons.check : Icons.add,
                   ),
-                  child: Text(_isEditing ? 'Update Item' : 'Add Item'),
                 ),
               ],
             ),
@@ -281,8 +289,8 @@ class _AddItemPageState extends State<AddItemPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Images', style: TextStyle(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
+        const Text('Images', style: AppTextStyles.labelBold),
+        const SizedBox(height: AppSpacing.sm),
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -299,7 +307,7 @@ class _AddItemPageState extends State<AddItemPage> {
                 child: Container(
                   decoration: BoxDecoration(
                     color: Colors.grey[200],
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
                   ),
                   child: const Icon(Icons.add_a_photo),
                 ),
@@ -394,8 +402,8 @@ class _AddItemPageState extends State<AddItemPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Location', style: TextStyle(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
+        const Text('Location', style: AppTextStyles.labelBold),
+        const SizedBox(height: AppSpacing.sm),
         Text('$_locationCity ($_locationLat, $_locationLon)'),
         TextButton.icon(
           onPressed: _getCurrentLocation,
@@ -411,8 +419,8 @@ class _AddItemPageState extends State<AddItemPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text('What I Want (Categories)',
-            style: TextStyle(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
+            style: AppTextStyles.labelBold),
+        const SizedBox(height: AppSpacing.sm),
         Wrap(
           spacing: 8,
           children: _categories

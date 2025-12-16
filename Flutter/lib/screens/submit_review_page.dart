@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:trade_match/models/barter_item.dart';
 import 'package:trade_match/services/api_service.dart';
+import 'package:trade_match/theme.dart';
 
 class SubmitReviewPage extends StatefulWidget {
   final BarterMatch swap;
@@ -330,32 +331,11 @@ class _SubmitReviewPageState extends State<SubmitReviewPage> {
             // Submit Button
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton(
+              child: GradientButton(
+                text: 'Submit Review',
                 onPressed: _isSubmitting ? null : _submitReview,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: _isSubmitting
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                        ),
-                      )
-                    : const Text(
-                        'Submit Review',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                isLoading: _isSubmitting,
+                icon: Icons.rate_review,
               ),
             ),
           ],

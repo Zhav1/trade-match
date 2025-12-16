@@ -1,6 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+// Export all design system classes for easy access
+export 'theme/app_colors.dart';
+export 'theme/app_text_styles.dart';
+export 'theme/app_spacing.dart';
+export 'theme/app_radius.dart';
+export 'theme/app_elevation.dart';
+export 'theme/app_breakpoints.dart';
+export 'utils/responsive_utils.dart';
+export 'utils/animation_utils.dart';
+export 'widgets/glass_effects.dart';
+export 'widgets/gradient_widgets.dart';
+
+/// Legacy AppColors class - kept for backward compatibility
+/// New code should import and use theme/app_colors.dart directly
 class AppColors {
   // Central primary color used across the app. Change this one value to affect UI.
   static const Color primary = Color(0xFFFD7E14);

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:trade_match/models/item.dart';
 import 'package:trade_match/services/api_service.dart';
+import 'package:trade_match/theme.dart';
 
 class LibraryScreen extends StatefulWidget {
   const LibraryScreen({Key? key}) : super(key: key);
@@ -52,7 +53,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
               Navigator.pop(context);
               _deleteItem(id);
             },
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            child: Text('Delete', style: TextStyle(color: AppColors.error)),
           ),
         ],
       ),
@@ -64,40 +65,96 @@ class _LibraryScreenState extends State<LibraryScreen> {
     final Color primary = Theme.of(context).colorScheme.primary;
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.surface,
         elevation: 0,
-        title: const Text('Library', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        title: Text('Library', style: AppTextStyles.heading3.copyWith(color: AppColors.textPrimary)),
         actions: [
-          IconButton(onPressed: () {}, icon: const Icon(Icons.search, color: Colors.grey)),
-          IconButton(onPressed: () {}, icon: const Icon(Icons.tune, color: Colors.grey)),
-          const SizedBox(width: 6)
+          IconButton(onPressed: () {}, icon: Icon(Icons.search, color: AppColors.textSecondary)),
+          IconButton(onPressed: () {}, icon: Icon(Icons.tune, color: AppColors.textSecondary)),
+          const SizedBox(width: AppSpacing.xs)
         ],
       ),
       body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.sm),
         child: Column(
           children: [
             Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8)]),
+              padding: const EdgeInsets.all(AppSpacing.sm),
+              decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(AppRadius.button), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8)]),
               child: Row(
                 children: [
-                  Expanded(child: Text('Your saved items', style: TextStyle(fontWeight: FontWeight.bold, color: primary))),
+                  Expanded(child: Text('Your saved items', style: AppTextStyles.labelBold.copyWith(color: primary))),
                   TextButton(onPressed: () {}, child: const Text('Manage'))
                 ],
               ),
             ),
 
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.sm),
 
-            Expanded(
               child: FutureBuilder<List<Item>>(
                 future: _itemsFuture,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
+                    // Skeleton loading grid
+                    return GridView.builder(
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: ResponsiveUtils.getGridColumns(
+                          context,
+                          mobile: 2,
+                          tablet: 3,
+                          desktop: 4,
+                        ),
+                        crossAxisSpacing: AppSpacing.sm,
+                        mainAxisSpacing: AppSpacing.sm,
+                        childAspectRatio: 0.8,
+                      ),
+                      itemCount: 6, // Show 6 skeleton cards
+                      itemBuilder: (context, index) {
+                        return Shimmer.fromColors(
+                          baseColor: Colors.grey[300]!,
+                          highlightColor: Colors.grey[100]!,
+                          child: GlassCard(
+                            padding: EdgeInsets.zero,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: Container(color: Colors.white),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.all(8),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Container(
+                                        height: 12,
+                                        width: double.infinity,
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Container(
+                                        height: 10,
+                                        width: 60,
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    );
                   } else if (snapshot.hasError) {
                     return Center(child: Text('Error: ${snapshot.error}'));
                   } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
@@ -105,8 +162,18 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   } else {
                     final items = snapshot.data!;
                     return GridView.builder(
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, childAspectRatio: 0.7, crossAxisSpacing: 10, mainAxisSpacing: 10),
-                      itemCount: items.length,
+          padding: const EdgeInsets.all(AppSpacing.md),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: ResponsiveUtils.getGridColumns(
+              context,
+              mobile: 2,
+              tablet: 3,
+              desktop: 4,
+            ),
+            crossAxisSpacing: AppSpacing.sm,
+            mainAxisSpacing: AppSpacing.sm,
+            childAspectRatio: 0.8,
+          ),itemCount: items.length,
                       itemBuilder: (context, i) {
                         final it = items[i];
                         // Dynamic height not easily doable in standard GridView without staggered, keeping fixed aspect ratio for now
@@ -122,13 +189,13 @@ class _LibraryScreenState extends State<LibraryScreen> {
                           },
                           onLongPress: () => _confirmDelete(it.id),
                           child: Container(
-                            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8)]),
+                            decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(AppRadius.card), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8)]),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Expanded(
                                   child: ClipRRect(
-                                    borderRadius: const BorderRadius.only(topLeft: Radius.circular(14), topRight: Radius.circular(14)),
+                                    borderRadius: BorderRadius.only(topLeft: Radius.circular(AppRadius.card), topRight: Radius.circular(AppRadius.card)),
                                     child: (it.images != null && it.images!.isNotEmpty)
                                         ? Image.network(it.images!.first.imageUrl, width: double.infinity, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Center(child: Icon(Icons.broken_image)))
                                         : const Center(child: Icon(Icons.image, size: 50, color: Colors.grey)),
@@ -137,9 +204,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
                                 Padding(
                                   padding: const EdgeInsets.all(8.0),
                                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                    Text(it.title, style: const TextStyle(fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
-                                    const SizedBox(height: 6),
-                                    Text('Cond: ${it.condition}', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                                    Text(it.title, style: AppTextStyles.labelBold, maxLines: 1, overflow: TextOverflow.ellipsis),
+                                    const SizedBox(height: AppSpacing.xs),
+                                    Text('Cond: ${it.condition}', style: AppTextStyles.caption),
                                   ]),
                                 ),
                               ],

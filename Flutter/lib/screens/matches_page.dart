@@ -5,6 +5,7 @@ import 'package:trade_match/services/api_service.dart';
 import 'package:trade_match/models/user.dart';
 import 'package:trade_match/models/category.dart';
 import 'package:trade_match/models/item_image.dart';
+import 'package:trade_match/theme.dart';
 
 class MatchesPage extends StatefulWidget {
   const MatchesPage({super.key});
@@ -36,7 +37,7 @@ class _MatchesPageState extends State<MatchesPage> with SingleTickerProviderStat
     return Scaffold(
       appBar: AppBar(
         title: const Text('Matches & Likes'),
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.surface,
         elevation: 0,
         bottom: TabBar(
           controller: _tabController,
@@ -45,7 +46,7 @@ class _MatchesPageState extends State<MatchesPage> with SingleTickerProviderStat
             Tab(text: 'Likes'),
           ],
           labelColor: Theme.of(context).colorScheme.primary,
-          unselectedLabelColor: Colors.grey,
+          unselectedLabelColor: AppColors.textSecondary,
           indicatorColor: Theme.of(context).colorScheme.primary,
         ),
       ),
@@ -73,7 +74,7 @@ class _MatchesPageState extends State<MatchesPage> with SingleTickerProviderStat
 
         final swaps = snapshot.data!;
         return ListView.builder(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppSpacing.md),
           itemCount: swaps.length,
           itemBuilder: (context, index) {
             final swap = swaps[index];

@@ -19,7 +19,7 @@ class _TradeHistoryPageState extends State<TradeHistoryPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Trade History'),
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.surface,
         elevation: 0,
       ),
       body: DefaultTabController(
@@ -28,7 +28,7 @@ class _TradeHistoryPageState extends State<TradeHistoryPage> {
           children: [
             Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppColors.surface,
                 border: Border(
                   bottom: BorderSide(
                     color: Colors.grey[200]!,

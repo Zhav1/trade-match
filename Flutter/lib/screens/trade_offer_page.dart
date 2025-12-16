@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:trade_match/models/barter_item.dart';
+import 'package:trade_match/theme.dart';
 
 class TradeOfferPage extends StatefulWidget {
   final BarterItem? theirItem;
@@ -24,7 +25,7 @@ class _TradeOfferPageState extends State<TradeOfferPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Ajukan Penawaran'),
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.surface,
         elevation: 0,
       ),
       body: Column(
@@ -214,21 +215,12 @@ class _TradeOfferPageState extends State<TradeOfferPage> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: _selectedItems.isEmpty ? null : _sendTradeOffer,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.primary,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text(
-                    'Send Trade Offer',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                SizedBox(
+                  width: double.infinity,
+                  child: GradientButton(
+                    text: 'Send Trade Offer',
+                    onPressed: _selectedItems.isEmpty ? null : _sendTradeOffer,
+                    icon: Icons.send,
                   ),
                 ),
               ],
