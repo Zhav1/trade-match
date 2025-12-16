@@ -84,4 +84,3 @@ If you are developing locally, you will typically have 3-4 terminals open:
 1.  `php artisan serve` (Laravel API)
 2.  `php artisan queue:work` (Background Jobs)
 3.  `flutter run` (Mobile App)
-4.  *(Optional)* `php artisan reverb:start` (Only if self-hosting WebSockets)

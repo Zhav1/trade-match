@@ -1,8 +1,51 @@
 import 'package:flutter/material.dart';
+import 'package:trade_match/services/api_service.dart';
+import 'package:trade_match/models/item.dart';
 import 'settings_page.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
+
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  final ApiService _apiService = ApiService();
+  Map<String, dynamic>? _userData;
+  List<Item> _userItems = [];
+  bool _isLoading = true;
+  String _errorMessage = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    try {
+      final results = await Future.wait([
+        _apiService.getUser(),
+        _apiService.getUserItems(),
+      ]);
+      
+      if (mounted) {
+        setState(() {
+          _userData = results[0] as Map<String, dynamic>;
+          _userItems = results[1] as List<Item>;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Failed to load profile: $e';
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -12,7 +55,23 @@ class ProfilePage extends StatelessWidget {
       length: 2,
       child: Scaffold(
         backgroundColor: Colors.white,
-        body: NestedScrollView(
+        body: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : _errorMessage.isNotEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(_errorMessage),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: _loadData,
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  )
+                : NestedScrollView(
           physics: const BouncingScrollPhysics(),
           headerSliverBuilder: (context, innerBoxIsScrolled) => [
             SliverAppBar(
@@ -54,16 +113,18 @@ class ProfilePage extends StatelessWidget {
                       child: Padding(
                         padding: const EdgeInsets.only(bottom: 20.0),
                         child: Container(
-                          decoration: BoxDecoration(
+                          decoration: const BoxDecoration(
                             shape: BoxShape.circle,
                             color: Colors.white,
                             boxShadow: [
                               BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 4)),
                             ],
                           ),
-                          child: const CircleAvatar(
+                          child: CircleAvatar(
                             radius: 56,
-                            backgroundImage: AssetImage('assets/images/pp-1.png'),
+                            backgroundImage: _userData?['profile_picture_url'] != null
+                                ? NetworkImage(_userData!['profile_picture_url']) as ImageProvider
+                                : const AssetImage('assets/images/pp-1.png'),
                           ),
                         ),
                       ),
@@ -88,18 +149,25 @@ class ProfilePage extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
                 child: Column(
-                  children: const [
-                    SizedBox(height: 8),
-                    _ProfileInfo(),
+                  children: [
+                    const SizedBox(height: 8),
+                    _ProfileInfo(userData: _userData, itemCount: _userItems.length),
                   ],
                 ),
               ),
             ),
           ],
-          body: const TabBarView(children: [_ItemList(isOffer: true), _ItemList(isOffer: false)]),
+          body: TabBarView(children: [
+            _ItemList(items: _userItems, isOffer: true),
+            const _ItemList(items: [], isOffer: false) // Placeholder for 'Dicari'
+          ]),
         ),
         floatingActionButton: FloatingActionButton.extended(
-          onPressed: () {},
+          onPressed: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Profile editing coming soon')),
+            );
+          },
           icon: const Icon(Icons.edit),
           label: const Text('Edit Profile'),
           backgroundColor: primary,
@@ -110,22 +178,32 @@ class ProfilePage extends StatelessWidget {
 }
 
 class _ProfileInfo extends StatelessWidget {
-  const _ProfileInfo();
+  final Map<String, dynamic>? userData;
+  final int itemCount;
+  
+  const _ProfileInfo({this.userData, required this.itemCount});
 
   @override
   Widget build(BuildContext context) {
+    final name = userData?['name'] ?? 'User';
+    final location = userData?['default_location_city'] ?? 'Location not set';
+    // Use actual item list length for "Offers" if available, else fallback to API count
+    final offersCount = itemCount > 0 ? itemCount.toString() : (userData?['offers_count']?.toString() ?? '0');
+    final requestsCount = userData?['requests_count']?.toString() ?? '0';
+    final tradesCount = userData?['trades_count']?.toString() ?? '0';
+
     return Column(
       children: [
-        const Text('Qhanakin Putri', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        Text(name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
         const SizedBox(height: 6),
-        Text('Medan, Indonesia', style: TextStyle(color: Colors.grey[700])),
+        Text(location, style: TextStyle(color: Colors.grey[700])),
         const SizedBox(height: 16),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: const [
-            _StatItem(value: '8', title: 'Offers'),
-            _StatItem(value: '3', title: 'Requests'),
-            _StatItem(value: '5', title: 'Trades'),
+          children: [
+            _StatItem(value: offersCount, title: 'Offers'),
+            _StatItem(value: requestsCount, title: 'Requests'),
+            _StatItem(value: tradesCount, title: 'Trades'),
           ],
         ),
         const SizedBox(height: 12),
@@ -154,20 +232,24 @@ class _StatItem extends StatelessWidget {
 
 class _ItemList extends StatelessWidget {
   final bool isOffer;
-  const _ItemList({required this.isOffer});
+  final List<Item> items;
+  
+  const _ItemList({required this.isOffer, required this.items});
 
   @override
   Widget build(BuildContext context) {
-    final items = isOffer
-        ? [
-            {"name": "Laptop Asus", "status": "Aktif", "color": Colors.green},
-            {"name": "Sepeda Fixie", "status": "Dalam Proses", "color": Colors.orange},
-            {"name": "Kamera Canon", "status": "Selesai", "color": Colors.red},
-          ]
-        : [
-            {"name": "iPhone Bekas", "status": "Aktif", "color": Colors.green},
-            {"name": "Kursi Gaming", "status": "Aktif", "color": Colors.green},
-          ];
+    if (items.isEmpty) {
+       return Center(
+         child: Column(
+           mainAxisAlignment: MainAxisAlignment.center,
+           children: [
+             Icon(isOffer ? Icons.inventory_2_outlined : Icons.search_outlined, size: 48, color: Colors.grey[300]),
+             const SizedBox(height: 16),
+             Text(isOffer ? 'No items offered yet' : 'No requests yet', style: TextStyle(color: Colors.grey[500])),
+           ],
+         ),
+       );
+    }
 
     return ListView.separated(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
@@ -176,16 +258,28 @@ class _ItemList extends StatelessWidget {
       itemBuilder: (context, index) {
         final item = items[index];
         return ListTile(
-          leading: CircleAvatar(backgroundColor: Colors.grey[200], child: const Icon(Icons.inventory_2_outlined, color: Colors.black54)),
-          title: Text(item['name'] as String, style: const TextStyle(fontWeight: FontWeight.w600)),
-          subtitle: Text(item['status'] as String, style: TextStyle(color: Colors.grey[700])),
+          leading: Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: Colors.grey[200],
+              borderRadius: BorderRadius.circular(8),
+              image: (item.images != null && item.images!.isNotEmpty) 
+                  ? DecorationImage(image: NetworkImage(item.images!.first.imageUrl), fit: BoxFit.cover)
+                  : null
+            ),
+            child: (item.images == null || item.images!.isEmpty) 
+               ? const Icon(Icons.inventory_2_outlined, color: Colors.black54) 
+               : null,
+          ),
+          title: Text(item.title, style: const TextStyle(fontWeight: FontWeight.w600)),
+          subtitle: Text(item.condition, style: TextStyle(color: Colors.grey[700])),
           trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-          onTap: () {},
+          onTap: () {
+            // TODO: Navigate to item detail
+          },
         );
       },
     );
   }
 }
-
-// Note: no unused helper delegates remain. If you later need a sticky TabBar, re-add
-// a SliverPersistentHeaderDelegate here.

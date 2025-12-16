@@ -113,14 +113,18 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
                             cardCount: items.length,
                             loop: true,
                             onSwipeEnd: (previousIndex, targetIndex, direction) {
-                              final item = items[previousIndex];
+                              final int idx = (previousIndex is int) ? previousIndex : int.parse(previousIndex.toString());
+                              final item = items[idx];
                               if (direction == AxisDirection.right) {
                                 _apiService.swipe(_currentUserItemId, item.id, 'like');
                               } else if (direction == AxisDirection.left) {
                                 _apiService.swipe(_currentUserItemId, item.id, 'dislike');
                               }
                             },
-                            cardBuilder: (context, index) => _buildCard(items[index]),
+                            cardBuilder: (context, index) {
+                              final int idx = (index is int) ? index : int.parse(index.toString());
+                              return _buildCard(items[idx]);
+                            },
                           );
                         }
                       },

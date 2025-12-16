@@ -125,6 +125,24 @@ class ApiService {
     }
   }
 
+  Future<Item> updateItem(int id, Map<String, dynamic> itemData) async {
+    final response = await http.put(
+      Uri.parse('$API_BASE/api/items/\$id'),
+      headers: {
+        'Authorization': 'Bearer $AUTH_TOKEN',
+        'Content-Type': 'application/json; charset=UTF-8',
+        'Accept': 'application/json',
+      },
+      body: jsonEncode(itemData),
+    ).timeout(const Duration(seconds: 10));
+
+    if (response.statusCode == 200) {
+      return Item.fromJson(jsonDecode(response.body)['item']);
+    } else {
+      throw Exception('Failed to update item: \${response.body}');
+    }
+  }
+
   Future<Map<String, dynamic>> login(String email, String password) async {
     final response = await http.post(
       Uri.parse('$API_BASE/api/login'),
@@ -142,26 +160,66 @@ class ApiService {
     }
   }
 
-  Future<Map<String, dynamic>> register(String name, String email, String phone, String password) async {
-    final response = await http.post(
-      Uri.parse('$API_BASE/api/register'),
+  Future<List<Item>> getUserItems() async {
+    final response = await http.get(
+      Uri.parse('$API_BASE/api/items'),
       headers: {
-        'Content-Type': 'application/json; charset=UTF-8',
+        'Authorization': 'Bearer $AUTH_TOKEN',
         'Accept': 'application/json',
       },
-      body: jsonEncode({
-        'name': name,
-        'email': email,
-        'phone': phone,
-        'password': password,
-        'password_confirmation': password
-      }),
     ).timeout(const Duration(seconds: 10));
 
-    if (response.statusCode == 201) {
-      return jsonDecode(response.body);
+    if (response.statusCode == 200) {
+      List<dynamic> body = jsonDecode(response.body)['items'];
+      return body.map((dynamic item) => Item.fromJson(item)).toList();
     } else {
-      throw Exception('Failed to register');
+      throw Exception('Failed to load items');
+    }
+  }
+
+  Future<void> deleteItem(int id) async {
+    final response = await http.delete(
+      Uri.parse('$API_BASE/api/items/\$id'),
+      headers: {
+        'Authorization': 'Bearer $AUTH_TOKEN',
+        'Accept': 'application/json',
+      },
+    ).timeout(const Duration(seconds: 10));
+
+    if (response.statusCode != 204 && response.statusCode != 200) {
+      throw Exception('Failed to delete item');
+    }
+  }
+
+  Future<Map<String, dynamic>> register(String name, String email, String phone, String password) async {
+    print('Attempting to register user: $email');
+    try {
+      final response = await http.post(
+        Uri.parse('$API_BASE/api/register'),
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({
+          'name': name,
+          'email': email,
+          'phone': phone,
+          'password': password,
+          'password_confirmation': password
+        }),
+      ).timeout(const Duration(seconds: 10));
+
+      print('Register response status: ${response.statusCode}');
+      print('Register response body: ${response.body}');
+
+      if (response.statusCode == 201) {
+        return jsonDecode(response.body);
+      } else {
+        throw Exception('Failed to register: ${response.body}');
+      }
+    } catch (e) {
+      print('Register error: $e');
+      rethrow;
     }
   }
 
@@ -221,19 +279,56 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> googleLogin(String idToken) async {
-    final response = await http.post(
-      Uri.parse('$API_BASE/api/auth/google'),
-      headers: {
-        'Content-Type': 'application/json; charset=UTF-8',
-        'Accept': 'application/json',
-      },
-      body: jsonEncode({'id_token': idToken}),
-    ).timeout(const Duration(seconds: 10));
+    print('Attempting Google Login with token: ${idToken.substring(0, 10)}...');
+    try {
+      final response = await http.post(
+        Uri.parse('$API_BASE/api/auth/google'),
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({'id_token': idToken}),
+      ).timeout(const Duration(seconds: 10));
 
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
-      throw Exception('Failed to login with Google');
+      print('Google Login response status: ${response.statusCode}');
+      print('Google Login response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        throw Exception('Failed to login with Google: ${response.body}');
+      }
+    } catch (e) {
+      print('Google Login error: $e');
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> googleRegister(String idToken) async {
+    print('Attempting Google Registration with token: ${idToken.substring(0, 10)}...');
+    try {
+      final response = await http.post(
+        Uri.parse('$API_BASE/api/auth/google/register'),
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({'id_token': idToken}),
+      ).timeout(const Duration(seconds: 10));
+
+      print('Google Register response status: ${response.statusCode}');
+      print('Google Register response body: ${response.body}');
+
+      if (response.statusCode == 201) {
+        return jsonDecode(response.body);
+      } else if (response.statusCode == 409) {
+        throw Exception('User already exists. Please login instead.');
+      } else {
+        throw Exception('Failed to register with Google: ${response.body}');
+      }
+    } catch (e) {
+      print('Google Register error: $e');
+      rethrow;
     }
   }
 
@@ -250,5 +345,47 @@ class ApiService {
       // Ignore errors on logout
     }
     await deleteToken();
+  }
+
+  Future<Map<String, dynamic>> updateProfile(Map<String, dynamic> data) async {
+    final response = await http.put(
+      Uri.parse('$API_BASE/api/user/profile'),
+      headers: {
+        'Authorization': 'Bearer $AUTH_TOKEN',
+        'Content-Type': 'application/json; charset=UTF-8',
+        'Accept': 'application/json',
+      },
+      body: jsonEncode(data),
+    ).timeout(const Duration(seconds: 10));
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to update profile');
+    }
+  }
+
+  Future<Map<String, dynamic>> uploadProfilePicture(File imageFile) async {
+    var request = http.MultipartRequest(
+      'POST',
+      Uri.parse('$API_BASE/api/user/profile-picture'),
+    );
+    request.headers['Authorization'] = 'Bearer $AUTH_TOKEN';
+    request.headers['Accept'] = 'application/json';
+    request.files.add(
+      await http.MultipartFile.fromPath(
+        'image',
+        imageFile.path,
+      ),
+    );
+
+    var response = await request.send();
+
+    if (response.statusCode == 200) {
+      var responseBody = await response.stream.bytesToString();
+      return jsonDecode(responseBody);
+    } else {
+      throw Exception('Failed to upload profile picture');
+    }
   }
 }

@@ -16,7 +16,8 @@ class AuthPage extends StatefulWidget {
 
 class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  final _formKey = GlobalKey<FormState>();
+  final _signInFormKey = GlobalKey<FormState>();
+  final _registerFormKey = GlobalKey<FormState>();
   bool _isLoading = false;
 
   // Form controllers
@@ -27,7 +28,10 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
   final _phoneController = TextEditingController();
 
   final ApiService _apiService = ApiService();
-  final GoogleSignIn _googleSignIn = GoogleSignIn(scopes: ['email']);
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    scopes: ['email'],
+    serverClientId: GOOGLE_CLIENT_ID,
+  );
 
   InputDecoration _inputDecoration(String label, IconData icon) {
     return InputDecoration(
@@ -141,7 +145,7 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Form(
-        key: _formKey,
+        key: _signInFormKey,
         child: Column(
           children: [
             TextFormField(
@@ -177,7 +181,7 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
                   backgroundColor: Theme.of(context).colorScheme.primary,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(12),
                   ),
                 ),
                 child: _isLoading
@@ -220,7 +224,7 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Form(
-        key: _formKey,
+        key: _registerFormKey,
         child: Column(
           children: [
             TextFormField(
@@ -305,6 +309,34 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
                     : const Text('Register'),
               ),
             ),
+            const SizedBox(height: 16),
+            // Divider with OR
+            Row(
+              children: [
+                const Expanded(child: Divider()),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Text('OR', style: TextStyle(color: Colors.grey[600])),
+                ),
+                const Expanded(child: Divider()),
+              ],
+            ),
+            const SizedBox(height: 16),
+            // Google Sign-In button on Register tab
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: OutlinedButton.icon(
+                onPressed: _isLoading ? null : _handleGoogleRegister,
+                icon: const Icon(Icons.login),
+                label: const Text('Sign up with Google'),
+                style: OutlinedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -312,20 +344,24 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
   }
 
   void _handleSignIn() async {
-    if (_formKey.currentState!.validate()) {
+    print("--- Sign In Button Pressed ---");
+    if (_signInFormKey.currentState!.validate()) {
+      print("Validation Passed. Starting API Call...");
       setState(() => _isLoading = true);
       try {
         final response = await _apiService.login(
           _emailController.text,
           _passwordController.text,
         );
+        print("API Response received: $response");
         await _apiService.saveToken(response['token']);
         AUTH_USER_ID = response['user']['id'].toString();
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const MainPage()),
         );
-      } catch (e) {
+      } catch (e, stackTrace) {
+        print("Exception in _handleSignIn: $e\nStack Trace: $stackTrace");
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to sign in: ${e.toString()}')),
         );
@@ -335,10 +371,13 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
         }
       }
     }
+    else {
+      print("Validation FAILED. Check text fields for red error messages."); 
+    }
   }
 
   void _handleRegister() async {
-    if (_formKey.currentState!.validate()) {
+    if (_registerFormKey.currentState!.validate()) {
       setState(() => _isLoading = true);
       try {
         final response = await _apiService.register(
@@ -366,21 +405,49 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
   }
 
   void _handleGoogleSignIn() async {
+    print("--- Google Sign In Started ---");
     setState(() => _isLoading = true);
     try {
+      await _googleSignIn.signOut();
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) {
+        print("User cancelled Google Sign In");
         setState(() => _isLoading = false);
         return; // User canceled
       }
-
+      print("Google User found: ${googleUser.email}");
+      
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
       final String? idToken = googleAuth.idToken;
+      final String? accessToken = googleAuth.accessToken;
+
+      print("3. GOOGLE ID TOKEN: $idToken");
+      print("4. GOOGLE ACCESS TOKEN: $accessToken");
 
       if (idToken != null) {
+        print("5. Sending ID Token to Backend...");
+
         final response = await _apiService.googleLogin(idToken);
+
+        print("6. Backend Response: $response");
+        print("7. BACKEND JWT TOKEN: ${response['token']}");
+
         await _apiService.saveToken(response['token']);
         AUTH_USER_ID = response['user']['id'].toString();
+        
+        // NEW: Check if phone is required (new Google users)
+        if (response['phone_required'] == true || response['user']['phone'] == null) {
+          final phone = await _showPhoneCollectionDialog();
+          
+          if (phone != null && phone.isNotEmpty) {
+            try {
+              await _apiService.updateProfile({'phone': phone});
+            } catch (e) {
+              // Log error but don't block navigation
+              print('Failed to update phone: $e');
+            }
+          }
+        }
         
         if (mounted) {
            Navigator.pushReplacement(
@@ -388,6 +455,8 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
             MaterialPageRoute(builder: (context) => const MainPage()),
           );
         }
+      } else {
+        print("CRITICAL: Google ID Token is NULL");
       }
     } catch (e) {
       if (mounted) {
@@ -399,6 +468,133 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
       if (mounted) {
         setState(() => _isLoading = false);
       }
+    }
+  }
+
+
+  Future<String?> _showPhoneCollectionDialog() async {
+    final phoneController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    
+    return showDialog<String>(
+      context: context,
+      barrierDismissible: false,  // User must provide phone or skip
+      builder: (context) => AlertDialog(
+        title: const Text('One More Step'),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Please provide your phone number to complete registration. This is required for trade communication.',
+                style: TextStyle(fontSize: 14),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: phoneController,
+                decoration: _inputDecoration('Phone Number', Icons.phone),
+                keyboardType: TextInputType.phone,
+                autofocus: true,
+                validator: (value) {
+                  if (value != null && value.isNotEmpty) {
+                    // Basic phone validation
+                    if (value.length < 10) {
+                      return 'Phone number must be at least 10 digits';
+                    }
+                  }
+                  return null;
+                },
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, null),  // Skip for now
+            child: const Text('Skip (Add Later)'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (formKey.currentState!.validate()) {
+                Navigator.pop(context, phoneController.text);
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Continue'),
+          ),
+        ],
+      ),
+    );
+  }
+  void _handleGoogleRegister() async {
+    print("--- Google Register Started ---");
+    setState(() => _isLoading = true);
+    try {
+      await _googleSignIn.signOut();
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) {
+        print("User cancelled Google Sign In");
+        setState(() => _isLoading = false);
+        return; // User canceled
+      }
+      print("Google User found: ${googleUser.email}");
+      
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final String? idToken = googleAuth.idToken;
+
+      if (idToken != null) {
+        print("Sending ID Token to Backend (Register)...");
+        // CALLS THE NEW REGISTRATION ENDPOINT
+        final response = await _apiService.googleRegister(idToken);
+        await _handleAuthResponse(response);
+      } else {
+        print("CRITICAL: Google ID Token is NULL");
+      }
+    } catch (e) {
+      if (mounted) {
+        // Clean up exception message
+        String errorMessage = e.toString();
+        if (errorMessage.contains("Exception:")) {
+          errorMessage = errorMessage.replaceAll("Exception:", "").trim();
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMessage)),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _handleAuthResponse(Map<String, dynamic> response) async {
+    await _apiService.saveToken(response['token']);
+    AUTH_USER_ID = response['user']['id'].toString();
+    
+    // Check if phone is required (common logic)
+    if (response['phone_required'] == true || response['user']['phone'] == null) {
+      final phone = await _showPhoneCollectionDialog();
+      
+      if (phone != null && phone.isNotEmpty) {
+        try {
+          await _apiService.updateProfile({'phone': phone});
+        } catch (e) {
+          print('Failed to update phone: $e');
+        }
+      }
+    }
+    
+    if (mounted) {
+       Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const MainPage()),
+      );
     }
   }
 }

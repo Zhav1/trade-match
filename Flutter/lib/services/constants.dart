@@ -13,3 +13,6 @@ String AUTH_USER_ID = 'REPLACE_WITH_USER_ID';
 
 const String PUSHER_KEY = 'f8d03f03daefb90ac1da';
 const String PUSHER_CLUSTER = 'ap1';
+
+// Google Web Client ID (from Google Cloud Console > Credentials > Web application)
+const String GOOGLE_CLIENT_ID = '915200574896-1lfrh6hosfvi5l8ds74c457dfeg88kpe.apps.googleusercontent.com';

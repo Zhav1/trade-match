@@ -2,12 +2,14 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:trade_match/models/category.dart';
+import 'package:trade_match/models/item.dart';
 import 'package:trade_match/services/api_service.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 
 class AddItemPage extends StatefulWidget {
-  const AddItemPage({super.key});
+  final Item? item; // If provided, we are in Edit mode
+  const AddItemPage({super.key, this.item});
 
   @override
   _AddItemPageState createState() => _AddItemPageState();
@@ -33,6 +35,10 @@ class _AddItemPageState extends State<AddItemPage> {
   // Image picking
   final ImagePicker _picker = ImagePicker();
   List<XFile> _imageFiles = [];
+  
+  // Edit mode flags
+  bool get _isEditing => widget.item != null;
+  bool _isLoading = false;
 
   // Categories
   List<Category> _categories = [];
@@ -42,7 +48,35 @@ class _AddItemPageState extends State<AddItemPage> {
   void initState() {
     super.initState();
     _fetchCategories();
-    _getCurrentLocation();
+    
+    if (_isEditing) {
+      _initializeEditMode();
+    } else {
+      _getCurrentLocation();
+    }
+  }
+
+  void _initializeEditMode() {
+    final item = widget.item!;
+    _title = item.title;
+    _description = item.description;
+    _estimatedValue = item.estimatedValue;
+    _condition = item.condition;
+    _categoryId = item.categoryId;
+    _locationCity = item.locationCity;
+    _locationLat = item.locationLat;
+    _locationLon = item.locationLon;
+    _wantsDescription = item.wantsDescription;
+    
+    // Existing images
+    if (item.images != null) {
+      _imageUrls.addAll(item.images!.map((e) => e.imageUrl));
+    }
+    
+    // Existing wants (categories)
+    if (item.wants != null) {
+      _wantedCategoryIds.addAll(item.wants!.map((e) => e.wantedCategoryId));
+    }
   }
 
   Future<void> _fetchCategories() async {
@@ -56,9 +90,11 @@ class _AddItemPageState extends State<AddItemPage> {
       setState(() {
         _isLoadingCategories = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load categories: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load categories: $e')),
+        );
+      }
     }
   }
 
@@ -106,9 +142,10 @@ class _AddItemPageState extends State<AddItemPage> {
   Future<void> _submitForm() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
+      setState(() => _isLoading = true);
 
       try {
-        // Upload images and get URLs
+        // Upload NEW images and get URLs
         for (var imageFile in _imageFiles) {
           final imageUrl = await _apiService.uploadImage(File(imageFile.path));
           _imageUrls.add(imageUrl);
@@ -125,16 +162,35 @@ class _AddItemPageState extends State<AddItemPage> {
           'location_lat': _locationLat,
           'location_lon': _locationLon,
           'wants_description': _wantsDescription,
-          'image_urls': _imageUrls,
+          'image_urls': _imageUrls, // Contains both old and new URLs
           'wanted_category_ids': _wantedCategoryIds,
         };
 
-        await _apiService.createItem(itemData);
-        Navigator.pop(context);
+        if (_isEditing) {
+          await _apiService.updateItem(widget.item!.id, itemData);
+          if (mounted) {
+             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Item updated successfully')));
+          }
+        } else {
+          await _apiService.createItem(itemData);
+          if (mounted) {
+             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Item created successfully')));
+          }
+        }
+        
+        if (mounted) {
+          Navigator.pop(context);
+        }
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to create item: $e')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to ${_isEditing ? 'update' : 'create'} item: $e')),
+          );
+        }
+      } finally {
+        if (mounted) {
+           setState(() => _isLoading = false);
+        }
       }
     }
   }
@@ -143,74 +199,85 @@ class _AddItemPageState extends State<AddItemPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Add New Item'),
+        title: Text(_isEditing ? 'Edit Item' : 'Add New Item'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            children: [
-              // Image uploader
-              _buildImageUploader(),
-              const SizedBox(height: 16),
-              // Title
-              TextFormField(
-                decoration: const InputDecoration(labelText: 'Title'),
-                validator: (value) =>
-                    value!.isEmpty ? 'Please enter a title' : null,
-                onSaved: (value) => _title = value!,
-              ),
-              const SizedBox(height: 16),
-              // Description
-              TextFormField(
-                decoration: const InputDecoration(labelText: 'Description'),
-                maxLines: 3,
-                validator: (value) =>
-                    value!.isEmpty ? 'Please enter a description' : null,
-                onSaved: (value) => _description = value!,
-              ),
-              const SizedBox(height: 16),
-              // Estimated Value
-              TextFormField(
-                decoration: const InputDecoration(labelText: 'Estimated Value'),
-                keyboardType: TextInputType.number,
-                onSaved: (value) => _estimatedValue = double.tryParse(value!),
-              ),
-              const SizedBox(height: 16),
-              // Condition
-              _buildConditionSelector(),
-              const SizedBox(height: 16),
-              // Category
-              _buildCategorySelector(),
-              const SizedBox(height: 16),
-              // Location
-              _buildLocationPicker(),
-              const SizedBox(height: 16),
-              // Wants Description
-              TextFormField(
-                decoration:
-                    const InputDecoration(labelText: 'What I Want (Description)'),
-                maxLines: 3,
-                onSaved: (value) => _wantsDescription = value,
-              ),
-              const SizedBox(height: 16),
-              // Wanted Categories
-              _buildWantedCategoriesSelector(),
-              const SizedBox(height: 32),
-              // Submit Button
-              ElevatedButton(
-                onPressed: _submitForm,
-                child: const Text('Add Item'),
-              ),
-            ],
+      body: _isLoading 
+        ? const Center(child: CircularProgressIndicator())
+        : Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Form(
+            key: _formKey,
+            child: ListView(
+              children: [
+                // Image uploader
+                _buildImageUploader(),
+                const SizedBox(height: 16),
+                // Title
+                TextFormField(
+                  initialValue: _title,
+                  decoration: const InputDecoration(labelText: 'Title'),
+                  validator: (value) =>
+                      value!.isEmpty ? 'Please enter a title' : null,
+                  onSaved: (value) => _title = value!,
+                ),
+                const SizedBox(height: 16),
+                // Description
+                TextFormField(
+                  initialValue: _description,
+                  decoration: const InputDecoration(labelText: 'Description'),
+                  maxLines: 3,
+                  validator: (value) =>
+                      value!.isEmpty ? 'Please enter a description' : null,
+                  onSaved: (value) => _description = value!,
+                ),
+                const SizedBox(height: 16),
+                // Estimated Value
+                TextFormField(
+                  initialValue: _estimatedValue?.toString(),
+                  decoration: const InputDecoration(labelText: 'Estimated Value'),
+                  keyboardType: TextInputType.number,
+                  onSaved: (value) => _estimatedValue = double.tryParse(value!),
+                ),
+                const SizedBox(height: 16),
+                // Condition
+                _buildConditionSelector(),
+                const SizedBox(height: 16),
+                // Category
+                _buildCategorySelector(),
+                const SizedBox(height: 16),
+                // Location
+                _buildLocationPicker(),
+                const SizedBox(height: 16),
+                // Wants Description
+                TextFormField(
+                  initialValue: _wantsDescription,
+                  decoration:
+                      const InputDecoration(labelText: 'What I Want (Description)'),
+                  maxLines: 3,
+                  onSaved: (value) => _wantsDescription = value,
+                ),
+                const SizedBox(height: 16),
+                // Wanted Categories
+                _buildWantedCategoriesSelector(),
+                const SizedBox(height: 32),
+                // Submit Button
+                ElevatedButton(
+                  onPressed: _submitForm,
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: Text(_isEditing ? 'Update Item' : 'Add Item'),
+                ),
+              ],
+            ),
           ),
         ),
-      ),
     );
   }
 
   Widget _buildImageUploader() {
+    final totalImages = _imageUrls.length + _imageFiles.length;
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -224,9 +291,9 @@ class _AddItemPageState extends State<AddItemPage> {
             crossAxisSpacing: 8,
             mainAxisSpacing: 8,
           ),
-          itemCount: _imageFiles.length + 1,
+          itemCount: totalImages + 1,
           itemBuilder: (context, index) {
-            if (index == _imageFiles.length) {
+            if (index == totalImages) {
               return GestureDetector(
                 onTap: _pickImages,
                 child: Container(
@@ -238,7 +305,56 @@ class _AddItemPageState extends State<AddItemPage> {
                 ),
               );
             }
-            return Image.file(File(_imageFiles[index].path), fit: BoxFit.cover);
+            
+            // Display existing remote images first, then new local images
+            if (index < _imageUrls.length) {
+               return Stack(
+                 fit: StackFit.expand,
+                 children: [
+                   Image.network(_imageUrls[index], fit: BoxFit.cover),
+                   Positioned(
+                     right: 0,
+                     top: 0,
+                     child: GestureDetector(
+                       onTap: () {
+                         setState(() {
+                           _imageUrls.removeAt(index);
+                         });
+                       },
+                       child: const CircleAvatar(
+                         radius: 12,
+                         backgroundColor: Colors.red,
+                         child: Icon(Icons.close, size: 16, color: Colors.white),
+                       ),
+                     ),
+                   )
+                 ],
+               );
+            } else {
+               final localIndex = index - _imageUrls.length;
+               return Stack(
+                 fit: StackFit.expand,
+                 children: [
+                   Image.file(File(_imageFiles[localIndex].path), fit: BoxFit.cover),
+                   Positioned(
+                     right: 0,
+                     top: 0,
+                     child: GestureDetector(
+                       onTap: () {
+                         setState(() {
+                           _imageFiles.removeAt(localIndex);
+                         });
+                       },
+                       child: const CircleAvatar(
+                         radius: 12,
+                         backgroundColor: Colors.red,
+                         child: Icon(Icons.close, size: 16, color: Colors.white),
+                       ),
+                     ),
+                   )
+                 ],
+               );
+            }
           },
         ),
       ],
