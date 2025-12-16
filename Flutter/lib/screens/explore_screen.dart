@@ -161,42 +161,46 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
 
                 // Card stack / swiper
                 Expanded(
-                        } else if (snapshot.hasError) {
-                          return Center(child: Text('Error: ${snapshot.error}'));
-                        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                          return const Center(child: Text('No items found.'));
-                        } else {
-                          final items = snapshot.data!;
-                          return AppinioSwiper(
-                            controller: _swiperController,
-                            cardCount: items.length,
-                            loop: true,
-                            onSwipeEnd: (previousIndex, targetIndex, direction) {
-                              final int idx = (previousIndex is int) ? previousIndex : int.parse(previousIndex.toString());
-                              final item = items[idx];
-                              
-                              // Only proceed if user has selected an item to offer
-                              if (_currentUserItemId == null) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Please add an item to start trading')),
-                                );
-                                return;
-                              }
-                              
-                              if (direction == AxisDirection.right) {
-                                _apiService.swipe(_currentUserItemId!, item.id, 'like');
-                              } else if (direction == AxisDirection.left) {
-                                _apiService.swipe(_currentUserItemId!, item.id, 'dislike');
-                              }
-                            },
-                            cardBuilder: (context, index) {
-                              final int idx = (index is int) ? index : int.parse(index.toString());
-                              return _buildCard(items[idx]);
-                            },
-                          );
-                        }
-                      },
-                    ),
+                  child: FutureBuilder<List<BarterItem>>(
+                    future: _itemsFuture,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return _buildShimmer();
+                      } else if (snapshot.hasError) {
+                        return Center(child: Text('Error: ${snapshot.error}'));
+                      } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                        return const Center(child: Text('No items found.'));
+                      } else {
+                        final items = snapshot.data!;
+                        return AppinioSwiper(
+                          controller: _swiperController,
+                          cardCount: items.length,
+                          loop: true,
+                          onSwipeEnd: (previousIndex, targetIndex, direction) {
+                            final int idx = (previousIndex is int) ? previousIndex : int.parse(previousIndex.toString());
+                            final item = items[idx];
+                            
+                            // Only proceed if user has selected an item to offer
+                            if (_currentUserItemId == null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Please add an item to start trading')),
+                              );
+                              return;
+                            }
+                            
+                            if (direction == AxisDirection.right) {
+                              _apiService.swipe(_currentUserItemId!, item.id, 'like');
+                            } else if (direction == AxisDirection.left) {
+                              _apiService.swipe(_currentUserItemId!, item.id, 'dislike');
+                            }
+                          },
+                          cardBuilder: (context, index) {
+                            final int idx = (index is int) ? index : int.parse(index.toString());
+                            return _buildCard(items[idx]);
+                          },
+                        );
+                      }
+                    },
                   ),
                 ),
 

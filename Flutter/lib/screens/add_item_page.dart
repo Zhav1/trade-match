@@ -274,13 +274,15 @@ class _AddItemPageState extends State<AddItemPage> {
                     text: _isEditing ? 'Update Item' : 'Add Item',
                     onPressed: _submitForm,
                     icon: _isEditing ? Icons.check : Icons.add,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-    );
+                  )
+                )
+              ]
+            )
+          )
+        )
+      )
+    )
+  );
   }
 
   Widget _buildImageUploader() {

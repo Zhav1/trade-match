@@ -18,6 +18,20 @@ export 'widgets/gradient_widgets.dart';
 class AppColors {
   // Central primary color used across the app. Change this one value to affect UI.
   static const Color primary = Color(0xFFFD7E14);
+
+  static Color? get background => null;
+
+  static Color? get textSecondary => null;
+
+  static Color? get surface => null;
+
+  static Color? get error => null;
+
+  static Color? get textPrimary => null;
+
+  static Color? get textTertiary => null;
+
+  static Color? get divider => null;
 }
 
 class AppTheme {

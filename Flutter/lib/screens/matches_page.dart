@@ -197,7 +197,7 @@ class _MatchesPageState extends State<MatchesPage> with SingleTickerProviderStat
                 backgroundImage: barterItem?.user.profilePictureUrl != null && barterItem!.user.profilePictureUrl!.isNotEmpty
                     ? NetworkImage(barterItem.user.profilePictureUrl!)
                     : null,
-                child: barterItem?.user.profilePictureUrl == null || barterItem.user.profilePictureUrl!.isEmpty
+                child: barterItem?.user.profilePictureUrl == null || barterItem!.user.profilePictureUrl!.isEmpty
                     ? Text(
                         name.isNotEmpty ? name[0].toUpperCase() : '?',
                         style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.grey),

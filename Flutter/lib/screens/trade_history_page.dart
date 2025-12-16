@@ -3,6 +3,7 @@ import 'package:trade_match/models/barter_item.dart';
 import 'package:trade_match/services/api_service.dart';
 import 'package:trade_match/services/constants.dart';
 import 'package:trade_match/screens/submit_review_page.dart';
+import 'package:trade_match/theme/app_colors.dart';
 
 class TradeHistoryPage extends StatefulWidget {
   const TradeHistoryPage({super.key});

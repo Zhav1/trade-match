@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:trade_match/theme.dart';
 import 'package:trade_match/models/notification.dart' as app;
 import 'package:trade_match/services/api_service.dart';

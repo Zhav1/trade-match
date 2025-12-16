@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:trade_match/models/item.dart';
+import 'package:trade_match/screens/add_item_page.dart';
 import 'package:trade_match/services/api_service.dart';
 import 'package:trade_match/theme.dart';
 
@@ -92,7 +94,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
             ),
 
             const SizedBox(height: AppSpacing.sm),
-
+            Expanded(
               child: FutureBuilder<List<Item>>(
                 future: _itemsFuture,
                 builder: (context, snapshot) {

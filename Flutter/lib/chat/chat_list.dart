@@ -167,13 +167,13 @@ class _ChatListScreenState extends State<ChatListScreen> {
                     ),
                   ],
                 ),
-                child: const TextField(
+                child: TextField(
                   decoration: InputDecoration(
                     hintText: "Search messages...",
                     hintStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
-                    prefixIcon: Icon(Icons.search, color: Colors.grey),
+                    prefixIcon: const Icon(Icons.search, color: Colors.grey),
                     border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(vertical: 15),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 15),
                   ),
                 ),
               ),
