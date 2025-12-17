@@ -102,7 +102,7 @@ class _MatchSuccessDialogState extends State<MatchSuccessDialog>
               // Title
               Text(
                 "It's a Match!",
-                style: AppTextStyles.h2.copyWith(
+                style: AppTextStyles.heading2.copyWith(
                   color: primary,
                   fontWeight: FontWeight.bold,
                 ),
