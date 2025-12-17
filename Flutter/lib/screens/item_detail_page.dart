@@ -190,7 +190,7 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
                   ),
                   const SizedBox(height: 16),
 
-                    // Owner info
+                  // Owner info
                   InkWell(
                     onTap: () {
                       // Navigate to owner's reviews

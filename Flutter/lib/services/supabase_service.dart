@@ -419,6 +419,23 @@ class SupabaseService {
     return List<Map<String, dynamic>>.from(response);
   }
 
+  /// Get completed trades (for trade history in profile)
+  Future<List<Map<String, dynamic>>> getCompletedTrades() async {
+    if (userId == null) return [];
+
+    final response = await client
+        .from('swaps')
+        .select('''
+          *,
+          itemA:items!item_a_id(*, images:item_images(*), user:users(id, name, profile_picture_url)),
+          itemB:items!item_b_id(*, images:item_images(*), user:users(id, name, profile_picture_url))
+        ''')
+        .eq('status', 'trade_complete')
+        .order('updated_at', ascending: false);
+    return List<Map<String, dynamic>>.from(response);
+  }
+
+
   /// Get a single swap by ID
   Future<Map<String, dynamic>> getSwap(int swapId) async {
     final response = await client

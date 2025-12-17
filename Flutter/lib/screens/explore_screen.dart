@@ -12,6 +12,7 @@ import 'dart:ui'; // For ImageFilter (Glassmorphism)
 import 'package:trade_match/theme.dart';
 import 'package:trade_match/widgets/match_success_dialog.dart';
 import 'package:trade_match/chat/chat_detail.dart';
+import 'package:trade_match/screens/item_detail_page.dart';
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});

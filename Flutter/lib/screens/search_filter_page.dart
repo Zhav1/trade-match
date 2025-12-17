@@ -23,16 +23,10 @@ class _SearchFilterPageState extends State<SearchFilterPage> {
     'Sports',
     'Home & Living',
     'Gaming',
-    'Others'
+    'Others',
   ];
 
-  final List<String> _conditions = [
-    'New',
-    'Like New',
-    'Good',
-    'Fair',
-    'Poor'
-  ];
+  final List<String> _conditions = ['New', 'Like New', 'Good', 'Fair', 'Poor'];
 
   @override
   void dispose() {
@@ -48,10 +42,7 @@ class _SearchFilterPageState extends State<SearchFilterPage> {
         backgroundColor: AppColors.surface,
         elevation: 0,
         actions: [
-          TextButton(
-            onPressed: _resetFilters,
-            child: const Text('Reset'),
-          ),
+          TextButton(onPressed: _resetFilters, child: const Text('Reset')),
         ],
       ),
       body: Column(
@@ -73,7 +64,9 @@ class _SearchFilterPageState extends State<SearchFilterPage> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(AppRadius.button),
-                  borderSide: BorderSide(color: Theme.of(context).colorScheme.primary),
+                  borderSide: BorderSide(
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                 ),
               ),
             ),
@@ -87,10 +80,7 @@ class _SearchFilterPageState extends State<SearchFilterPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Categories
-                  const Text(
-                    'Category',
-                    style: AppTextStyles.heading3,
-                  ),
+                  const Text('Category', style: AppTextStyles.heading3),
                   const SizedBox(height: 12),
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
@@ -107,8 +97,12 @@ class _SearchFilterPageState extends State<SearchFilterPage> {
                                 _selectedCategory = category;
                               });
                             },
-                            selectedColor: Theme.of(context).colorScheme.primary.withOpacity(0.2),
-                            checkmarkColor: Theme.of(context).colorScheme.primary,
+                            selectedColor: Theme.of(
+                              context,
+                            ).colorScheme.primary.withOpacity(0.2),
+                            checkmarkColor: Theme.of(
+                              context,
+                            ).colorScheme.primary,
                           ),
                         );
                       }).toList(),
@@ -120,10 +114,7 @@ class _SearchFilterPageState extends State<SearchFilterPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'Price Range',
-                        style: AppTextStyles.heading3,
-                      ),
+                      const Text('Price Range', style: AppTextStyles.heading3),
                       Text(
                         'IDR ${_priceRange.start.round()} - ${_priceRange.end.round()}',
                         style: TextStyle(
@@ -140,7 +131,9 @@ class _SearchFilterPageState extends State<SearchFilterPage> {
                     max: 10000000,
                     divisions: 100,
                     activeColor: Theme.of(context).colorScheme.primary,
-                    inactiveColor: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                    inactiveColor: Theme.of(
+                      context,
+                    ).colorScheme.primary.withOpacity(0.2),
                     onChanged: (values) {
                       setState(() {
                         _priceRange = values;
@@ -173,7 +166,9 @@ class _SearchFilterPageState extends State<SearchFilterPage> {
                     max: 100,
                     divisions: 20,
                     activeColor: Theme.of(context).colorScheme.primary,
-                    inactiveColor: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                    inactiveColor: Theme.of(
+                      context,
+                    ).colorScheme.primary.withOpacity(0.2),
                     onChanged: (value) {
                       setState(() {
                         _maxDistance = value;
@@ -183,16 +178,15 @@ class _SearchFilterPageState extends State<SearchFilterPage> {
                   const SizedBox(height: 24),
 
                   // Condition
-                  const Text(
-                    'Condition',
-                    style: AppTextStyles.heading3,
-                  ),
+                  const Text('Condition', style: AppTextStyles.heading3),
                   const SizedBox(height: 12),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: _conditions.map((condition) {
-                      final isSelected = _selectedConditions.contains(condition);
+                      final isSelected = _selectedConditions.contains(
+                        condition,
+                      );
                       return FilterChip(
                         selected: isSelected,
                         label: Text(condition),
@@ -205,7 +199,9 @@ class _SearchFilterPageState extends State<SearchFilterPage> {
                             }
                           });
                         },
-                        selectedColor: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                        selectedColor: Theme.of(
+                          context,
+                        ).colorScheme.primary.withOpacity(0.2),
                         checkmarkColor: Theme.of(context).colorScheme.primary,
                       );
                     }).toList(),
@@ -228,15 +224,19 @@ class _SearchFilterPageState extends State<SearchFilterPage> {
                 ),
               ],
             ),
-            child: Column( // Changed to Column to accommodate SizedBox and GradientButton
+            child: Column(
+              // Changed to Column to accommodate SizedBox and GradientButton
               children: [
-                const SizedBox(height: AppSpacing.xl), // Added SizedBox as per instruction
+                const SizedBox(
+                  height: AppSpacing.xl,
+                ), // Added SizedBox as per instruction
                 // Apply Filters Button
                 SizedBox(
                   width: double.infinity,
                   child: GradientButton(
                     text: 'Apply Filters',
-                    onPressed: () => Navigator.pop(context), // Changed onPressed and text
+                    onPressed: () =>
+                        Navigator.pop(context), // Changed onPressed and text
                     icon: Icons.check,
                   ),
                 ),

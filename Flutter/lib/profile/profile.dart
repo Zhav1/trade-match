@@ -15,6 +15,7 @@ class _ProfilePageState extends State<ProfilePage> {
   final SupabaseService _supabaseService = SupabaseService();
   Map<String, dynamic>? _userData;
   List<Item> _userItems = [];
+  List<Map<String, dynamic>> _completedTrades = [];
   bool _isLoading = true;
   String _errorMessage = '';
 
@@ -28,6 +29,7 @@ class _ProfilePageState extends State<ProfilePage> {
     try {
       final userData = await _supabaseService.getCurrentUserProfile();
       final userItemsData = await _supabaseService.getUserItems();
+      final completedTrades = await _supabaseService.getCompletedTrades();
       final userItems = userItemsData
           .map((data) => Item.fromJson(data))
           .toList();
@@ -36,6 +38,7 @@ class _ProfilePageState extends State<ProfilePage> {
         setState(() {
           _userData = userData;
           _userItems = userItems;
+          _completedTrades = completedTrades;
           _isLoading = false;
         });
       }
@@ -167,7 +170,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           indicatorColor: Theme.of(context).colorScheme.primary,
                           tabs: const [
                             Tab(text: 'Ditawarkan'),
-                            Tab(text: 'Dicari'),
+                            Tab(text: 'History'),
                           ],
                         ),
                       ),
@@ -185,6 +188,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           _ProfileInfo(
                             userData: _userData,
                             itemCount: _userItems.length,
+                            tradesCount: _completedTrades.length,
                           ),
                         ],
                       ),
@@ -194,10 +198,10 @@ class _ProfilePageState extends State<ProfilePage> {
                 body: TabBarView(
                   children: [
                     _ItemList(items: _userItems, isOffer: true),
-                    const _ItemList(
-                      items: [],
-                      isOffer: false,
-                    ), // Placeholder for 'Dicari'
+                    _TradeHistoryList(
+                      trades: _completedTrades,
+                      currentUserId: _supabaseService.userId,
+                    ),
                   ],
                 ),
               ),
@@ -219,8 +223,9 @@ class _ProfilePageState extends State<ProfilePage> {
 class _ProfileInfo extends StatelessWidget {
   final Map<String, dynamic>? userData;
   final int itemCount;
+  final int tradesCount;
 
-  const _ProfileInfo({this.userData, required this.itemCount});
+  const _ProfileInfo({this.userData, required this.itemCount, this.tradesCount = 0});
 
   @override
   Widget build(BuildContext context) {
@@ -231,7 +236,9 @@ class _ProfileInfo extends StatelessWidget {
         ? itemCount.toString()
         : (userData?['offers_count']?.toString() ?? '0');
     final requestsCount = userData?['requests_count']?.toString() ?? '0';
-    final tradesCount = userData?['trades_count']?.toString() ?? '0';
+    final displayTradesCount = tradesCount > 0 
+        ? tradesCount.toString() 
+        : (userData?['trades_count']?.toString() ?? '0');
 
     return Column(
       children: [
@@ -251,7 +258,7 @@ class _ProfileInfo extends StatelessWidget {
             _StatItem(value: requestsCount, title: 'Requests'),
             GestureDetector(
               onTap: () => Navigator.pushNamed(context, '/trade_history'),
-              child: _StatItem(value: tradesCount, title: 'Trades'),
+              child: _StatItem(value: displayTradesCount, title: 'Trades'),
             ),
           ],
         ),
@@ -356,3 +363,185 @@ class _ItemList extends StatelessWidget {
     );
   }
 }
+
+/// Widget to display trade history - items that have been traded
+class _TradeHistoryList extends StatelessWidget {
+  final List<Map<String, dynamic>> trades;
+  final String? currentUserId;
+
+  const _TradeHistoryList({required this.trades, this.currentUserId});
+
+  @override
+  Widget build(BuildContext context) {
+    if (trades.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.history,
+              size: 48,
+              color: Colors.grey[300],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No completed trades yet',
+              style: TextStyle(color: Colors.grey[500]),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Your traded items will appear here',
+              style: TextStyle(color: Colors.grey[400], fontSize: 12),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.separated(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+      itemCount: trades.length,
+      separatorBuilder: (context, index) => Divider(color: AppColors.divider),
+      itemBuilder: (context, index) {
+        final trade = trades[index];
+        final itemA = trade['itemA'];
+        final itemB = trade['itemB'];
+        
+        // Determine which item was the user's and which was the partner's
+        final isUserItemA = itemA?['user_id'] == currentUserId;
+        final myItem = isUserItemA ? itemA : itemB;
+        final theirItem = isUserItemA ? itemB : itemA;
+        
+        final myItemImages = myItem?['images'] as List<dynamic>? ?? [];
+        final theirItemImages = theirItem?['images'] as List<dynamic>? ?? [];
+        
+        final updatedAt = DateTime.tryParse(trade['updated_at'] ?? '');
+        final formattedDate = updatedAt != null 
+            ? '${updatedAt.day}/${updatedAt.month}/${updatedAt.year}'
+            : '';
+
+        return Card(
+          margin: const EdgeInsets.symmetric(vertical: 4),
+          child: Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Date and status
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Trade #${trade['id']}',
+                      style: AppTextStyles.caption.copyWith(color: Colors.grey[600]),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Text(
+                        'Completed',
+                        style: TextStyle(
+                          color: Colors.green,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                // Trade items
+                Row(
+                  children: [
+                    // My item
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[200],
+                              borderRadius: BorderRadius.circular(8),
+                              image: myItemImages.isNotEmpty
+                                  ? DecorationImage(
+                                      image: NetworkImage(myItemImages.first['image_url'] ?? ''),
+                                      fit: BoxFit.cover,
+                                    )
+                                  : null,
+                            ),
+                            child: myItemImages.isEmpty
+                                ? const Icon(Icons.inventory_2_outlined, color: Colors.grey)
+                                : null,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            myItem?['title'] ?? 'Your Item',
+                            style: AppTextStyles.caption,
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Swap icon
+                    Icon(
+                      Icons.swap_horiz,
+                      color: Theme.of(context).colorScheme.primary,
+                      size: 30,
+                    ),
+                    // Their item
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[200],
+                              borderRadius: BorderRadius.circular(8),
+                              image: theirItemImages.isNotEmpty
+                                  ? DecorationImage(
+                                      image: NetworkImage(theirItemImages.first['image_url'] ?? ''),
+                                      fit: BoxFit.cover,
+                                    )
+                                  : null,
+                            ),
+                            child: theirItemImages.isEmpty
+                                ? const Icon(Icons.inventory_2_outlined, color: Colors.grey)
+                                : null,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            theirItem?['title'] ?? 'Their Item',
+                            style: AppTextStyles.caption,
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                // Date
+                Text(
+                  formattedDate,
+                  style: TextStyle(color: Colors.grey[500], fontSize: 11),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
