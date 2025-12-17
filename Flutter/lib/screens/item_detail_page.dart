@@ -200,7 +200,6 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
                         arguments: widget.item.user.id,
                       );
                     },
-                    },
                     child: Row(
                       children: [
                         CircleAvatar(

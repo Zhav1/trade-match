@@ -458,10 +458,17 @@ class SupabaseService {
   /// Send a message
   Future<Map<String, dynamic>> sendMessage(
     int swapId,
-    String messageText,
-  ) async {
+    String messageText, {
+    String type = 'text',
+    double? locationLat,
+    double? locationLon,
+    String? locationName,
+    String? locationAddress,
+  }) async {
     if (userId == null) throw Exception('Not authenticated');
 
+    // Only insert basic fields that exist in the database
+    // type and location fields are accepted but not stored until DB is updated
     final response = await client
         .from('messages')
         .insert({
