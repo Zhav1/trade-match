@@ -276,47 +276,83 @@ class _ExploreScreenState extends State<ExploreScreen>
                           controller: _swiperController,
                           cardCount: items.length,
                           loop: true,
-                          onSwipeEnd:
-                              (previousIndex, targetIndex, direction) async {
-                                final int idx = (previousIndex is int)
-                                    ? previousIndex
-                                    : int.parse(previousIndex.toString());
-                                final item = items[idx];
+                          onSwipeEnd: (previousIndex, targetIndex, direction) async {
+                            print('🔥 SWIPE DETECTED! Direction: $direction');
+                            final int idx = (previousIndex is int)
+                                ? previousIndex
+                                : int.parse(previousIndex.toString());
+                            final item = items[idx];
 
-                                // Only proceed if user has selected an item to offer
-                                if (_currentUserItemId == null) {
+                            // Only proceed if user has selected an item to offer
+                            if (_currentUserItemId == null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Please add an item to start trading',
+                                  ),
+                                ),
+                              );
+                              return;
+                            }
+
+                            // Detect swipe direction from offset (Swipe object, not AxisDirection)
+                            // Right swipe: positive X offset (e.g., 164.9 → 411.4)
+                            // Left swipe: negative X offset (e.g., -206.1 → -411.4)
+                            final swipeOffset = direction.toString();
+                            final isRightSwipe =
+                                swipeOffset.contains('→ Offset(4') ||
+                                swipeOffset.contains(', 0.0))') &&
+                                    !swipeOffset.contains('Offset(-');
+                            final isLeftSwipe =
+                                swipeOffset.contains('Offset(-') &&
+                                swipeOffset.contains('→');
+
+                            print(
+                              '🔍 Swipe analysis: Right=$isRightSwipe, Left=$isLeftSwipe',
+                            );
+
+                            if (isRightSwipe) {
+                              try {
+                                print('💘 Processing LIKE swipe...');
+                                final result = await _supabaseService.swipe(
+                                  _currentUserItemId!,
+                                  item.id,
+                                  'like',
+                                );
+                                print('✅ Swipe successful: $result');
+                              } catch (e) {
+                                print('❌ Swipe error: $e');
+                                if (mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Please add an item to start trading',
-                                      ),
+                                    SnackBar(
+                                      content: Text('Failed to save like: $e'),
+                                      backgroundColor: Colors.red,
                                     ),
                                   );
-                                  return;
                                 }
-
-                                if (direction == AxisDirection.right) {
-                                  try {
-                                    await _supabaseService.swipe(
-                                      _currentUserItemId!,
-                                      item.id,
-                                      'like',
-                                    );
-                                  } catch (e) {
-                                    print('Swipe error: $e');
-                                  }
-                                } else if (direction == AxisDirection.left) {
-                                  try {
-                                    await _supabaseService.swipe(
-                                      _currentUserItemId!,
-                                      item.id,
-                                      'dislike',
-                                    );
-                                  } catch (e) {
-                                    print('Swipe error: $e');
-                                  }
+                              }
+                            } else if (isLeftSwipe) {
+                              try {
+                                print('👎 Processing SKIP swipe...');
+                                final result = await _supabaseService.swipe(
+                                  _currentUserItemId!,
+                                  item.id,
+                                  'skip',
+                                );
+                                print('✅ Skip successful: $result');
+                              } catch (e) {
+                                print('❌ Swipe error: $e');
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Failed to save skip: $e'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
                                 }
-                              },
+                              }
+                            }
+                          },
                           cardBuilder: (context, index) {
                             final int idx = (index is int)
                                 ? index
