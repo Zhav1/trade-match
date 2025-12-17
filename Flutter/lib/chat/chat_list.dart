@@ -129,7 +129,6 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final Color primary = Theme.of(context).colorScheme.primary;
     final Color background = Theme.of(context).scaffoldBackgroundColor;
 
     return Scaffold(
@@ -159,7 +158,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                       color: Color(0xFF441606),
                     ),
                   ),
-                  Container(
+                  /* Container(
                     width: 50,
                     height: 50,
                     decoration: BoxDecoration(
@@ -176,7 +175,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                     child: Center(
                       child: Image.asset('assets/images/filter.png', width: 26),
                     ),
-                  ),
+                  ), */
                 ],
               ),
               const SizedBox(height: AppSpacing.lg),
@@ -214,13 +213,13 @@ class _ChatListScreenState extends State<ChatListScreen> {
         ),
       ),
 
-      floatingActionButton: FloatingActionButton(
+      /* floatingActionButton: FloatingActionButton(
         onPressed: () {
           // TODO: Navigate to new conversation or matches
         },
         backgroundColor: primary,
         child: const Icon(Icons.message_rounded, color: Colors.white),
-      ),
+      ), */
     );
   }
 
@@ -237,7 +236,8 @@ class _ChatListScreenState extends State<ChatListScreen> {
             Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
             const SizedBox(height: 16),
             Text(
-              'Failed to load conversations',
+              _error ?? 'Failed to load conversations',
+              textAlign: TextAlign.center,
               style: AppTextStyles.bodyLarge.copyWith(
                 color: AppColors.textSecondary,
               ),
@@ -339,10 +339,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          Text(time, style: TextStyle(
-            color: Colors.grey, 
-            fontSize: 12,
-          )),
+          Text(time, style: TextStyle(color: Colors.grey, fontSize: 12)),
         ],
       ),
       subtitle: Column(

@@ -308,7 +308,7 @@ class _ExploreScreenState extends State<ExploreScreen>
             ),
           ),
           const SizedBox(width: AppSpacing.xs),
-          ElevatedButton(
+          /* ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: primary,
               shape: RoundedRectangleBorder(
@@ -321,7 +321,7 @@ class _ExploreScreenState extends State<ExploreScreen>
             ),
             onPressed: () => Navigator.pushNamed(context, '/search'),
             child: const Icon(Icons.filter_list, color: Colors.white),
-          ),
+          ), */
         ],
       ),
     );

@@ -54,12 +54,14 @@ class BarterItem {
           : null,
       currency: json['currency'] ?? 'IDR',
       locationCity: json['location_city'] ?? 'Unknown',
-      locationLat: double.tryParse((json['location_lat'] ?? 0).toString()) ?? 0.0,
-      locationLon: double.tryParse((json['location_lon'] ?? 0).toString()) ?? 0.0,
+      locationLat:
+          double.tryParse((json['location_lat'] ?? 0).toString()) ?? 0.0,
+      locationLon:
+          double.tryParse((json['location_lon'] ?? 0).toString()) ?? 0.0,
       wantsDescription: json['wants_description'] ?? '',
       status: json['status'] ?? 'active',
-      createdAt: json['created_at'] != null 
-          ? DateTime.parse(json['created_at']) 
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'])
           : DateTime.now(),
       updatedAt: json['updated_at'] != null
           ? DateTime.parse(json['updated_at'])
@@ -108,7 +110,7 @@ class BarterMatch {
     final itemAData = json['itemA'] ?? json['item_a'];
     final itemBData = json['itemB'] ?? json['item_b'];
     final latestMsgData = json['latestMessage'] ?? json['latest_message'];
-    
+
     // latestMessage could be a list (from Supabase) or single object
     dynamic latestMessageJson;
     if (latestMsgData is List && latestMsgData.isNotEmpty) {
@@ -116,11 +118,11 @@ class BarterMatch {
     } else if (latestMsgData is Map) {
       latestMessageJson = latestMsgData;
     }
-    
+
     return BarterMatch(
-      id: json['id'],
-      itemAId: json['item_a_id'],
-      itemBId: json['item_b_id'],
+      id: int.tryParse(json['id'].toString()) ?? 0,
+      itemAId: int.tryParse(json['item_a_id'].toString()) ?? 0,
+      itemBId: int.tryParse(json['item_b_id'].toString()) ?? 0,
       status: json['status'] ?? 'active',
       itemAOwnerConfirmed:
           json['item_a_owner_confirmed'] == 1 ||
@@ -154,7 +156,7 @@ class ChatMessage {
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) {
     return ChatMessage(
-      id: json['id'],
+      id: int.tryParse(json['id'].toString()) ?? 0,
       messageText: json['message_text'] ?? '',
       type: json['type'] ?? 'text',
       createdAt: DateTime.parse(json['created_at']),
