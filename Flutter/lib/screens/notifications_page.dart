@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:trade_match/theme.dart';
 import 'package:trade_match/models/notification.dart' as app;
 import 'package:trade_match/services/supabase_service.dart';
@@ -19,11 +20,58 @@ class _NotificationsPageState extends State<NotificationsPage> {
   bool _isLoading = true;
   int _unreadCount = 0;
   String? _error;
+  RealtimeChannel? _notificationChannel;
 
   @override
   void initState() {
     super.initState();
     _loadNotifications();
+    _subscribeToNotifications();
+  }
+
+  @override
+  void dispose() {
+    _notificationChannel?.unsubscribe();
+    super.dispose();
+  }
+
+  /// Subscribe to real-time notification updates
+  void _subscribeToNotifications() {
+    final userId = _supabaseService.userId;
+    if (userId == null) return;
+
+    try {
+      _notificationChannel = Supabase.instance.client
+          .channel('notifications:$userId')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.insert,
+            schema: 'public',
+            table: 'notifications',
+            filter: PostgresChangeFilter(
+              type: PostgresChangeFilterType.eq,
+              column: 'user_id',
+              value: userId,
+            ),
+            callback: (payload) {
+              if (mounted) {
+                // Add new notification to the top of the list
+                final newNotification = app.AppNotification.fromJson(
+                  payload.newRecord,
+                );
+                setState(() {
+                  _notifications.insert(0, newNotification);
+                  if (!newNotification.isRead) {
+                    _unreadCount++;
+                  }
+                });
+              }
+            },
+          )
+          .subscribe();
+      print('✅ Subscribed to notifications realtime');
+    } catch (e) {
+      print('❌ Error subscribing to notifications: $e');
+    }
   }
 
   Future<void> _loadNotifications() async {
