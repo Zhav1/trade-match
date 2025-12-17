@@ -24,14 +24,6 @@ class _SubmitReviewPageState extends State<SubmitReviewPage> {
     super.dispose();
   }
 
-  int get _reviewedUserId {
-    // Determine which user is being reviewed (the OTHER participant)
-    final currentUserId = widget.swap.itemA.user.id; // This would need to come from auth state
-    // For now, we'll just check both items and pick the other one
-    // In real implementation, get current user ID from auth service
-    return widget.swap.itemB.user.id;
-  }
-
   Future<void> _submitReview() async {
     // Validation
     if (_selectedRating == 0) {
@@ -49,15 +41,13 @@ class _SubmitReviewPageState extends State<SubmitReviewPage> {
     });
 
     try {
-      final reviewData = {
-        'swap_id': widget.swap.id,
-        'reviewed_user_id': _reviewedUserId,
-        'rating': _selectedRating,
-        if (_commentController.text.trim().isNotEmpty)
-          'comment': _commentController.text.trim(),
-      };
-
-      await _supabaseService.createReview(reviewData);
+      await _supabaseService.createReview(
+        widget.swap.id,
+        _selectedRating,
+        comment: _commentController.text.trim().isNotEmpty
+            ? _commentController.text.trim()
+            : null,
+      );
 
       if (!mounted) return;
 
@@ -93,7 +83,8 @@ class _SubmitReviewPageState extends State<SubmitReviewPage> {
   @override
   Widget build(BuildContext context) {
     // Determine which item belongs to the reviewed user
-    final reviewedUserItem = widget.swap.itemB; // Assuming current user owns itemA
+    final reviewedUserItem =
+        widget.swap.itemB; // Assuming current user owns itemA
     final currentUserItem = widget.swap.itemA;
 
     return Scaffold(
@@ -139,7 +130,12 @@ class _SubmitReviewPageState extends State<SubmitReviewPage> {
                                   color: Colors.grey[200],
                                   image: currentUserItem.images.isNotEmpty
                                       ? DecorationImage(
-                                          image: NetworkImage(currentUserItem.images.first.imageUrl),
+                                          image: NetworkImage(
+                                            currentUserItem
+                                                .images
+                                                .first
+                                                .imageUrl,
+                                          ),
                                           fit: BoxFit.cover,
                                         )
                                       : null,
@@ -182,7 +178,12 @@ class _SubmitReviewPageState extends State<SubmitReviewPage> {
                                   color: Colors.grey[200],
                                   image: reviewedUserItem.images.isNotEmpty
                                       ? DecorationImage(
-                                          image: NetworkImage(reviewedUserItem.images.first.imageUrl),
+                                          image: NetworkImage(
+                                            reviewedUserItem
+                                                .images
+                                                .first
+                                                .imageUrl,
+                                          ),
                                           fit: BoxFit.cover,
                                         )
                                       : null,
@@ -215,8 +216,11 @@ class _SubmitReviewPageState extends State<SubmitReviewPage> {
                         CircleAvatar(
                           radius: 16,
                           backgroundColor: Colors.grey[200],
-                          backgroundImage: reviewedUserItem.user.profilePictureUrl != null
-                              ? NetworkImage(reviewedUserItem.user.profilePictureUrl!)
+                          backgroundImage:
+                              reviewedUserItem.user.profilePictureUrl != null
+                              ? NetworkImage(
+                                  reviewedUserItem.user.profilePictureUrl!,
+                                )
                               : null,
                           child: reviewedUserItem.user.profilePictureUrl == null
                               ? const Icon(Icons.person, size: 16)
@@ -243,18 +247,12 @@ class _SubmitReviewPageState extends State<SubmitReviewPage> {
             // Rating Section
             const Text(
               'How was your experience?',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             const Text(
               'Rate your trading experience with this user',
-              style: TextStyle(
-                color: Colors.grey,
-                fontSize: 14,
-              ),
+              style: TextStyle(color: Colors.grey, fontSize: 14),
             ),
             const SizedBox(height: 16),
 
@@ -273,7 +271,9 @@ class _SubmitReviewPageState extends State<SubmitReviewPage> {
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 8),
                       child: Icon(
-                        _selectedRating >= starValue ? Icons.star : Icons.star_border,
+                        _selectedRating >= starValue
+                            ? Icons.star
+                            : Icons.star_border,
                         size: 48,
                         color: _selectedRating >= starValue
                             ? Theme.of(context).colorScheme.primary
@@ -302,10 +302,7 @@ class _SubmitReviewPageState extends State<SubmitReviewPage> {
             // Comment Section
             const Text(
               'Share your experience (Optional)',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             TextField(

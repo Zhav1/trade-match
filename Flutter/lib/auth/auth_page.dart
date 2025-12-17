@@ -15,7 +15,8 @@ class AuthPage extends StatefulWidget {
   State<AuthPage> createState() => _AuthPageState();
 }
 
-class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin {
+class _AuthPageState extends State<AuthPage>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final _signInFormKey = GlobalKey<FormState>();
   final _registerFormKey = GlobalKey<FormState>();
@@ -56,7 +57,11 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this, initialIndex: widget.initialTabIndex);
+    _tabController = TabController(
+      length: 2,
+      vsync: this,
+      initialIndex: widget.initialTabIndex,
+    );
   }
 
   @override
@@ -78,7 +83,10 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Theme.of(context).colorScheme.primary, Theme.of(context).colorScheme.primary.withOpacity(0.85)],
+            colors: [
+              Theme.of(context).colorScheme.primary,
+              Theme.of(context).colorScheme.primary.withOpacity(0.85),
+            ],
           ),
         ),
         child: SafeArea(
@@ -182,7 +190,7 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
                   backgroundColor: Theme.of(context).colorScheme.primary,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                 ),
                 child: _isLoading
@@ -208,12 +216,17 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
             const SizedBox(height: 16),
             TextButton(
               onPressed: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) => const ForgotPasswordPage()));
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ForgotPasswordPage(),
+                  ),
+                );
               },
               child: Text(
-                  'Forgot Password?',
-                  style: TextStyle(color: Theme.of(context).colorScheme.primary),
-                ),
+                'Forgot Password?',
+                style: TextStyle(color: Theme.of(context).colorScheme.primary),
+              ),
             ),
           ],
         ),
@@ -355,7 +368,7 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
           _passwordController.text,
         );
         print("Supabase auth successful");
-        
+
         if (response.user != null) {
           AUTH_USER_ID = response.user!.id;
           Navigator.pushReplacement(
@@ -373,9 +386,8 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
           setState(() => _isLoading = false);
         }
       }
-    }
-    else {
-      print("Validation FAILED. Check text fields for red error messages."); 
+    } else {
+      print("Validation FAILED. Check text fields for red error messages.");
     }
   }
 
@@ -388,13 +400,13 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
           _passwordController.text,
           _nameController.text,
         );
-        
+
         if (response.user != null) {
           AUTH_USER_ID = response.user!.id;
-          
+
           // Update phone number
           await _supabaseService.updateProfile(phone: _phoneController.text);
-          
+
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => const MainPage()),
@@ -402,7 +414,7 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
         }
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$errorMessage: ${e.toString()}')),
+          SnackBar(content: Text('Failed to register: ${e.toString()}')),
         );
       } finally {
         if (mounted) {
@@ -426,8 +438,9 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
         return; // User canceled
       }
       print("Google User found: ${googleUser.email}");
-      
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
       final String? idToken = googleAuth.idToken;
       final String? accessToken = googleAuth.accessToken;
 
@@ -437,18 +450,21 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
       if (idToken != null) {
         print("5. Sending ID Token to Supabase...");
 
-        final response = await _supabaseService.signInWithGoogleIdToken(idToken, accessToken);
+        final response = await _supabaseService.signInWithGoogleIdToken(
+          idToken,
+          accessToken,
+        );
 
         print("6. Supabase auth successful");
 
         if (response.user != null) {
           AUTH_USER_ID = response.user!.id;
-          
+
           // Check if phone is required (new Google users)
           final profile = await _supabaseService.getCurrentUserProfile();
           if (profile == null || profile['phone'] == null) {
             final phone = await _showPhoneCollectionDialog();
-            
+
             if (phone != null && phone.isNotEmpty) {
               try {
                 await _supabaseService.updateProfile(phone: phone);
@@ -457,9 +473,9 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
               }
             }
           }
-          
+
           if (mounted) {
-             Navigator.pushReplacement(
+            Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (context) => const MainPage()),
             );
@@ -481,14 +497,13 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
     }
   }
 
-
   Future<String?> _showPhoneCollectionDialog() async {
     final phoneController = TextEditingController();
     final formKey = GlobalKey<FormState>();
-    
+
     return showDialog<String>(
       context: context,
-      barrierDismissible: false,  // User must provide phone or skip
+      barrierDismissible: false, // User must provide phone or skip
       builder: (context) => AlertDialog(
         title: const Text('One More Step'),
         content: Form(
@@ -522,7 +537,7 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, null),  // Skip for now
+            onPressed: () => Navigator.pop(context, null), // Skip for now
             child: const Text('Skip (Add Later)'),
           ),
           ElevatedButton(
@@ -541,6 +556,7 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
       ),
     );
   }
+
   void _handleGoogleRegister() async {
     print("--- Google Register Started ---");
     setState(() => _isLoading = true);
@@ -553,13 +569,17 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
         return; // User canceled
       }
       print("Google User found: ${googleUser.email}");
-      
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
       final String? idToken = googleAuth.idToken;
 
       if (idToken != null) {
         print("Sending ID Token to Supabase (Register)...");
-        final response = await _supabaseService.signInWithGoogleIdToken(idToken, null);
+        final response = await _supabaseService.signInWithGoogleIdToken(
+          idToken,
+          null,
+        );
         await _handleAuthResponse(response);
       } else {
         print("CRITICAL: Google ID Token is NULL");
@@ -571,9 +591,9 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
         if (errorMessage.contains("Exception:")) {
           errorMessage = errorMessage.replaceAll("Exception:", "").trim();
         }
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(errorMessage)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(errorMessage)));
       }
     } finally {
       if (mounted) {
@@ -585,12 +605,12 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
   Future<void> _handleAuthResponse(AuthResponse response) async {
     if (response.user != null) {
       AUTH_USER_ID = response.user!.id;
-      
+
       // Check if phone is required
       final profile = await _supabaseService.getCurrentUserProfile();
       if (profile == null || profile['phone'] == null) {
         final phone = await _showPhoneCollectionDialog();
-        
+
         if (phone != null && phone.isNotEmpty) {
           try {
             await _supabaseService.updateProfile(phone: phone);
@@ -599,9 +619,9 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
           }
         }
       }
-      
+
       if (mounted) {
-         Navigator.pushReplacement(
+        Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const MainPage()),
         );

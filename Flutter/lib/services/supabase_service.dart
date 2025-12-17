@@ -19,7 +19,11 @@ class SupabaseService {
   // ==========================================
 
   /// Sign up with email and password
-  Future<AuthResponse> signUpWithEmail(String email, String password, String name) async {
+  Future<AuthResponse> signUpWithEmail(
+    String email,
+    String password,
+    String name,
+  ) async {
     final response = await client.auth.signUp(
       email: email,
       password: password,
@@ -48,7 +52,10 @@ class SupabaseService {
   }
 
   /// Sign in with Google ID Token (for mobile)
-  Future<AuthResponse> signInWithGoogleIdToken(String idToken, String? accessToken) async {
+  Future<AuthResponse> signInWithGoogleIdToken(
+    String idToken,
+    String? accessToken,
+  ) async {
     final response = await client.auth.signInWithIdToken(
       provider: OAuthProvider.google,
       idToken: idToken,
@@ -86,28 +93,32 @@ class SupabaseService {
     double? defaultLon,
   }) async {
     if (userId == null) throw Exception('Not authenticated');
-    
+
     final updates = <String, dynamic>{};
     if (name != null) updates['name'] = name;
     if (phone != null) updates['phone'] = phone;
-    if (defaultLocationCity != null) updates['default_location_city'] = defaultLocationCity;
+    if (defaultLocationCity != null)
+      updates['default_location_city'] = defaultLocationCity;
     if (defaultLat != null) updates['default_lat'] = defaultLat;
     if (defaultLon != null) updates['default_lon'] = defaultLon;
-    
+
     await client.from('users').update(updates).eq('id', userId!);
   }
 
   /// Upload profile picture
   Future<String> uploadProfilePicture(File file) async {
     if (userId == null) throw Exception('Not authenticated');
-    
+
     final fileName = '$userId/${DateTime.now().millisecondsSinceEpoch}.jpg';
     await client.storage.from('profile-pictures').upload(fileName, file);
-    
+
     final url = client.storage.from('profile-pictures').getPublicUrl(fileName);
-    
-    await client.from('users').update({'profile_picture_url': url}).eq('id', userId!);
-    
+
+    await client
+        .from('users')
+        .update({'profile_picture_url': url})
+        .eq('id', userId!);
+
     return url;
   }
 
@@ -140,7 +151,9 @@ class SupabaseService {
   Future<Map<String, dynamic>?> getItem(int itemId) async {
     final response = await client
         .from('items')
-        .select('*, category:categories(*), images:item_images(*), user:users(id, name, profile_picture_url, rating, created_at)')
+        .select(
+          '*, category:categories(*), images:item_images(*), user:users(id, name, profile_picture_url, rating, created_at)',
+        )
         .eq('id', itemId)
         .single();
     return response;
@@ -161,27 +174,34 @@ class SupabaseService {
   }) async {
     if (userId == null) throw Exception('Not authenticated');
 
-    final response = await client.from('items').insert({
-      'user_id': userId,
-      'title': title,
-      'description': description,
-      'category_id': categoryId,
-      'condition': condition,
-      'estimated_value': estimatedValue,
-      'location_city': locationCity,
-      'location_lat': locationLat,
-      'location_lon': locationLon,
-      'wants_description': wantsDescription,
-    }).select().single();
+    final response = await client
+        .from('items')
+        .insert({
+          'user_id': userId,
+          'title': title,
+          'description': description,
+          'category_id': categoryId,
+          'condition': condition,
+          'estimated_value': estimatedValue,
+          'location_city': locationCity,
+          'location_lat': locationLat,
+          'location_lon': locationLon,
+          'wants_description': wantsDescription,
+        })
+        .select()
+        .single();
 
     // Add wanted categories
     if (wantedCategoryIds != null && wantedCategoryIds.isNotEmpty) {
-      await client.from('item_wants').insert(
-        wantedCategoryIds.map((catId) => {
-          'item_id': response['id'],
-          'category_id': catId,
-        }).toList(),
-      );
+      await client
+          .from('item_wants')
+          .insert(
+            wantedCategoryIds
+                .map(
+                  (catId) => {'item_id': response['id'], 'category_id': catId},
+                )
+                .toList(),
+          );
     }
 
     return response;
@@ -198,18 +218,22 @@ class SupabaseService {
   }
 
   /// Upload item image
-  Future<String> uploadItemImage(int itemId, File file, int displayOrder) async {
+  Future<String> uploadItemImage(
+    int itemId,
+    File file,
+    int displayOrder,
+  ) async {
     final fileName = '$itemId/${DateTime.now().millisecondsSinceEpoch}.jpg';
     await client.storage.from('item-images').upload(fileName, file);
-    
+
     final url = client.storage.from('item-images').getPublicUrl(fileName);
-    
+
     await client.from('item_images').insert({
       'item_id': itemId,
       'image_url': url,
       'display_order': displayOrder,
     });
-    
+
     return url;
   }
 
@@ -218,26 +242,44 @@ class SupabaseService {
   // ==========================================
 
   /// Get explore feed
-  Future<List<Map<String, dynamic>>> getExploreFeed({int? categoryId, int limit = 20}) async {
-    final response = await client.functions.invoke(
-      'get-explore-feed',
-      body: {
-        if (categoryId != null) 'category_id': categoryId,
-        'limit': limit,
-      },
-    );
-    
-    if (response.status != 200) {
-      throw Exception(response.data['error'] ?? 'Failed to fetch explore feed');
+  Future<List<Map<String, dynamic>>> getExploreFeed({
+    int? categoryId,
+    int limit = 20,
+  }) async {
+    try {
+      final response = await client.functions
+          .invoke(
+            'get-explore-feed',
+            body: {
+              if (categoryId != null) 'category_id': categoryId,
+              'limit': limit,
+            },
+          )
+          .timeout(
+            const Duration(seconds: 10),
+            onTimeout: () {
+              throw Exception('Request timeout: Edge function did not respond');
+            },
+          );
+
+      if (response.status != 200) {
+        throw Exception(
+          response.data['error'] ?? 'Failed to fetch explore feed',
+        );
+      }
+
+      return List<Map<String, dynamic>>.from(response.data['items'] ?? []);
+    } catch (e) {
+      print('Error in getExploreFeed: $e');
+      // Return empty list instead of throwing to prevent app crash
+      return [];
     }
-    
-    return List<Map<String, dynamic>>.from(response.data['items'] ?? []);
   }
 
   /// Get items the user has liked (for matches page)
   Future<List<Map<String, dynamic>>> getLikes() async {
     if (userId == null) return [];
-    
+
     // Get all items the user has swiped "like" on
     final response = await client
         .from('swipes')
@@ -253,19 +295,21 @@ class SupabaseService {
         .eq('swiper_user_id', userId!)
         .eq('action', 'like')
         .order('created_at', ascending: false);
-    
+
     // Extract just the items
-    final items = (response as List).map((swipe) => swipe['swiped_on_item']).toList();
+    final items = (response as List)
+        .map((swipe) => swipe['swiped_on_item'])
+        .toList();
     return List<Map<String, dynamic>>.from(items);
   }
 
   /// Upload a generic image (for item images)
   Future<String> uploadImage(File imageFile) async {
     if (userId == null) throw Exception('Not authenticated');
-    
+
     final fileName = '${userId}/${DateTime.now().millisecondsSinceEpoch}.jpg';
     await client.storage.from('item-images').upload(fileName, imageFile);
-    
+
     final url = client.storage.from('item-images').getPublicUrl(fileName);
     return url;
   }
@@ -275,7 +319,11 @@ class SupabaseService {
   // ==========================================
 
   /// Process a swipe action
-  Future<Map<String, dynamic>> swipe(int swiperItemId, int swipedOnItemId, String action) async {
+  Future<Map<String, dynamic>> swipe(
+    int swiperItemId,
+    int swipedOnItemId,
+    String action,
+  ) async {
     final response = await client.functions.invoke(
       'process-swipe',
       body: {
@@ -284,11 +332,11 @@ class SupabaseService {
         'action': action,
       },
     );
-    
+
     if (response.status != 200) {
       throw Exception(response.data['error'] ?? 'Swipe failed');
     }
-    
+
     return response.data;
   }
 
@@ -299,20 +347,18 @@ class SupabaseService {
   /// Get user's swaps
   Future<List<Map<String, dynamic>>> getSwaps({String? status}) async {
     if (userId == null) return [];
-    
-    var query = client
-        .from('swaps')
-        .select('''
+
+    var query = client.from('swaps').select('''
           *,
           itemA:items!item_a_id(*, images:item_images(*), user:users(id, name, profile_picture_url)),
           itemB:items!item_b_id(*, images:item_images(*), user:users(id, name, profile_picture_url)),
           latestMessage:messages(id, message_text, created_at, sender_user_id)
         ''');
-    
+
     if (status != null) {
       query = query.eq('status', status);
     }
-    
+
     final response = await query.order('updated_at', ascending: false);
     return List<Map<String, dynamic>>.from(response);
   }
@@ -328,15 +374,22 @@ class SupabaseService {
   }
 
   /// Send a message
-  Future<Map<String, dynamic>> sendMessage(int swapId, String messageText) async {
+  Future<Map<String, dynamic>> sendMessage(
+    int swapId,
+    String messageText,
+  ) async {
     if (userId == null) throw Exception('Not authenticated');
-    
-    final response = await client.from('messages').insert({
-      'swap_id': swapId,
-      'sender_user_id': userId,
-      'message_text': messageText,
-    }).select('*, sender:users(id, name)').single();
-    
+
+    final response = await client
+        .from('messages')
+        .insert({
+          'swap_id': swapId,
+          'sender_user_id': userId,
+          'message_text': messageText,
+        })
+        .select('*, sender:users(id, name)')
+        .single();
+
     return response;
   }
 
@@ -346,21 +399,22 @@ class SupabaseService {
       'confirm-trade',
       body: {'swap_id': swapId},
     );
-    
+
     if (response.status != 200) {
       throw Exception(response.data['error'] ?? 'Failed to confirm trade');
     }
-    
+
     return response.data;
   }
 
   /// Suggest a meeting location
   Future<Map<String, dynamic>> suggestLocation(
-    int swapId, 
-    double lat, 
-    double lon, 
-    {String? name, String? address}
-  ) async {
+    int swapId,
+    double lat,
+    double lon, {
+    String? name,
+    String? address,
+  }) async {
     final response = await client.functions.invoke(
       'suggest-location',
       body: {
@@ -371,11 +425,11 @@ class SupabaseService {
         'location_address': address,
       },
     );
-    
+
     if (response.status != 200) {
       throw Exception(response.data['error'] ?? 'Failed to suggest location');
     }
-    
+
     return response.data;
   }
 
@@ -385,11 +439,11 @@ class SupabaseService {
       'accept-location',
       body: {'swap_id': swapId},
     );
-    
+
     if (response.status != 200) {
       throw Exception(response.data['error'] ?? 'Failed to accept location');
     }
-    
+
     return response.data;
   }
 
@@ -401,27 +455,29 @@ class SupabaseService {
   Future<List<Map<String, dynamic>>> getUserReviews(String userId) async {
     final response = await client
         .from('reviews')
-        .select('*, reviewer:users!reviewer_user_id(id, name, profile_picture_url), swap:swaps(id)')
+        .select(
+          '*, reviewer:users!reviewer_user_id(id, name, profile_picture_url), swap:swaps(id)',
+        )
         .eq('reviewed_user_id', userId)
         .order('created_at', ascending: false);
     return List<Map<String, dynamic>>.from(response);
   }
 
   /// Create a review
-  Future<Map<String, dynamic>> createReview(int swapId, int rating, {String? comment}) async {
+  Future<Map<String, dynamic>> createReview(
+    int swapId,
+    int rating, {
+    String? comment,
+  }) async {
     final response = await client.functions.invoke(
       'create-review',
-      body: {
-        'swap_id': swapId,
-        'rating': rating,
-        'comment': comment,
-      },
+      body: {'swap_id': swapId, 'rating': rating, 'comment': comment},
     );
-    
+
     if (response.status != 200 && response.status != 201) {
       throw Exception(response.data['error'] ?? 'Failed to create review');
     }
-    
+
     return response.data;
   }
 
@@ -432,7 +488,7 @@ class SupabaseService {
   /// Get user's notifications
   Future<List<Map<String, dynamic>>> getNotifications() async {
     if (userId == null) return [];
-    
+
     final response = await client
         .from('notifications')
         .select()
@@ -465,7 +521,10 @@ class SupabaseService {
   // ==========================================
 
   /// Subscribe to messages for a swap
-  RealtimeChannel subscribeToMessages(int swapId, void Function(Map<String, dynamic>) onMessage) {
+  RealtimeChannel subscribeToMessages(
+    int swapId,
+    void Function(Map<String, dynamic>) onMessage,
+  ) {
     return client
         .channel('messages:swap:$swapId')
         .onPostgresChanges(
@@ -485,7 +544,10 @@ class SupabaseService {
   }
 
   /// Subscribe to swap updates
-  RealtimeChannel subscribeToSwapUpdates(int swapId, void Function(Map<String, dynamic>) onUpdate) {
+  RealtimeChannel subscribeToSwapUpdates(
+    int swapId,
+    void Function(Map<String, dynamic>) onUpdate,
+  ) {
     return client
         .channel('swaps:$swapId')
         .onPostgresChanges(
@@ -505,9 +567,11 @@ class SupabaseService {
   }
 
   /// Subscribe to notifications
-  RealtimeChannel subscribeToNotifications(void Function(Map<String, dynamic>) onNotification) {
+  RealtimeChannel subscribeToNotifications(
+    void Function(Map<String, dynamic>) onNotification,
+  ) {
     if (userId == null) throw Exception('Not authenticated');
-    
+
     return client
         .channel('notifications:$userId')
         .onPostgresChanges(

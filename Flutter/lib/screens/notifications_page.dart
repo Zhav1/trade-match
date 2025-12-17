@@ -23,7 +23,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
   @override
   void initState() {
     super.initState();
-   _loadNotifications();
+    _loadNotifications();
   }
 
   Future<void> _loadNotifications() async {
@@ -35,10 +35,10 @@ class _NotificationsPageState extends State<NotificationsPage> {
     try {
       final response = await _supabaseService.getNotifications();
       setState(() {
-        _notifications = (response['notifications'] as List)
+        _notifications = response
             .map((json) => app.AppNotification.fromJson(json))
             .toList();
-        _unreadCount = response['unread_count'] ?? 0;
+        _unreadCount = _notifications.where((n) => !n.isRead).length;
         _isLoading = false;
       });
     } catch (e) {
@@ -115,18 +115,18 @@ class _NotificationsPageState extends State<NotificationsPage> {
               },
             )
           : _error != null
-              ? _buildErrorState()
-              : _notifications.isEmpty
-                  ? _buildEmptyState()
-                  : RefreshIndicator(
-                      onRefresh: _loadNotifications,
-                      child: ListView.builder(
-                        itemCount: _notifications.length,
-                        itemBuilder: (context, index) {
-                          return _buildNotificationItem(_notifications[index]);
-                        },
-                      ),
-                    ),
+          ? _buildErrorState()
+          : _notifications.isEmpty
+          ? _buildEmptyState()
+          : RefreshIndicator(
+              onRefresh: _loadNotifications,
+              child: ListView.builder(
+                itemCount: _notifications.length,
+                itemBuilder: (context, index) {
+                  return _buildNotificationItem(_notifications[index]);
+                },
+              ),
+            ),
     );
   }
 
@@ -137,7 +137,12 @@ class _NotificationsPageState extends State<NotificationsPage> {
         children: [
           Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
           const SizedBox(height: 16),
-          Text(_error ?? 'An error occurred', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary)),
+          Text(
+            _error ?? 'An error occurred',
+            style: AppTextStyles.bodyMedium.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
           const SizedBox(height: 16),
           ElevatedButton(
             onPressed: _loadNotifications,
@@ -153,11 +158,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            Icons.notifications_none,
-            size: 64,
-            color: Colors.grey[400],
-          ),
+          Icon(Icons.notifications_none, size: 64, color: Colors.grey[400]),
           const SizedBox(height: 16),
           Text(
             'No notifications yet',
@@ -183,12 +184,10 @@ class _NotificationsPageState extends State<NotificationsPage> {
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.md),
         decoration: BoxDecoration(
-          color: notification.isRead ? null : Theme.of(context).colorScheme.primary.withOpacity(0.05),
-          border: Border(
-            bottom: BorderSide(
-              color: Colors.grey[200]!,
-            ),
-          ),
+          color: notification.isRead
+              ? null
+              : Theme.of(context).colorScheme.primary.withOpacity(0.05),
+          border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
         ),
         child: Row(
           children: [
@@ -197,7 +196,9 @@ class _NotificationsPageState extends State<NotificationsPage> {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: _getNotificationColor(notification.type).withOpacity(0.1),
+                color: _getNotificationColor(
+                  notification.type,
+                ).withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -211,10 +212,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    notification.title,
-                    style: AppTextStyles.labelBold,
-                  ),
+                  Text(notification.title, style: AppTextStyles.labelBold),
                   const SizedBox(height: 4),
                   Text(
                     notification.message,

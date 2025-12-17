@@ -5,7 +5,7 @@ import 'package:trade_match/services/supabase_service.dart';
 
 class ReviewsPage extends StatefulWidget {
   final int userId;
-  
+
   const ReviewsPage({super.key, required this.userId});
 
   @override
@@ -18,7 +18,6 @@ class _ReviewsPageState extends State<ReviewsPage> {
   RatingStats? _ratingStats;
   bool _isLoading = true;
   String? _error;
-  int _currentPage = 1;
   bool _hasMore = true;
 
   @override
@@ -30,7 +29,6 @@ class _ReviewsPageState extends State<ReviewsPage> {
   Future<void> _loadReviews({bool refresh = false}) async {
     if (refresh) {
       setState(() {
-        _currentPage = 1;
         _reviews.clear();
         _hasMore = true;
         _isLoading = true;
@@ -41,34 +39,25 @@ class _ReviewsPageState extends State<ReviewsPage> {
     if (!_hasMore && !refresh) return;
 
     try {
-      final response = await _supabaseService.getUserReviews(widget.userId, page: _currentPage);
-      
+      final response = await _supabaseService.getUserReviews(
+        widget.userId.toString(),
+      );
+
       setState(() {
-        final newReviews = (response['reviews'] as List)
+        final newReviews = (response as List)
             .map((json) => Review.fromJson(json))
             .toList();
-        
+
         if (refresh) {
           _reviews = newReviews;
         } else {
           _reviews.addAll(newReviews);
         }
 
-        // Parse rating stats
-        if (response['rating_stats'] != null) {
-          _ratingStats = RatingStats.fromJson(response['rating_stats']);
-        }
-
-        // Check pagination
-        final pagination = response['pagination'];
-        if (pagination != null) {
-          _hasMore = pagination['current_page'] < pagination['last_page'];
-          if (_hasMore) {
-            _currentPage++;
-          }
-        } else {
-          _hasMore = false;
-        }
+        // Note: Supabase service returns simple list, no pagination or stats
+        // TODO: Implement pagination and stats in SupabaseService if needed
+        _hasMore = false; // Disable pagination for now
+        _ratingStats = null; // No stats available yet
 
         _isLoading = false;
       });
@@ -91,35 +80,35 @@ class _ReviewsPageState extends State<ReviewsPage> {
       body: _isLoading && _reviews.isEmpty
           ? const Center(child: CircularProgressIndicator())
           : _error != null && _reviews.isEmpty
-              ? _buildErrorState()
-              : _reviews.isEmpty
-                  ? _buildEmptyState()
-                  : RefreshIndicator(
-                      onRefresh: () => _loadReviews(refresh: true),
-                      child: Column(
-                        children: [
-                          if (_ratingStats != null) _buildRatingSummary(),
-                          const Divider(height: 1),
-                          Expanded(
-                            child: ListView.builder(
-                              padding: const EdgeInsets.all(16),
-                              itemCount: _reviews.length + (_hasMore ? 1 : 0),
-                              itemBuilder: (context, index) {
-                                if (index == _reviews.length) {
-                                  // Load more indicator
-                                  _loadReviews();
-                                  return const Padding(
-                                    padding: EdgeInsets.all(16),
-                                    child: Center(child: CircularProgressIndicator()),
-                                  );
-                                }
-                                return _buildReviewCard(_reviews[index]);
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
+          ? _buildErrorState()
+          : _reviews.isEmpty
+          ? _buildEmptyState()
+          : RefreshIndicator(
+              onRefresh: () => _loadReviews(refresh: true),
+              child: Column(
+                children: [
+                  if (_ratingStats != null) _buildRatingSummary(),
+                  const Divider(height: 1),
+                  Expanded(
+                    child: ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: _reviews.length + (_hasMore ? 1 : 0),
+                      itemBuilder: (context, index) {
+                        if (index == _reviews.length) {
+                          // Load more indicator
+                          _loadReviews();
+                          return const Padding(
+                            padding: EdgeInsets.all(16),
+                            child: Center(child: CircularProgressIndicator()),
+                          );
+                        }
+                        return _buildReviewCard(_reviews[index]);
+                      },
                     ),
+                  ),
+                ],
+              ),
+            ),
     );
   }
 
@@ -130,7 +119,10 @@ class _ReviewsPageState extends State<ReviewsPage> {
         children: [
           Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
           const SizedBox(height: 16),
-          Text(_error ?? 'An error occurred', style: TextStyle(color: Colors.grey[600])),
+          Text(
+            _error ?? 'An error occurred',
+            style: TextStyle(color: Colors.grey[600]),
+          ),
           const SizedBox(height: 16),
           ElevatedButton(
             onPressed: () => _loadReviews(refresh: true),
@@ -168,7 +160,7 @@ class _ReviewsPageState extends State<ReviewsPage> {
 
   Widget _buildRatingSummary() {
     final stats = _ratingStats!;
-    
+
     return Container(
       padding: const EdgeInsets.all(24),
       color: Colors.white,
@@ -193,13 +185,13 @@ class _ReviewsPageState extends State<ReviewsPage> {
                   children: List.generate(5, (index) {
                     final whole = stats.averageRating.floor();
                     final hasHalf = stats.averageRating - whole >= 0.5;
-                    
+
                     return Icon(
-                      index < whole 
-                          ? Icons.star 
-                          : (index == whole && hasHalf) 
-                              ? Icons.star_half 
-                              : Icons.star_border,
+                      index < whole
+                          ? Icons.star
+                          : (index == whole && hasHalf)
+                          ? Icons.star_half
+                          : Icons.star_border,
                       color: Theme.of(context).colorScheme.primary,
                       size: 20,
                     );
@@ -208,10 +200,7 @@ class _ReviewsPageState extends State<ReviewsPage> {
                 const SizedBox(height: 8),
                 Text(
                   'Based on ${stats.totalReviews} review${stats.totalReviews != 1 ? 's' : ''}',
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 12,
-                  ),
+                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
                 ),
               ],
             ),
@@ -244,10 +233,7 @@ class _ReviewsPageState extends State<ReviewsPage> {
         children: [
           Text(
             '$rating',
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-            ),
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
           ),
           const Icon(Icons.star, size: 12),
           const SizedBox(width: 8),
@@ -277,10 +263,7 @@ class _ReviewsPageState extends State<ReviewsPage> {
           const SizedBox(width: 8),
           Text(
             '${(percentage * 100).round()}%',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[600],
-            ),
+            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
           ),
         ],
       ),
@@ -290,9 +273,7 @@ class _ReviewsPageState extends State<ReviewsPage> {
   Widget _buildReviewCard(Review review) {
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -318,16 +299,11 @@ class _ReviewsPageState extends State<ReviewsPage> {
                     children: [
                       Text(
                         review.reviewer.name,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       Text(
                         DateFormat.yMMMd().format(review.createdAt),
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 12,
-                        ),
+                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
                       ),
                     ],
                   ),
@@ -364,7 +340,9 @@ class _ReviewsPageState extends State<ReviewsPage> {
                       color: Colors.grey[200],
                       image: review.swap.itemA.primaryImageUrl != null
                           ? DecorationImage(
-                              image: NetworkImage(review.swap.itemA.primaryImageUrl!),
+                              image: NetworkImage(
+                                review.swap.itemA.primaryImageUrl!,
+                              ),
                               fit: BoxFit.cover,
                             )
                           : null,
@@ -380,17 +358,13 @@ class _ReviewsPageState extends State<ReviewsPage> {
                       children: [
                         Text(
                           review.swap.itemA.name,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: const TextStyle(fontWeight: FontWeight.bold),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                         Text(
                           'Traded with ${review.swap.itemB.name}',
-                          style: const TextStyle(
-                            fontSize: 12,
-                          ),
+                          style: const TextStyle(fontSize: 12),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -404,10 +378,7 @@ class _ReviewsPageState extends State<ReviewsPage> {
             // Review Text
             if (review.comment != null) ...[
               const SizedBox(height: 12),
-              Text(
-                review.comment!,
-                style: const TextStyle(height: 1.5),
-              ),
+              Text(review.comment!, style: const TextStyle(height: 1.5)),
             ],
 
             // Review Photos

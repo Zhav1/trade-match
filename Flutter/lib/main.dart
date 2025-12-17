@@ -26,39 +26,37 @@ import 'package:trade_match/services/cache_manager.dart'; // Phase 2
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // SUPABASE INITIALIZATION
   // Initialize Supabase for future migration (doesn't affect existing Laravel API)
   try {
-    await Supabase.initialize(
-      url: SUPABASE_URL,
-      anonKey: SUPABASE_ANON_KEY,
-    );
+    await Supabase.initialize(url: SUPABASE_URL, anonKey: SUPABASE_ANON_KEY);
     print('✅ Supabase initialized successfully');
   } catch (e) {
     print('⚠️ Supabase initialization failed: $e');
     // App continues - Supabase is optional for now
   }
-  
+
   // PHASE 2: Initialize Hive + StorageService + CacheManager with fallback
   // CRITICAL: App continues even if init fails (zero regression)
   try {
     await Hive.initFlutter();
     print('✅ Hive initialized successfully');
-    
+
     // Initialize StorageService (register adapters, open boxes)
     await StorageService.init();
-    
+
     // Cleanup expired cache entries on startup
     await CacheManager.cleanupExpiredData();
   } catch (e) {
-    print('⚠️ Storage initialization failed, app will continue without caching: $e');
+    print(
+      '⚠️ Storage initialization failed, app will continue without caching: $e',
+    );
     // App continues normally - caching features will gracefully degrade
   }
-  
+
   runApp(const MyApp());
 }
-
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -84,19 +82,25 @@ class MyApp extends StatelessWidget {
         if (settings.name == '/item_detail') {
           final item = settings.arguments as BarterItem?;
           if (item != null) {
-            return MaterialPageRoute(builder: (_) => ItemDetailPage(item: item));
+            return MaterialPageRoute(
+              builder: (_) => ItemDetailPage(item: item),
+            );
           }
         }
         if (settings.name == '/trade_offer') {
           final item = settings.arguments as BarterItem?;
           if (item != null) {
-            return MaterialPageRoute(builder: (_) => TradeOfferPage(theirItem: item));
+            return MaterialPageRoute(
+              builder: (_) => TradeOfferPage(theirItem: item),
+            );
           }
         }
         if (settings.name == '/reviews') {
           final userId = settings.arguments as int?;
           if (userId != null) {
-            return MaterialPageRoute(builder: (_) => ReviewsPage(userId: userId));
+            return MaterialPageRoute(
+              builder: (_) => ReviewsPage(userId: userId),
+            );
           }
         }
         // If the route is not found or arguments are invalid, show an error page.
@@ -129,42 +133,45 @@ class _SplashPageState extends State<SplashPage> {
     _checkLogin();
   }
 
-  void _checkLogin() async {
-    // Check if user is already authenticated with Supabase
-    final session = Supabase.instance.client.auth.currentSession;
-    
-    if (session != null) {
-      try {
+  Future<void> _checkLogin() async {
+    try {
+      // Check if user is already authenticated with Supabase
+      final session = Supabase.instance.client.auth.currentSession;
+
+      if (session != null) {
         // User is authenticated, get their profile
         final userId = session.user.id;
         AUTH_USER_ID = userId;
-        
+
         if (mounted) {
           Navigator.pushReplacementNamed(context, '/main');
         }
-      } catch (e) {
-        print('Error loading user profile: $e');
+      } else {
         if (mounted) {
-          // Error loading profile, go to Welcome
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const WelcomePage()));
+          // No active session, go to Welcome
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const WelcomePage()),
+          );
         }
       }
-    } else {
+    } catch (e) {
+      // Supabase not initialized or other error - go to welcome page
+      print('⚠️ Auth check failed: $e');
       if (mounted) {
-        // No active session, go to Welcome
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const WelcomePage()));
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const WelcomePage()),
+        );
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: CircularProgressIndicator()),
-    );
+    return const Scaffold(body: Center(child: CircularProgressIndicator()));
   }
 }
-
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -223,7 +230,9 @@ class _MainPageState extends State<MainPage> {
 
   Widget _buildNavItem(IconData icon, String label, int index) {
     final isSelected = _selectedIndex == index;
-    final color = isSelected ? Theme.of(context).colorScheme.primary : Colors.grey;
+    final color = isSelected
+        ? Theme.of(context).colorScheme.primary
+        : Colors.grey;
     return InkWell(
       onTap: () => _onItemTapped(index),
       borderRadius: BorderRadius.circular(20),
@@ -233,16 +242,11 @@ class _MainPageState extends State<MainPage> {
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
             Icon(icon, color: color),
-            const SizedBox(height: 2), 
-            Text(
-              label,
-              style: TextStyle(color: color, fontSize: 12),
-            ),
+            const SizedBox(height: 2),
+            Text(label, style: TextStyle(color: color, fontSize: 12)),
           ],
         ),
       ),
     );
   }
 }
-
-
