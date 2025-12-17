@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:trade_match/chat/chat_detail.dart';
 import 'package:trade_match/models/barter_item.dart';
 import 'package:trade_match/models/user.dart';
-import 'package:trade_match/services/api_service.dart';
+import 'package:trade_match/services/supabase_service.dart';
 import 'package:trade_match/services/constants.dart';
 import 'package:trade_match/theme.dart';
 
@@ -31,7 +31,8 @@ class _ChatListScreenState extends State<ChatListScreen> {
     });
 
     try {
-      final swaps = await ApiService().getSwaps();
+      final swapsData = await SupabaseService().getSwaps();
+      final swaps = swapsData.map((data) => BarterMatch.fromJson(data)).toList();
       if (mounted) {
         setState(() {
           _swaps = swaps;

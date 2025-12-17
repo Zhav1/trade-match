@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:trade_match/models/category.dart';
 import 'package:trade_match/models/item.dart';
-import 'package:trade_match/services/api_service.dart';
+import 'package:trade_match/services/supabase_service.dart';
 import 'package:trade_match/services/permission_service.dart'; // Technical Implementation: Permissions
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
@@ -20,7 +20,7 @@ class AddItemPage extends StatefulWidget {
 
 class _AddItemPageState extends State<AddItemPage> {
   final _formKey = GlobalKey<FormState>();
-  final _apiService = ApiService();
+  final _supabaseService = SupabaseService();
 
   // Form values
   String _title = '';
@@ -84,7 +84,8 @@ class _AddItemPageState extends State<AddItemPage> {
 
   Future<void> _fetchCategories() async {
     try {
-      final categories = await _apiService.getCategories();
+      final categoriesData = await _supabaseService.getCategories();
+      final categories = categoriesData.map((data) => Category.fromJson(data)).toList();
       setState(() {
         _categories = List<Category>.from(categories);
         _isLoadingCategories = false;
@@ -167,7 +168,7 @@ class _AddItemPageState extends State<AddItemPage> {
       try {
         // Upload NEW images and get URLs
         for (var imageFile in _imageFiles) {
-          final imageUrl = await _apiService.uploadImage(File(imageFile.path));
+          final imageUrl = await _supabaseService.uploadImage(File(imageFile.path));
           _imageUrls.add(imageUrl);
         }
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart'; // Technical Implementation: Phase 2
+import 'package:supabase_flutter/supabase_flutter.dart'; // Supabase integration
 import 'package:trade_match/theme.dart';
 import 'package:trade_match/auth/auth_page.dart';
 import 'package:trade_match/auth/welcome_page.dart';
@@ -19,13 +20,25 @@ import 'package:trade_match/screens/trade_history_page.dart';
 import 'package:trade_match/screens/trade_offer_page.dart';
 import 'package:trade_match/models/barter_item.dart';
 
-import 'package:trade_match/services/api_service.dart';
 import 'package:trade_match/services/constants.dart';
 import 'package:trade_match/services/storage_service.dart'; // Phase 2
 import 'package:trade_match/services/cache_manager.dart'; // Phase 2
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // SUPABASE INITIALIZATION
+  // Initialize Supabase for future migration (doesn't affect existing Laravel API)
+  try {
+    await Supabase.initialize(
+      url: SUPABASE_URL,
+      anonKey: SUPABASE_ANON_KEY,
+    );
+    print('✅ Supabase initialized successfully');
+  } catch (e) {
+    print('⚠️ Supabase initialization failed: $e');
+    // App continues - Supabase is optional for now
+  }
   
   // PHASE 2: Initialize Hive + StorageService + CacheManager with fallback
   // CRITICAL: App continues even if init fails (zero regression)
@@ -45,6 +58,7 @@ void main() async {
   
   runApp(const MyApp());
 }
+
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -104,8 +118,6 @@ class SplashPage extends StatefulWidget {
 }
 
 class _SplashPageState extends State<SplashPage> {
-  final ApiService _apiService = ApiService();
-
   @override
   void initState() {
     super.initState();
@@ -113,22 +125,28 @@ class _SplashPageState extends State<SplashPage> {
   }
 
   void _checkLogin() async {
-    final token = await _apiService.getToken();
-    if (token != null) {
+    // Check if user is already authenticated with Supabase
+    final session = Supabase.instance.client.auth.currentSession;
+    
+    if (session != null) {
       try {
-        final user = await _apiService.getUser();
-        AUTH_USER_ID = user['id'].toString();
+        // User is authenticated, get their profile
+        final userId = session.user.id;
+        AUTH_USER_ID = userId;
+        
         if (mounted) {
           Navigator.pushReplacementNamed(context, '/main');
         }
       } catch (e) {
+        print('Error loading user profile: $e');
         if (mounted) {
-          // Token invalid or network error, go to Welcome
+          // Error loading profile, go to Welcome
           Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const WelcomePage()));
         }
       }
     } else {
       if (mounted) {
+        // No active session, go to Welcome
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const WelcomePage()));
       }
     }
@@ -141,6 +159,7 @@ class _SplashPageState extends State<SplashPage> {
     );
   }
 }
+
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});

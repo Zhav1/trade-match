@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:trade_match/chat/chat_detail.dart';
 import 'package:trade_match/models/barter_item.dart';
-import 'package:trade_match/services/api_service.dart';
+import 'package:trade_match/services/supabase_service.dart';
 import 'package:trade_match/models/user.dart';
 import 'package:trade_match/models/category.dart';
 import 'package:trade_match/models/item_image.dart';
@@ -16,14 +16,16 @@ class MatchesPage extends StatefulWidget {
 
 class _MatchesPageState extends State<MatchesPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  final ApiService _apiService = ApiService();
+  final SupabaseService _supabaseService = SupabaseService();
   late Future<List<BarterMatch>> _swapsFuture;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _swapsFuture = _apiService.getSwaps();
+    _swapsFuture = _supabaseService.getSwaps().then((swapsData) {
+      return swapsData.map((data) => BarterMatch.fromJson(data)).toList();
+    });
   }
 
   @override
@@ -103,7 +105,9 @@ class _MatchesPageState extends State<MatchesPage> with SingleTickerProviderStat
 
   Widget _buildLikesTab() {
     return FutureBuilder<List<BarterItem>>(
-      future: _apiService.getLikes(),
+      future: _supabaseService.getLikes().then((likesData) {
+        return likesData.map((data) => BarterItem.fromJson(data)).toList();
+      }),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:trade_match/models/barter_item.dart';
-import 'package:trade_match/services/api_service.dart';
+import 'package:trade_match/services/supabase_service.dart';
 import 'package:trade_match/theme.dart';
 
 class SubmitReviewPage extends StatefulWidget {
@@ -13,7 +13,7 @@ class SubmitReviewPage extends StatefulWidget {
 }
 
 class _SubmitReviewPageState extends State<SubmitReviewPage> {
-  final ApiService _apiService = ApiService();
+  final SupabaseService _supabaseService = SupabaseService();
   final TextEditingController _commentController = TextEditingController();
   int _selectedRating = 0;
   bool _isSubmitting = false;
@@ -57,7 +57,7 @@ class _SubmitReviewPageState extends State<SubmitReviewPage> {
           'comment': _commentController.text.trim(),
       };
 
-      await _apiService.createReview(reviewData);
+      await _supabaseService.createReview(reviewData);
 
       if (!mounted) return;
 

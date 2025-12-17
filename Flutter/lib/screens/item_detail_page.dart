@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:trade_match/models/barter_item.dart';
+import 'package:trade_match/models/item.dart';
 import 'package:trade_match/profile/profile.dart';
 import 'package:trade_match/screens/trade_offer_page.dart';
-import 'package:trade_match/services/api_service.dart';
+import 'package:trade_match/services/supabase_service.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:cached_network_image/cached_network_image.dart'; // Phase 3: Performance
 import 'package:trade_match/theme.dart';
@@ -21,7 +22,7 @@ class ItemDetailPage extends StatefulWidget {
 }
 
 class _ItemDetailPageState extends State<ItemDetailPage> {
-  final ApiService _apiService = ApiService();
+  final SupabaseService _supabaseService = SupabaseService();
   bool _isLiking = false;
 
   void _handleShare() {
@@ -38,7 +39,8 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
 
     try {
       // Get current user's items to find an item to use for swiping
-      final userItems = await _apiService.getUserItems();
+      final userItemsData = await _supabaseService.getUserItems();
+      final userItems = userItemsData.map((data) => Item.fromJson(data)).toList();
       
       if (userItems.isEmpty) {
         if (!mounted) return;
@@ -58,7 +60,7 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
       final swiperItemId = userItems.first.id;
 
       // Call swipe API with 'like' action
-      await _apiService.swipe(swiperItemId, widget.item.id, 'like');
+      await _supabaseService.swipe(swiperItemId, widget.item.id, 'like');
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

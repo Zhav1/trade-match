@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:trade_match/models/barter_item.dart';
-import 'package:trade_match/services/api_service.dart';
+import 'package:trade_match/services/supabase_service.dart';
 import 'package:trade_match/services/constants.dart';
 import 'package:cached_network_image/cached_network_image.dart'; // Phase 3: Performance
 import 'package:trade_match/screens/submit_review_page.dart';
@@ -14,7 +14,7 @@ class TradeHistoryPage extends StatefulWidget {
 }
 
 class _TradeHistoryPageState extends State<TradeHistoryPage> {
-  final ApiService _apiService = ApiService();
+  final SupabaseService _supabaseService = SupabaseService();
 
   @override
   Widget build(BuildContext context) {
@@ -65,7 +65,9 @@ class _TradeHistoryPageState extends State<TradeHistoryPage> {
 
   Widget _buildTradeList(String status) {
     return FutureBuilder<List<BarterMatch>>(
-      future: _apiService.getSwaps(status: status),
+      future: _supabaseService.getSwaps(status: status).then((swapsData) {
+        return swapsData.map((data) => BarterMatch.fromJson(data)).toList();
+      }),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -312,7 +314,7 @@ class _TradeHistoryPageState extends State<TradeHistoryPage> {
   Future<void> _handleComplete(int swapId) async {
     try {
       // Call the confirm endpoint
-      final response = await _apiService.confirmTrade(swapId);
+      final response = await _supabaseService.confirmTrade(swapId);
       if (mounted) {
         setState(() {}); // Refresh the list
         ScaffoldMessenger.of(context).showSnackBar(

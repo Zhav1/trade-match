@@ -2,8 +2,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:trade_match/models/category.dart';
-import 'package:trade_match/models/barter_item.dart'; // Added import
-import 'package:trade_match/services/api_service.dart';
+import 'package:trade_match/models/barter_item.dart';
+import 'package:trade_match/models/item.dart';
+import 'package:trade_match/services/supabase_service.dart';
 import 'package:trade_match/services/permission_service.dart'; // Technical Implementation: Permissions
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
@@ -20,7 +21,7 @@ class ExploreScreen extends StatefulWidget {
 }
 
 class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProviderStateMixin {
-  final ApiService _apiService = ApiService();
+  final SupabaseService _supabaseService = SupabaseService();
   final AppinioSwiperController _swiperController = AppinioSwiperController();
   late AnimationController _likeController;
   late Animation<double> _likeScale;
@@ -38,7 +39,7 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
   @override
   void initState() {
     super.initState();
-    _itemsFuture = _apiService.getExploreItems();
+    _itemsFuture = _loadExploreItems();
     _likeController = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
     _likeScale = TweenSequence<double>([
       TweenSequenceItem(tween: Tween(begin: 0.0, end: 1.2).chain(CurveTween(curve: Curves.elasticOut)), weight: 40),
@@ -62,6 +63,17 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
     super.dispose();
   }
   
+  /// Load explore items from Supabase
+  Future<List<BarterItem>> _loadExploreItems() async {
+    try {
+      final itemsData = await _supabaseService.getExploreFeed(limit: 20);
+      return itemsData.map((data) => BarterItem.fromJson(data)).toList();
+    } catch (e) {
+      print('Error loading explore items: $e');
+      rethrow;
+    }
+  }
+  
   /// Load user's data for dynamic item selection and location
   Future<void> _loadUserData() async {
     try {
@@ -71,12 +83,13 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
       }
       
       // Get user profile for location
-      final userData = await _apiService.getUser();
+      final userData = await _supabaseService.getCurrentUserProfile();
       
       // Get user's items to select one for offering
-      final userItems = await _apiService.getUserItems();
+      final userItemsData = await _supabaseService.getUserItems();
+      final userItems = userItemsData.map((data) => Item.fromJson(data)).toList();
       
-      if (mounted) {
+      if (mounted && userData != null) {
         setState(() {
           _userLocation = userData['default_location_city'] ?? 'Unknown';
           
@@ -213,9 +226,9 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
                             }
                             
                             if (direction == AxisDirection.right) {
-                              _apiService.swipe(_currentUserItemId!, item.id, 'like');
+                              _supabaseService.swipe(_currentUserItemId!, item.id, 'like');
                             } else if (direction == AxisDirection.left) {
-                              _apiService.swipe(_currentUserItemId!, item.id, 'dislike');
+                              _supabaseService.swipe(_currentUserItemId!, item.id, 'dislike');
                             }
                           },
                           cardBuilder: (context, index) {

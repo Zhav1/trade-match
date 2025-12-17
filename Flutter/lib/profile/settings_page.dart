@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:trade_match/services/api_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:trade_match/auth/welcome_page.dart';
 
 class SettingsPage extends StatelessWidget {
@@ -28,8 +28,8 @@ class SettingsPage extends StatelessWidget {
 
     if (confirmed == true && context.mounted) {
       try {
-        // Call logout API
-        await ApiService().logout();
+        // Sign out from Supabase
+        await Supabase.instance.client.auth.signOut();
         
         if (context.mounted) {
           // Navigate to welcome page and clear navigation stack

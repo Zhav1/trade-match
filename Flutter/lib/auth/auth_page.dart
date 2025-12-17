@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:trade_match/services/api_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:trade_match/services/supabase_service.dart';
 import 'package:trade_match/main.dart';
 import 'package:trade_match/auth/forgot_password.dart';
 import 'package:trade_match/services/constants.dart';
@@ -27,7 +28,7 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
 
-  final ApiService _apiService = ApiService();
+  final SupabaseService _supabaseService = SupabaseService();
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: ['email'],
     serverClientId: GOOGLE_CLIENT_ID,
@@ -346,20 +347,22 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
   void _handleSignIn() async {
     print("--- Sign In Button Pressed ---");
     if (_signInFormKey.currentState!.validate()) {
-      print("Validation Passed. Starting API Call...");
+      print("Validation Passed. Starting Supabase auth...");
       setState(() => _isLoading = true);
       try {
-        final response = await _apiService.login(
+        final response = await _supabaseService.signInWithEmail(
           _emailController.text,
           _passwordController.text,
         );
-        print("API Response received: $response");
-        await _apiService.saveToken(response['token']);
-        AUTH_USER_ID = response['user']['id'].toString();
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const MainPage()),
-        );
+        print("Supabase auth successful");
+        
+        if (response.user != null) {
+          AUTH_USER_ID = response.user!.id;
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const MainPage()),
+          );
+        }
       } catch (e, stackTrace) {
         print("Exception in _handleSignIn: $e\nStack Trace: $stackTrace");
         ScaffoldMessenger.of(context).showSnackBar(
@@ -380,18 +383,23 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
     if (_registerFormKey.currentState!.validate()) {
       setState(() => _isLoading = true);
       try {
-        final response = await _apiService.register(
-          _nameController.text,
+        final response = await _supabaseService.signUpWithEmail(
           _emailController.text,
-          _phoneController.text,
           _passwordController.text,
+          _nameController.text,
         );
-        await _apiService.saveToken(response['token']);
-        AUTH_USER_ID = response['user']['id'].toString();
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const MainPage()),
-        );
+        
+        if (response.user != null) {
+          AUTH_USER_ID = response.user!.id;
+          
+          // Update phone number
+          await _supabaseService.updateProfile(phone: _phoneController.text);
+          
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const MainPage()),
+          );
+        }
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to register: ${e.toString()}')),
@@ -425,35 +433,35 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
       print("4. GOOGLE ACCESS TOKEN: $accessToken");
 
       if (idToken != null) {
-        print("5. Sending ID Token to Backend...");
+        print("5. Sending ID Token to Supabase...");
 
-        final response = await _apiService.googleLogin(idToken);
+        final response = await _supabaseService.signInWithGoogleIdToken(idToken, accessToken);
 
-        print("6. Backend Response: $response");
-        print("7. BACKEND JWT TOKEN: ${response['token']}");
+        print("6. Supabase auth successful");
 
-        await _apiService.saveToken(response['token']);
-        AUTH_USER_ID = response['user']['id'].toString();
-        
-        // NEW: Check if phone is required (new Google users)
-        if (response['phone_required'] == true || response['user']['phone'] == null) {
-          final phone = await _showPhoneCollectionDialog();
+        if (response.user != null) {
+          AUTH_USER_ID = response.user!.id;
           
-          if (phone != null && phone.isNotEmpty) {
-            try {
-              await _apiService.updateProfile({'phone': phone});
-            } catch (e) {
-              // Log error but don't block navigation
-              print('Failed to update phone: $e');
+          // Check if phone is required (new Google users)
+          final profile = await _supabaseService.getCurrentUserProfile();
+          if (profile == null || profile['phone'] == null) {
+            final phone = await _showPhoneCollectionDialog();
+            
+            if (phone != null && phone.isNotEmpty) {
+              try {
+                await _supabaseService.updateProfile(phone: phone);
+              } catch (e) {
+                print('Failed to update phone: $e');
+              }
             }
           }
-        }
-        
-        if (mounted) {
-           Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const MainPage()),
-          );
+          
+          if (mounted) {
+             Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const MainPage()),
+            );
+          }
         }
       } else {
         print("CRITICAL: Google ID Token is NULL");
@@ -548,9 +556,8 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
       final String? idToken = googleAuth.idToken;
 
       if (idToken != null) {
-        print("Sending ID Token to Backend (Register)...");
-        // CALLS THE NEW REGISTRATION ENDPOINT
-        final response = await _apiService.googleRegister(idToken);
+        print("Sending ID Token to Supabase (Register)...");
+        final response = await _supabaseService.signInWithGoogleIdToken(idToken, null);
         await _handleAuthResponse(response);
       } else {
         print("CRITICAL: Google ID Token is NULL");
@@ -573,28 +580,30 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
     }
   }
 
-  Future<void> _handleAuthResponse(Map<String, dynamic> response) async {
-    await _apiService.saveToken(response['token']);
-    AUTH_USER_ID = response['user']['id'].toString();
-    
-    // Check if phone is required (common logic)
-    if (response['phone_required'] == true || response['user']['phone'] == null) {
-      final phone = await _showPhoneCollectionDialog();
+  Future<void> _handleAuthResponse(AuthResponse response) async {
+    if (response.user != null) {
+      AUTH_USER_ID = response.user!.id;
       
-      if (phone != null && phone.isNotEmpty) {
-        try {
-          await _apiService.updateProfile({'phone': phone});
-        } catch (e) {
-          print('Failed to update phone: $e');
+      // Check if phone is required
+      final profile = await _supabaseService.getCurrentUserProfile();
+      if (profile == null || profile['phone'] == null) {
+        final phone = await _showPhoneCollectionDialog();
+        
+        if (phone != null && phone.isNotEmpty) {
+          try {
+            await _supabaseService.updateProfile(phone: phone);
+          } catch (e) {
+            print('Failed to update phone: $e');
+          }
         }
       }
-    }
-    
-    if (mounted) {
-       Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const MainPage()),
-      );
+      
+      if (mounted) {
+         Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const MainPage()),
+        );
+      }
     }
   }
 }

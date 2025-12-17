@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:trade_match/models/item.dart';
 import 'package:trade_match/screens/add_item_page.dart';
-import 'package:trade_match/services/api_service.dart';
+import 'package:trade_match/services/supabase_service.dart';
 import 'package:trade_match/theme.dart';
 import 'package:cached_network_image/cached_network_image.dart'; // Phase 3: Performance
 
@@ -14,7 +14,7 @@ class LibraryScreen extends StatefulWidget {
 }
 
 class _LibraryScreenState extends State<LibraryScreen> {
-  final ApiService _apiService = ApiService();
+  final SupabaseService _supabaseService = SupabaseService();
   late Future<List<Item>> _itemsFuture;
 
   @override
@@ -25,13 +25,15 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
   void _loadItems() {
     setState(() {
-      _itemsFuture = _apiService.getUserItems();
+      _itemsFuture = _supabaseService.getUserItems().then((itemsData) {
+        return itemsData.map((data) => Item.fromJson(data)).toList();
+      });
     });
   }
 
   Future<void> _deleteItem(int id) async {
     try {
-      await _apiService.deleteItem(id);
+      await _supabaseService.deleteItem(id);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Item deleted successfully")));
         _loadItems();

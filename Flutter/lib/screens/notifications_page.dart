@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:trade_match/theme.dart';
 import 'package:trade_match/models/notification.dart' as app;
-import 'package:trade_match/services/api_service.dart';
+import 'package:trade_match/services/supabase_service.dart';
 import 'package:trade_match/chat/chat_detail.dart';
 import 'package:trade_match/screens/trade_history_page.dart';
 
@@ -14,7 +14,7 @@ class NotificationsPage extends StatefulWidget {
 }
 
 class _NotificationsPageState extends State<NotificationsPage> {
-  final ApiService _apiService = ApiService();
+  final SupabaseService _supabaseService = SupabaseService();
   List<app.AppNotification> _notifications = [];
   bool _isLoading = true;
   int _unreadCount = 0;
@@ -33,7 +33,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
     });
 
     try {
-      final response = await _apiService.getNotifications();
+      final response = await _supabaseService.getNotifications();
       setState(() {
         _notifications = (response['notifications'] as List)
             .map((json) => app.AppNotification.fromJson(json))
@@ -289,7 +289,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
     // Mark as read
     if (!notification.isRead) {
       try {
-        await _apiService.markNotificationAsRead(notification.id);
+        await _supabaseService.markNotificationAsRead(notification.id);
         setState(() {
           notification = app.AppNotification(
             id: notification.id,
@@ -340,7 +340,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
   Future<void> _markAllAsRead() async {
     try {
-      await _apiService.markAllNotificationsAsRead();
+      await _supabaseService.markAllNotificationsAsRead();
       setState(() {
         for (var i = 0; i < _notifications.length; i++) {
           final n = _notifications[i];

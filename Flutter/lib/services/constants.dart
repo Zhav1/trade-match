@@ -16,3 +16,7 @@ const String PUSHER_CLUSTER = 'ap1';
 
 // Google Web Client ID (from Google Cloud Console > Credentials > Web application)
 const String GOOGLE_CLIENT_ID = '915200574896-1lfrh6hosfvi5l8ds74c457dfeg88kpe.apps.googleusercontent.com';
+
+// Supabase Configuration
+const String SUPABASE_URL = 'https://glhbmluibunvkytnkypx.supabase.co';
+const String SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsaGJtbHVpYnVudmt5dG5reXB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ0MTA3MzIsImV4cCI6MjA0OTk4NjczMn0.BcFSOz7LQwjulCzt3H8FCw_48-JJ2k4';

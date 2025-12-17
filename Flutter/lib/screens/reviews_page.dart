@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:trade_match/models/review.dart';
-import 'package:trade_match/services/api_service.dart';
+import 'package:trade_match/services/supabase_service.dart';
 
 class ReviewsPage extends StatefulWidget {
   final int userId;
@@ -13,7 +13,7 @@ class ReviewsPage extends StatefulWidget {
 }
 
 class _ReviewsPageState extends State<ReviewsPage> {
-  final ApiService _apiService = ApiService();
+  final SupabaseService _supabaseService = SupabaseService();
   List<Review> _reviews = [];
   RatingStats? _ratingStats;
   bool _isLoading = true;
@@ -41,7 +41,7 @@ class _ReviewsPageState extends State<ReviewsPage> {
     if (!_hasMore && !refresh) return;
 
     try {
-      final response = await _apiService.getUserReviews(widget.userId, page: _currentPage);
+      final response = await _supabaseService.getUserReviews(widget.userId, page: _currentPage);
       
       setState(() {
         final newReviews = (response['reviews'] as List)

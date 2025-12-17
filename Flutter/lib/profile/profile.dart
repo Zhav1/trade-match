@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:trade_match/services/api_service.dart';
+import 'package:trade_match/services/supabase_service.dart';
 import 'package:trade_match/models/item.dart';
 import 'settings_page.dart';
 import 'package:trade_match/theme.dart';
@@ -12,7 +12,7 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  final ApiService _apiService = ApiService();
+  final SupabaseService _supabaseService = SupabaseService();
   Map<String, dynamic>? _userData;
   List<Item> _userItems = [];
   bool _isLoading = true;
@@ -26,15 +26,14 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> _loadData() async {
     try {
-      final results = await Future.wait([
-        _apiService.getUser(),
-        _apiService.getUserItems(),
-      ]);
+      final userData = await _supabaseService.getCurrentUserProfile();
+      final userItemsData = await _supabaseService.getUserItems();
+      final userItems = userItemsData.map((data) => Item.fromJson(data)).toList();
       
       if (mounted) {
         setState(() {
-          _userData = results[0] as Map<String, dynamic>;
-          _userItems = results[1] as List<Item>;
+          _userData = userData;
+          _userItems = userItems;
           _isLoading = false;
         });
       }

@@ -1,0 +1,533 @@
+// Flutter Supabase Service
+// Replaces ApiService with Supabase SDK calls
+// Path: lib/services/supabase_service.dart
+
+import 'dart:io';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+class SupabaseService {
+  static final SupabaseService _instance = SupabaseService._internal();
+  factory SupabaseService() => _instance;
+  SupabaseService._internal();
+
+  SupabaseClient get client => Supabase.instance.client;
+  User? get currentUser => client.auth.currentUser;
+  String? get userId => currentUser?.id;
+
+  // ==========================================
+  // AUTHENTICATION
+  // ==========================================
+
+  /// Sign up with email and password
+  Future<AuthResponse> signUpWithEmail(String email, String password, String name) async {
+    final response = await client.auth.signUp(
+      email: email,
+      password: password,
+      data: {'name': name},
+    );
+    return response;
+  }
+
+  /// Sign in with email and password
+  Future<AuthResponse> signInWithEmail(String email, String password) async {
+    final response = await client.auth.signInWithPassword(
+      email: email,
+      password: password,
+    );
+    return response;
+  }
+
+  /// Sign in with Google OAuth
+  Future<AuthResponse> signInWithGoogle() async {
+    final response = await client.auth.signInWithOAuth(
+      OAuthProvider.google,
+      redirectTo: 'io.supabase.barterswap://login-callback/',
+    );
+    // Note: This returns immediately, actual auth happens via deep link
+    throw UnimplementedError('Use signInWithIdToken for mobile Google sign-in');
+  }
+
+  /// Sign in with Google ID Token (for mobile)
+  Future<AuthResponse> signInWithGoogleIdToken(String idToken, String? accessToken) async {
+    final response = await client.auth.signInWithIdToken(
+      provider: OAuthProvider.google,
+      idToken: idToken,
+      accessToken: accessToken,
+    );
+    return response;
+  }
+
+  /// Sign out
+  Future<void> signOut() async {
+    await client.auth.signOut();
+  }
+
+  // ==========================================
+  // USER PROFILE
+  // ==========================================
+
+  /// Get current user profile
+  Future<Map<String, dynamic>?> getCurrentUserProfile() async {
+    if (userId == null) return null;
+    final response = await client
+        .from('users')
+        .select()
+        .eq('id', userId!)
+        .single();
+    return response;
+  }
+
+  /// Update user profile
+  Future<void> updateProfile({
+    String? name,
+    String? phone,
+    String? defaultLocationCity,
+    double? defaultLat,
+    double? defaultLon,
+  }) async {
+    if (userId == null) throw Exception('Not authenticated');
+    
+    final updates = <String, dynamic>{};
+    if (name != null) updates['name'] = name;
+    if (phone != null) updates['phone'] = phone;
+    if (defaultLocationCity != null) updates['default_location_city'] = defaultLocationCity;
+    if (defaultLat != null) updates['default_lat'] = defaultLat;
+    if (defaultLon != null) updates['default_lon'] = defaultLon;
+    
+    await client.from('users').update(updates).eq('id', userId!);
+  }
+
+  /// Upload profile picture
+  Future<String> uploadProfilePicture(File file) async {
+    if (userId == null) throw Exception('Not authenticated');
+    
+    final fileName = '$userId/${DateTime.now().millisecondsSinceEpoch}.jpg';
+    await client.storage.from('profile-pictures').upload(fileName, file);
+    
+    final url = client.storage.from('profile-pictures').getPublicUrl(fileName);
+    
+    await client.from('users').update({'profile_picture_url': url}).eq('id', userId!);
+    
+    return url;
+  }
+
+  // ==========================================
+  // CATEGORIES
+  // ==========================================
+
+  /// Get all categories
+  Future<List<Map<String, dynamic>>> getCategories() async {
+    final response = await client.from('categories').select().order('name');
+    return List<Map<String, dynamic>>.from(response);
+  }
+
+  // ==========================================
+  // ITEMS (CRUD via SDK)
+  // ==========================================
+
+  /// Get current user's items
+  Future<List<Map<String, dynamic>>> getUserItems() async {
+    if (userId == null) return [];
+    final response = await client
+        .from('items')
+        .select('*, category:categories(*), images:item_images(*)')
+        .eq('user_id', userId!)
+        .order('created_at', ascending: false);
+    return List<Map<String, dynamic>>.from(response);
+  }
+
+  /// Get a single item
+  Future<Map<String, dynamic>?> getItem(int itemId) async {
+    final response = await client
+        .from('items')
+        .select('*, category:categories(*), images:item_images(*), user:users(id, name, profile_picture_url, rating, created_at)')
+        .eq('id', itemId)
+        .single();
+    return response;
+  }
+
+  /// Create a new item
+  Future<Map<String, dynamic>> createItem({
+    required String title,
+    required String description,
+    required int categoryId,
+    required String condition,
+    double? estimatedValue,
+    String? locationCity,
+    double? locationLat,
+    double? locationLon,
+    String? wantsDescription,
+    List<int>? wantedCategoryIds,
+  }) async {
+    if (userId == null) throw Exception('Not authenticated');
+
+    final response = await client.from('items').insert({
+      'user_id': userId,
+      'title': title,
+      'description': description,
+      'category_id': categoryId,
+      'condition': condition,
+      'estimated_value': estimatedValue,
+      'location_city': locationCity,
+      'location_lat': locationLat,
+      'location_lon': locationLon,
+      'wants_description': wantsDescription,
+    }).select().single();
+
+    // Add wanted categories
+    if (wantedCategoryIds != null && wantedCategoryIds.isNotEmpty) {
+      await client.from('item_wants').insert(
+        wantedCategoryIds.map((catId) => {
+          'item_id': response['id'],
+          'category_id': catId,
+        }).toList(),
+      );
+    }
+
+    return response;
+  }
+
+  /// Update an item
+  Future<void> updateItem(int itemId, Map<String, dynamic> updates) async {
+    await client.from('items').update(updates).eq('id', itemId);
+  }
+
+  /// Delete an item (soft delete by changing status)
+  Future<void> deleteItem(int itemId) async {
+    await client.from('items').update({'status': 'removed'}).eq('id', itemId);
+  }
+
+  /// Upload item image
+  Future<String> uploadItemImage(int itemId, File file, int displayOrder) async {
+    final fileName = '$itemId/${DateTime.now().millisecondsSinceEpoch}.jpg';
+    await client.storage.from('item-images').upload(fileName, file);
+    
+    final url = client.storage.from('item-images').getPublicUrl(fileName);
+    
+    await client.from('item_images').insert({
+      'item_id': itemId,
+      'image_url': url,
+      'display_order': displayOrder,
+    });
+    
+    return url;
+  }
+
+  // ==========================================
+  // EXPLORE (via Edge Function)
+  // ==========================================
+
+  /// Get explore feed
+  Future<List<Map<String, dynamic>>> getExploreFeed({int? categoryId, int limit = 20}) async {
+    final response = await client.functions.invoke(
+      'get-explore-feed',
+      body: {
+        if (categoryId != null) 'category_id': categoryId,
+        'limit': limit,
+      },
+    );
+    
+    if (response.status != 200) {
+      throw Exception(response.data['error'] ?? 'Failed to fetch explore feed');
+    }
+    
+    return List<Map<String, dynamic>>.from(response.data['items'] ?? []);
+  }
+
+  /// Get items the user has liked (for matches page)
+  Future<List<Map<String, dynamic>>> getLikes() async {
+    if (userId == null) return [];
+    
+    // Get all items the user has swiped "like" on
+    final response = await client
+        .from('swipes')
+        .select('''
+          *,
+          swiped_on_item:items!swiped_on_item_id(
+            *,
+            category:categories(*),
+            images:item_images(*),
+            user:users(id, name, profile_picture_url, rating)
+          )
+        ''')
+        .eq('swiper_user_id', userId!)
+        .eq('action', 'like')
+        .order('created_at', ascending: false);
+    
+    // Extract just the items
+    final items = (response as List).map((swipe) => swipe['swiped_on_item']).toList();
+    return List<Map<String, dynamic>>.from(items);
+  }
+
+  /// Upload a generic image (for item images)
+  Future<String> uploadImage(File imageFile) async {
+    if (userId == null) throw Exception('Not authenticated');
+    
+    final fileName = '${userId}/${DateTime.now().millisecondsSinceEpoch}.jpg';
+    await client.storage.from('item-images').upload(fileName, imageFile);
+    
+    final url = client.storage.from('item-images').getPublicUrl(fileName);
+    return url;
+  }
+
+  // ==========================================
+  // SWIPE (via Edge Function)
+  // ==========================================
+
+  /// Process a swipe action
+  Future<Map<String, dynamic>> swipe(int swiperItemId, int swipedOnItemId, String action) async {
+    final response = await client.functions.invoke(
+      'process-swipe',
+      body: {
+        'swiper_item_id': swiperItemId,
+        'swiped_on_item_id': swipedOnItemId,
+        'action': action,
+      },
+    );
+    
+    if (response.status != 200) {
+      throw Exception(response.data['error'] ?? 'Swipe failed');
+    }
+    
+    return response.data;
+  }
+
+  // ==========================================
+  // SWAPS (via SDK + Edge Functions)
+  // ==========================================
+
+  /// Get user's swaps
+  Future<List<Map<String, dynamic>>> getSwaps({String? status}) async {
+    if (userId == null) return [];
+    
+    var query = client
+        .from('swaps')
+        .select('''
+          *,
+          itemA:items!item_a_id(*, images:item_images(*), user:users(id, name, profile_picture_url)),
+          itemB:items!item_b_id(*, images:item_images(*), user:users(id, name, profile_picture_url)),
+          latestMessage:messages(id, message_text, created_at, sender_user_id)
+        ''');
+    
+    if (status != null) {
+      query = query.eq('status', status);
+    }
+    
+    final response = await query.order('updated_at', ascending: false);
+    return List<Map<String, dynamic>>.from(response);
+  }
+
+  /// Get messages for a swap
+  Future<List<Map<String, dynamic>>> getMessages(int swapId) async {
+    final response = await client
+        .from('messages')
+        .select('*, sender:users(id, name, profile_picture_url)')
+        .eq('swap_id', swapId)
+        .order('created_at');
+    return List<Map<String, dynamic>>.from(response);
+  }
+
+  /// Send a message
+  Future<Map<String, dynamic>> sendMessage(int swapId, String messageText) async {
+    if (userId == null) throw Exception('Not authenticated');
+    
+    final response = await client.from('messages').insert({
+      'swap_id': swapId,
+      'sender_user_id': userId,
+      'message_text': messageText,
+    }).select('*, sender:users(id, name)').single();
+    
+    return response;
+  }
+
+  /// Confirm a trade
+  Future<Map<String, dynamic>> confirmTrade(int swapId) async {
+    final response = await client.functions.invoke(
+      'confirm-trade',
+      body: {'swap_id': swapId},
+    );
+    
+    if (response.status != 200) {
+      throw Exception(response.data['error'] ?? 'Failed to confirm trade');
+    }
+    
+    return response.data;
+  }
+
+  /// Suggest a meeting location
+  Future<Map<String, dynamic>> suggestLocation(
+    int swapId, 
+    double lat, 
+    double lon, 
+    {String? name, String? address}
+  ) async {
+    final response = await client.functions.invoke(
+      'suggest-location',
+      body: {
+        'swap_id': swapId,
+        'location_lat': lat,
+        'location_lon': lon,
+        'location_name': name,
+        'location_address': address,
+      },
+    );
+    
+    if (response.status != 200) {
+      throw Exception(response.data['error'] ?? 'Failed to suggest location');
+    }
+    
+    return response.data;
+  }
+
+  /// Accept a suggested location
+  Future<Map<String, dynamic>> acceptLocation(int swapId) async {
+    final response = await client.functions.invoke(
+      'accept-location',
+      body: {'swap_id': swapId},
+    );
+    
+    if (response.status != 200) {
+      throw Exception(response.data['error'] ?? 'Failed to accept location');
+    }
+    
+    return response.data;
+  }
+
+  // ==========================================
+  // REVIEWS (via Edge Function)
+  // ==========================================
+
+  /// Get reviews for a user
+  Future<List<Map<String, dynamic>>> getUserReviews(String userId) async {
+    final response = await client
+        .from('reviews')
+        .select('*, reviewer:users!reviewer_user_id(id, name, profile_picture_url), swap:swaps(id)')
+        .eq('reviewed_user_id', userId)
+        .order('created_at', ascending: false);
+    return List<Map<String, dynamic>>.from(response);
+  }
+
+  /// Create a review
+  Future<Map<String, dynamic>> createReview(int swapId, int rating, {String? comment}) async {
+    final response = await client.functions.invoke(
+      'create-review',
+      body: {
+        'swap_id': swapId,
+        'rating': rating,
+        'comment': comment,
+      },
+    );
+    
+    if (response.status != 200 && response.status != 201) {
+      throw Exception(response.data['error'] ?? 'Failed to create review');
+    }
+    
+    return response.data;
+  }
+
+  // ==========================================
+  // NOTIFICATIONS (via SDK)
+  // ==========================================
+
+  /// Get user's notifications
+  Future<List<Map<String, dynamic>>> getNotifications() async {
+    if (userId == null) return [];
+    
+    final response = await client
+        .from('notifications')
+        .select()
+        .eq('user_id', userId!)
+        .order('created_at', ascending: false)
+        .limit(50);
+    return List<Map<String, dynamic>>.from(response);
+  }
+
+  /// Mark notification as read
+  Future<void> markNotificationAsRead(int notificationId) async {
+    await client
+        .from('notifications')
+        .update({'is_read': true})
+        .eq('id', notificationId);
+  }
+
+  /// Mark all notifications as read
+  Future<void> markAllNotificationsAsRead() async {
+    if (userId == null) return;
+    await client
+        .from('notifications')
+        .update({'is_read': true})
+        .eq('user_id', userId!)
+        .eq('is_read', false);
+  }
+
+  // ==========================================
+  // REALTIME SUBSCRIPTIONS
+  // ==========================================
+
+  /// Subscribe to messages for a swap
+  RealtimeChannel subscribeToMessages(int swapId, void Function(Map<String, dynamic>) onMessage) {
+    return client
+        .channel('messages:swap:$swapId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'messages',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'swap_id',
+            value: swapId,
+          ),
+          callback: (payload) {
+            onMessage(payload.newRecord);
+          },
+        )
+        .subscribe();
+  }
+
+  /// Subscribe to swap updates
+  RealtimeChannel subscribeToSwapUpdates(int swapId, void Function(Map<String, dynamic>) onUpdate) {
+    return client
+        .channel('swaps:$swapId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.update,
+          schema: 'public',
+          table: 'swaps',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'id',
+            value: swapId,
+          ),
+          callback: (payload) {
+            onUpdate(payload.newRecord);
+          },
+        )
+        .subscribe();
+  }
+
+  /// Subscribe to notifications
+  RealtimeChannel subscribeToNotifications(void Function(Map<String, dynamic>) onNotification) {
+    if (userId == null) throw Exception('Not authenticated');
+    
+    return client
+        .channel('notifications:$userId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'notifications',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'user_id',
+            value: userId!,
+          ),
+          callback: (payload) {
+            onNotification(payload.newRecord);
+          },
+        )
+        .subscribe();
+  }
+
+  /// Unsubscribe from a channel
+  Future<void> unsubscribe(RealtimeChannel channel) async {
+    await client.removeChannel(channel);
+  }
+}
