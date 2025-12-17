@@ -78,7 +78,7 @@ class _AddItemPageState extends State<AddItemPage> {
 
     // Existing wants (categories)
     if (item.wants != null) {
-      _wantedCategoryIds.addAll(item.wants!.map((e) => e.wantedCategoryId));
+      _wantedCategoryIds.addAll(item.wants!.map((e) => e.categoryId));
     }
   }
 
@@ -112,7 +112,9 @@ class _AddItemPageState extends State<AddItemPage> {
     if (!serviceEnabled) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Location services are disabled. Please enable GPS.')),
+          const SnackBar(
+            content: Text('Location services are disabled. Please enable GPS.'),
+          ),
         );
       }
       return;
@@ -134,7 +136,11 @@ class _AddItemPageState extends State<AddItemPage> {
     if (permission == LocationPermission.deniedForever) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Location permission permanently denied. Please enable in settings.')),
+          const SnackBar(
+            content: Text(
+              'Location permission permanently denied. Please enable in settings.',
+            ),
+          ),
         );
       }
       return;
@@ -146,29 +152,30 @@ class _AddItemPageState extends State<AddItemPage> {
         desiredAccuracy: LocationAccuracy.high,
         timeLimit: const Duration(seconds: 15),
       );
-      
+
       List<Placemark> placemarks = await placemarkFromCoordinates(
         position.latitude,
         position.longitude,
       );
-      
+
       setState(() {
         _locationLat = position.latitude;
         _locationLon = position.longitude;
         // Try multiple fields for better city name
-        _locationCity = placemarks.first.locality ?? 
-                        placemarks.first.subAdministrativeArea ?? 
-                        placemarks.first.administrativeArea ?? 
-                        'Unknown';
+        _locationCity =
+            placemarks.first.locality ??
+            placemarks.first.subAdministrativeArea ??
+            placemarks.first.administrativeArea ??
+            'Unknown';
       });
-      
+
       print('📍 Location: $_locationCity ($_locationLat, $_locationLon)');
     } catch (e) {
       print('❌ Location error: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to get location: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to get location: $e')));
       }
     }
   }
@@ -534,20 +541,21 @@ class _AddItemPageState extends State<AddItemPage> {
         Wrap(
           spacing: 8,
           children: _categories
-              .map((category) => FilterChip(
-                    label: Text(category.name),
-                    selected: _wantedCategoryIds.contains(category.id),
-                    onSelected: (selected) {
-                      setState(() {
-                        if (selected) {
-                          _wantedCategoryIds.add(category.id);
-                        }
-                        else {
-                          _wantedCategoryIds.remove(category.id);
-                        }
-                      });
-                    },
-                  ))
+              .map(
+                (category) => FilterChip(
+                  label: Text(category.name),
+                  selected: _wantedCategoryIds.contains(category.id),
+                  onSelected: (selected) {
+                    setState(() {
+                      if (selected) {
+                        _wantedCategoryIds.add(category.id);
+                      } else {
+                        _wantedCategoryIds.remove(category.id);
+                      }
+                    });
+                  },
+                ),
+              )
               .toList(),
         ),
       ],

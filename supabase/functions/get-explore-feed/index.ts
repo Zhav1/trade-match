@@ -77,8 +77,10 @@ serve(async (req) => {
         wants_description,
         status,
         created_at,
+        updated_at,
         category:categories(id, name, icon),
         images:item_images(id, image_url, display_order),
+        wants:item_wants(id, item_id, category_id, category:categories(id, name, icon)),
         user:users(id, name, profile_picture_url, rating)
       `)
             .eq('status', 'available')

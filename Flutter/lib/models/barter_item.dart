@@ -16,9 +16,10 @@ class BarterItem {
   final String wantsDescription;
   final String status;
   final DateTime createdAt;
-  final DateTime updatedAt;
+  final DateTime? updatedAt; // Nullable: Edge Function doesn't return this
   final User user;
-  final Category category;
+  final Category?
+  category; // Nullable: Edge Function may not include full category
   final List<ItemImage> images;
   final List<ItemWant> wants;
 
@@ -35,34 +36,40 @@ class BarterItem {
     required this.wantsDescription,
     required this.status,
     required this.createdAt,
-    required this.updatedAt,
+    this.updatedAt, // Nullable
     required this.user,
-    required this.category,
+    this.category, // Nullable
     required this.images,
     required this.wants,
   });
 
   factory BarterItem.fromJson(Map<String, dynamic> json) {
     return BarterItem(
-      id: int.parse(json['id'].toString()),
-      title: json['title'],
-      description: json['description'],
-      condition: json['condition'],
-      estimatedValue: json['estimated_value'] != null ? double.parse(json['estimated_value'].toString()) : null,
-      currency: json['currency'],
-      locationCity: json['location_city'],
-      locationLat: double.parse(json['location_lat'].toString()),
-      locationLon: double.parse(json['location_lon'].toString()),
+      id: json['id'] != null ? int.parse(json['id'].toString()) : 0,
+      title: json['title'] ?? 'Untitled',
+      description: json['description'] ?? '',
+      condition: json['condition'] ?? 'unknown',
+      estimatedValue: json['estimated_value'] != null
+          ? double.parse(json['estimated_value'].toString())
+          : null,
+      currency: json['currency'] ?? 'IDR',
+      locationCity: json['location_city'] ?? 'Unknown',
+      locationLat: double.parse((json['location_lat'] ?? 0).toString()),
+      locationLon: double.parse((json['location_lon'] ?? 0).toString()),
       wantsDescription: json['wants_description'] ?? '',
-      status: json['status'],
+      status: json['status'] ?? 'active',
       createdAt: DateTime.parse(json['created_at']),
-      updatedAt: DateTime.parse(json['updated_at']),
-      user: User.fromJson(json['user']),
-      category: Category.fromJson(json['category']),
-      images: (json['images'] as List<dynamic>)
+      updatedAt: json['updated_at'] != null
+          ? DateTime.parse(json['updated_at'])
+          : null,
+      user: User.fromJson(json['user'] ?? {'id': 0, 'name': 'Unknown'}),
+      category: json['category'] != null
+          ? Category.fromJson(json['category'])
+          : null,
+      images: (json['images'] as List<dynamic>? ?? [])
           .map((imageJson) => ItemImage.fromJson(imageJson))
           .toList(),
-      wants: (json['wants'] as List<dynamic>)
+      wants: (json['wants'] as List<dynamic>? ?? [])
           .map((wantJson) => ItemWant.fromJson(wantJson))
           .toList(),
     );
@@ -100,12 +107,16 @@ class BarterMatch {
       itemAId: json['item_a_id'],
       itemBId: json['item_b_id'],
       status: json['status'] ?? 'active',
-      itemAOwnerConfirmed: json['item_a_owner_confirmed'] == 1 || json['item_a_owner_confirmed'] == true,
-      itemBOwnerConfirmed: json['item_b_owner_confirmed'] == 1 || json['item_b_owner_confirmed'] == true,
+      itemAOwnerConfirmed:
+          json['item_a_owner_confirmed'] == 1 ||
+          json['item_a_owner_confirmed'] == true,
+      itemBOwnerConfirmed:
+          json['item_b_owner_confirmed'] == 1 ||
+          json['item_b_owner_confirmed'] == true,
       itemA: BarterItem.fromJson(json['item_a']),
       itemB: BarterItem.fromJson(json['item_b']),
-      latestMessage: json['latest_message'] != null 
-          ? ChatMessage.fromJson(json['latest_message']) 
+      latestMessage: json['latest_message'] != null
+          ? ChatMessage.fromJson(json['latest_message'])
           : null,
       updatedAt: DateTime.parse(json['updated_at']),
     );

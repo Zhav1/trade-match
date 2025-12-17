@@ -6,16 +6,16 @@ part 'category.g.dart'; // Generated file
 class Category extends HiveObject {
   @HiveField(0)
   final int id;
-  
+
   @HiveField(1)
   final String name;
-  
+
   @HiveField(2)
   final int? parentId;
-  
+
   @HiveField(3)
   final String? iconUrl;
-  
+
   @HiveField(4)
   final List<Category>? children;
 
@@ -29,14 +29,18 @@ class Category extends HiveObject {
 
   factory Category.fromJson(Map<String, dynamic> json) {
     return Category(
-      id: int.parse(json['id'].toString()),
-      name: json['name'],
-      parentId: json['parent_id'] != null ? int.parse(json['parent_id'].toString()) : null,
-      iconUrl: json['icon_url'],
+      id: json['id'] != null ? int.parse(json['id'].toString()) : 0,
+      name: json['name'] ?? 'Unknown Category',
+      parentId: json['parent_id'] != null
+          ? int.parse(json['parent_id'].toString())
+          : null,
+      iconUrl:
+          json['icon_url'] ??
+          json['icon'], // Edge Function returns 'icon', not 'icon_url'
       children: json['children'] != null
           ? (json['children'] as List)
-              .map((category) => Category.fromJson(category))
-              .toList()
+                .map((category) => Category.fromJson(category))
+                .toList()
           : null,
     );
   }

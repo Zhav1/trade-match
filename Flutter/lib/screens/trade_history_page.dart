@@ -31,11 +31,7 @@ class _TradeHistoryPageState extends State<TradeHistoryPage> {
             Container(
               decoration: BoxDecoration(
                 color: AppColors.surface,
-                border: Border(
-                  bottom: BorderSide(
-                    color: Colors.grey[200]!,
-                  ),
-                ),
+                border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
               ),
               child: TabBar(
                 tabs: const [
@@ -95,11 +91,12 @@ class _TradeHistoryPageState extends State<TradeHistoryPage> {
                 Icon(Icons.inbox_outlined, size: 80, color: Colors.grey[300]),
                 const SizedBox(height: 16),
                 Text(
-                  'No ${status == 'active' ? 'active' : status == 'trade_complete' ? 'completed' : 'cancelled'} trades',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey[600],
-                  ),
+                  'No ${status == 'active'
+                      ? 'active'
+                      : status == 'trade_complete'
+                      ? 'completed'
+                      : 'cancelled'} trades',
+                  style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                 ),
               ],
             ),
@@ -121,7 +118,7 @@ class _TradeHistoryPageState extends State<TradeHistoryPage> {
 
   Widget _buildTradeCard(BuildContext context, {required BarterMatch swap}) {
     // Determine which item belongs to current user and which is the other
-    final currentUserId = int.tryParse(AUTH_USER_ID) ?? 0;
+    final currentUserId = AUTH_USER_ID; // UUID string from Supabase
     final isUserItemA = swap.itemA.user.id == currentUserId;
     final myItem = isUserItemA ? swap.itemA : swap.itemB;
     final theirItem = isUserItemA ? swap.itemB : swap.itemA;
@@ -129,9 +126,7 @@ class _TradeHistoryPageState extends State<TradeHistoryPage> {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -143,9 +138,7 @@ class _TradeHistoryPageState extends State<TradeHistoryPage> {
               children: [
                 Text(
                   'Trade #${swap.id}',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
                 _buildStatusChip(swap.status),
               ],
@@ -159,7 +152,9 @@ class _TradeHistoryPageState extends State<TradeHistoryPage> {
                   child: _buildTradeItemPreview(
                     title: 'Your Item',
                     itemName: myItem.title,
-                    imageUrl: myItem.images.isNotEmpty ? myItem.images.first.imageUrl : null,
+                    imageUrl: myItem.images.isNotEmpty
+                        ? myItem.images.first.imageUrl
+                        : null,
                   ),
                 ),
                 Container(
@@ -173,7 +168,9 @@ class _TradeHistoryPageState extends State<TradeHistoryPage> {
                   child: _buildTradeItemPreview(
                     title: 'Their Item',
                     itemName: theirItem.title,
-                    imageUrl: theirItem.images.isNotEmpty ? theirItem.images.first.imageUrl : null,
+                    imageUrl: theirItem.images.isNotEmpty
+                        ? theirItem.images.first.imageUrl
+                        : null,
                   ),
                 ),
               ],
@@ -186,30 +183,34 @@ class _TradeHistoryPageState extends State<TradeHistoryPage> {
                 CircleAvatar(
                   radius: 16,
                   backgroundColor: Colors.grey[200],
-                  backgroundImage: otherUser.profilePictureUrl != null && otherUser.profilePictureUrl!.isNotEmpty
+                  backgroundImage:
+                      otherUser.profilePictureUrl != null &&
+                          otherUser.profilePictureUrl!.isNotEmpty
                       ? NetworkImage(otherUser.profilePictureUrl!)
                       : null,
-                  child: otherUser.profilePictureUrl == null || otherUser.profilePictureUrl!.isEmpty
+                  child:
+                      otherUser.profilePictureUrl == null ||
+                          otherUser.profilePictureUrl!.isEmpty
                       ? Text(
-                          otherUser.name.isNotEmpty ? otherUser.name[0].toUpperCase() : '?',
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                          otherUser.name.isNotEmpty
+                              ? otherUser.name[0].toUpperCase()
+                              : '?',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
                         )
                       : null,
                 ),
                 const SizedBox(width: 8),
                 Text(
                   otherUser.name,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
                 const Spacer(),
                 Text(
                   _formatDate(swap.updatedAt),
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 12,
-                  ),
+                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
                 ),
               ],
             ),
@@ -225,7 +226,7 @@ class _TradeHistoryPageState extends State<TradeHistoryPage> {
                         builder: (_) => SubmitReviewPage(swap: swap),
                       ),
                     );
-                    
+
                     if (result == true && mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
@@ -239,7 +240,9 @@ class _TradeHistoryPageState extends State<TradeHistoryPage> {
                   label: const Text('Write Review'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Theme.of(context).colorScheme.primary,
-                    side: BorderSide(color: Theme.of(context).colorScheme.primary),
+                    side: BorderSide(
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
                 ),
@@ -304,9 +307,9 @@ class _TradeHistoryPageState extends State<TradeHistoryPage> {
       // For now, just refresh the list
       setState(() {});
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Trade cancelled')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Trade cancelled')));
       }
     }
   }
@@ -317,15 +320,15 @@ class _TradeHistoryPageState extends State<TradeHistoryPage> {
       final response = await _supabaseService.confirmTrade(swapId);
       if (mounted) {
         setState(() {}); // Refresh the list
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Trade confirmed!')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Trade confirmed!')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
@@ -338,13 +341,7 @@ class _TradeHistoryPageState extends State<TradeHistoryPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: TextStyle(
-            color: Colors.grey[600],
-            fontSize: 12,
-          ),
-        ),
+        Text(title, style: TextStyle(color: Colors.grey[600], fontSize: 12)),
         const SizedBox(height: 8),
         Row(
           children: [
@@ -362,10 +359,10 @@ class _TradeHistoryPageState extends State<TradeHistoryPage> {
                         imageUrl: imageUrl,
                         fit: BoxFit.cover,
                         memCacheWidth: 150, // Small thumbnail
-                        placeholder: (context, url) => Container(
-                          color: Colors.grey[300],
-                        ),
-                        errorWidget: (context, url, error) => const Icon(Icons.broken_image, size: 20),
+                        placeholder: (context, url) =>
+                            Container(color: Colors.grey[300]),
+                        errorWidget: (context, url, error) =>
+                            const Icon(Icons.broken_image, size: 20),
                       ),
                     )
                   : const Icon(Icons.image_not_supported, color: Colors.grey),
@@ -374,9 +371,7 @@ class _TradeHistoryPageState extends State<TradeHistoryPage> {
             Expanded(
               child: Text(
                 itemName,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: const TextStyle(fontWeight: FontWeight.bold),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -418,10 +413,7 @@ class _TradeHistoryPageState extends State<TradeHistoryPage> {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 12,
-        vertical: 6,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(20),

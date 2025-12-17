@@ -13,10 +13,14 @@ class ItemImage {
 
   factory ItemImage.fromJson(Map<String, dynamic> json) {
     return ItemImage(
-      id: int.parse(json['id'].toString()),
-      itemId: int.parse(json['item_id'].toString()),
-      imageUrl: json['image_url'],
-      sortOrder: int.parse(json['sort_order'].toString()),
+      id: json['id'] != null ? int.parse(json['id'].toString()) : 0,
+      itemId: json['item_id'] != null
+          ? int.parse(json['item_id'].toString())
+          : 0,
+      imageUrl: json['image_url'] ?? '',
+      sortOrder: json['sort_order'] != null
+          ? int.parse(json['sort_order'].toString())
+          : 0,
     );
   }
 }

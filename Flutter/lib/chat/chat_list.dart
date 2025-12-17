@@ -32,7 +32,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
     try {
       final swapsData = await SupabaseService().getSwaps();
-      final swaps = swapsData.map((data) => BarterMatch.fromJson(data)).toList();
+      final swaps = swapsData
+          .map((data) => BarterMatch.fromJson(data))
+          .toList();
       if (mounted) {
         setState(() {
           _swaps = swaps;
@@ -51,8 +53,8 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
   /// Determine the "other user" in a swap based on current user
   User _getOtherUser(BarterMatch swap) {
-    // Compare current user ID with item owners
-    final currentUserId = int.tryParse(AUTH_USER_ID) ?? 0;
+    // Compare current user ID with item owners (UUID strings)
+    final currentUserId = AUTH_USER_ID; // UUID string
     if (swap.itemA.user.id == currentUserId) {
       return swap.itemB.user;
     }
@@ -61,7 +63,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
   /// Get other user's item for display
   BarterItem _getOtherItem(BarterMatch swap) {
-    final currentUserId = int.tryParse(AUTH_USER_ID) ?? 0;
+    final currentUserId = AUTH_USER_ID; // UUID string
     if (swap.itemA.user.id == currentUserId) {
       return swap.itemB;
     }
@@ -93,7 +95,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
     if (swap.latestMessage == null) {
       return 'Start chatting about the trade...';
     }
-    
+
     final msg = swap.latestMessage!;
     switch (msg.type) {
       case 'location':
@@ -116,8 +118,14 @@ class _ChatListScreenState extends State<ChatListScreen> {
         child: Padding(
           padding: ResponsiveUtils.getResponsivePadding(
             context,
-            mobile: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 10),
-            tablet: const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: 16),
+            mobile: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: 10,
+            ),
+            tablet: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.xl,
+              vertical: 16,
+            ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -142,14 +150,11 @@ class _ChatListScreenState extends State<ChatListScreen> {
                           color: Colors.black.withOpacity(0.1),
                           offset: const Offset(0, 3),
                           blurRadius: 5,
-                        )
+                        ),
                       ],
                     ),
                     child: Center(
-                      child: Image.asset(
-                        'assets/images/filter.png',
-                        width: 26,
-                      ),
+                      child: Image.asset('assets/images/filter.png', width: 26),
                     ),
                   ),
                 ],
@@ -171,7 +176,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
                 child: TextField(
                   decoration: InputDecoration(
                     hintText: "Search messages...",
-                    hintStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+                    hintStyle: AppTextStyles.bodyMedium.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
                     prefixIcon: const Icon(Icons.search, color: Colors.grey),
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(vertical: 15),
@@ -181,9 +188,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
               const SizedBox(height: AppSpacing.lg),
 
-              Expanded(
-                child: _buildContent(),
-              ),
+              Expanded(child: _buildContent()),
             ],
           ),
         ),
@@ -201,9 +206,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
   Widget _buildContent() {
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
     if (_error != null) {
@@ -220,10 +223,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
               ),
             ),
             const SizedBox(height: 8),
-            ElevatedButton(
-              onPressed: _loadSwaps,
-              child: const Text('Retry'),
-            ),
+            ElevatedButton(onPressed: _loadSwaps, child: const Text('Retry')),
           ],
         ),
       );
@@ -266,7 +266,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
           final swap = _swaps[index];
           final otherUser = _getOtherUser(swap);
           final otherItem = _getOtherItem(swap);
-          
+
           return _conversationTile(
             context,
             swap.id.toString(),
@@ -317,10 +317,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          Text(
-            time,
-            style: const TextStyle(color: Colors.grey, fontSize: 12),
-          ),
+          Text(time, style: const TextStyle(color: Colors.grey, fontSize: 12)),
         ],
       ),
       subtitle: Column(
@@ -341,7 +338,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
             preview,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+            style: AppTextStyles.bodyMedium.copyWith(
+              color: AppColors.textSecondary,
+            ),
           ),
         ],
       ),

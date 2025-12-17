@@ -14,7 +14,8 @@ class MatchesPage extends StatefulWidget {
   State<MatchesPage> createState() => _MatchesPageState();
 }
 
-class _MatchesPageState extends State<MatchesPage> with SingleTickerProviderStateMixin {
+class _MatchesPageState extends State<MatchesPage>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final SupabaseService _supabaseService = SupabaseService();
   late Future<List<BarterMatch>> _swapsFuture;
@@ -54,10 +55,7 @@ class _MatchesPageState extends State<MatchesPage> with SingleTickerProviderStat
       ),
       body: TabBarView(
         controller: _tabController,
-        children: [
-          _buildMatchesTab(),
-          _buildLikesTab(),
-        ],
+        children: [_buildMatchesTab(), _buildLikesTab()],
       ),
     );
   }
@@ -83,8 +81,8 @@ class _MatchesPageState extends State<MatchesPage> with SingleTickerProviderStat
             // Determine which item is the "other" item (not the current user's)
             // For simplicity in this demo, we'll assume itemB is the other item
             // In a real app, check current user ID against itemA/itemB owner
-            final otherItem = swap.itemB; 
-            
+            final otherItem = swap.itemB;
+
             return AnimatedScale(
               scale: 1.0,
               duration: const Duration(milliseconds: 100),
@@ -92,7 +90,11 @@ class _MatchesPageState extends State<MatchesPage> with SingleTickerProviderStat
                 isMatch: true,
                 name: otherItem.user.name,
                 item: otherItem.title,
-                matchDate: swap.itemA.updatedAt, // Using update time as match time
+                matchDate:
+                    swap.itemA.updatedAt ??
+                    swap
+                        .itemA
+                        .createdAt, // Fallback to createdAt if updatedAt is null
                 barterItem: otherItem,
                 matchId: swap.id.toString(),
               ),
@@ -130,7 +132,8 @@ class _MatchesPageState extends State<MatchesPage> with SingleTickerProviderStat
                 isMatch: false,
                 name: item.user.name,
                 item: item.title,
-                matchDate: DateTime.now(), // Placeholder as we don't have like date
+                matchDate:
+                    DateTime.now(), // Placeholder as we don't have like date
                 barterItem: item,
               ),
             );
@@ -150,17 +153,15 @@ class _MatchesPageState extends State<MatchesPage> with SingleTickerProviderStat
   }) {
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       elevation: 2,
       child: InkWell(
         onTap: () {
           if (barterItem != null) {
-             Navigator.pushNamed(context, '/item_detail', arguments: barterItem);
+            Navigator.pushNamed(context, '/item_detail', arguments: barterItem);
           } else {
-             // Fallback for demo likes
-             final demoItem = BarterItem(
+            // Fallback for demo likes
+            final demoItem = BarterItem(
               id: 0,
               title: item,
               description: 'Description for $item',
@@ -173,17 +174,22 @@ class _MatchesPageState extends State<MatchesPage> with SingleTickerProviderStat
               wantsDescription: 'Anything',
               status: 'active',
               createdAt: DateTime.now(),
-              updatedAt: DateTime.now(),
+              // updatedAt is now optional
               user: User(
-                id: 0,
+                id: '0', // UUID string, not int
                 name: name,
-                email: 'user@example.com',
+                // email is now optional
                 profilePictureUrl: 'https://picsum.photos/200',
                 defaultLocationCity: 'Jakarta',
               ),
               category: Category(id: 0, name: 'General', iconUrl: null),
               images: [
-                ItemImage(id: 0, itemId: 0, imageUrl: 'https://picsum.photos/500/300', sortOrder: 0)
+                ItemImage(
+                  id: 0,
+                  itemId: 0,
+                  imageUrl: 'https://picsum.photos/500/300',
+                  sortOrder: 0,
+                ),
               ],
               wants: [],
             );
@@ -198,13 +204,21 @@ class _MatchesPageState extends State<MatchesPage> with SingleTickerProviderStat
               CircleAvatar(
                 radius: 30,
                 backgroundColor: Colors.grey[200],
-                backgroundImage: barterItem?.user.profilePictureUrl != null && barterItem!.user.profilePictureUrl!.isNotEmpty
+                backgroundImage:
+                    barterItem?.user.profilePictureUrl != null &&
+                        barterItem!.user.profilePictureUrl!.isNotEmpty
                     ? NetworkImage(barterItem.user.profilePictureUrl!)
                     : null,
-                child: barterItem?.user.profilePictureUrl == null || barterItem!.user.profilePictureUrl!.isEmpty
+                child:
+                    barterItem?.user.profilePictureUrl == null ||
+                        barterItem!.user.profilePictureUrl!.isEmpty
                     ? Text(
                         name.isNotEmpty ? name[0].toUpperCase() : '?',
-                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.grey),
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey,
+                        ),
                       )
                     : null,
               ),
@@ -224,17 +238,12 @@ class _MatchesPageState extends State<MatchesPage> with SingleTickerProviderStat
                     const SizedBox(height: 4),
                     Text(
                       'Interested in: $item',
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                      ),
+                      style: TextStyle(color: Colors.grey[600]),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       _formatDate(matchDate),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[500],
-                      ),
+                      style: TextStyle(fontSize: 12, color: Colors.grey[500]),
                     ),
                   ],
                 ),
@@ -246,23 +255,29 @@ class _MatchesPageState extends State<MatchesPage> with SingleTickerProviderStat
                   color: Theme.of(context).colorScheme.primary,
                   onPressed: () {
                     if (matchId != null && barterItem != null) {
-                      Navigator.of(context).push(MaterialPageRoute(
-                        builder: (_) => ChatDetailPage(
-                          matchId: matchId,
-                          otherUserName: name,
-                          otherUserImage: barterItem.user.profilePictureUrl,
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => ChatDetailPage(
+                            matchId: matchId,
+                            otherUserName: name,
+                            otherUserImage: barterItem.user.profilePictureUrl,
+                          ),
                         ),
-                      ));
+                      );
                     }
                   },
                 )
               else
                 TextButton(
                   onPressed: () {
-                     // View item logic same as tap
-                     if (barterItem != null) {
-                        Navigator.pushNamed(context, '/item_detail', arguments: barterItem);
-                     }
+                    // View item logic same as tap
+                    if (barterItem != null) {
+                      Navigator.pushNamed(
+                        context,
+                        '/item_detail',
+                        arguments: barterItem,
+                      );
+                    }
                   },
                   style: TextButton.styleFrom(
                     foregroundColor: Theme.of(context).colorScheme.primary,
