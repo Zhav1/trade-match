@@ -58,9 +58,6 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
           swapData = data;
         });
       }
-      
-      // Mark messages as read when entering chat
-      await _supabaseService.markMessagesAsRead(swapId);
     } catch (e) {
       print('Error loading swap data: $e');
     }
@@ -155,21 +152,13 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
             ),
             callback: (payload) {
               if (mounted) {
-                final newMessage = payload.newRecord;
-                final senderId = newMessage['sender_user_id']?.toString();
-                final isFromMe = senderId == currentUserId;
-                
                 setState(() {
                   // Check if message already exists to avoid duplicates
+                  final newMessage = payload.newRecord;
                   final exists = messages.any((m) => m['id'] == newMessage['id']);
                   if (!exists) {
                     messages.add(newMessage);
                     _scrollToBottom();
-                    
-                    // Show notification for messages from other user
-                    if (!isFromMe) {
-                      _showNewMessageNotification(newMessage);
-                    }
                   }
                 });
               }
@@ -180,54 +169,6 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     } catch (e) {
       print('❌ Error subscribing to messages: $e');
     }
-  }
-
-  /// Show in-app notification for new message
-  void _showNewMessageNotification(Map<String, dynamic> message) {
-    final messageText = message['message_text'] ?? 'New message';
-    final senderName = widget.otherUserName;
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            CircleAvatar(
-              radius: 16,
-              backgroundColor: Colors.blue,
-              child: Text(
-                senderName.isNotEmpty ? senderName[0].toUpperCase() : '?',
-                style: TextStyle(color: Colors.white, fontSize: 12),
-              ),
-            ),
-            SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    senderName,
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    messageText.length > 50 
-                        ? '${messageText.substring(0, 50)}...' 
-                        : messageText,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        backgroundColor: Colors.blue.shade700,
-        duration: Duration(seconds: 3),
-        behavior: SnackBarBehavior.floating,
-        margin: EdgeInsets.all(16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
   }
 
   Future<void> _loadMessages() async {

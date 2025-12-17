@@ -4,7 +4,7 @@ import 'package:trade_match/models/review.dart';
 import 'package:trade_match/services/supabase_service.dart';
 
 class ReviewsPage extends StatefulWidget {
-  final int userId;
+  final String userId;
 
   const ReviewsPage({super.key, required this.userId});
 
@@ -40,7 +40,7 @@ class _ReviewsPageState extends State<ReviewsPage> {
 
     try {
       final response = await _supabaseService.getUserReviews(
-        widget.userId.toString(),
+        widget.userId,
       );
 
       setState(() {
