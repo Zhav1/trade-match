@@ -224,16 +224,21 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
         throw Exception('Invalid swap ID');
       }
       
+      print('📤 Sending message to swap $swapId: $content');
+      
       // For now, only support text messages via Supabase
       // Location messages will need additional handling
       await _supabaseService.sendMessage(swapId, content);
       
+      print('✅ Message sent successfully');
       _messageController.clear();
       await _loadMessages();
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('❌ Error sending message: $e');
+      print('Stack trace: $stackTrace');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error sending message: $e')),
+          SnackBar(content: Text('Error sending message: $e'), backgroundColor: Colors.red),
         );
       }
     }
