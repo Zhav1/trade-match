@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:trade_match/chat/location_picker_modal.dart';
 import 'package:trade_match/chat/location_message_bubble.dart';
+import 'package:trade_match/services/constants.dart';
 import 'package:trade_match/widget_Template/loading_overlay.dart';
 import 'package:trade_match/services/supabase_service.dart';
 import 'package:trade_match/widgets/trade_complete_dialog.dart';
