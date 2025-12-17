@@ -235,7 +235,7 @@ class SupabaseService {
           'display_order': entry.key,
         };
       }).toList();
-      
+
       print('📸 Inserting ${imageInserts.length} images to item_images table');
       await client.from('item_images').insert(imageInserts);
       print('✅ Images linked to item successfully');
@@ -400,6 +400,32 @@ class SupabaseService {
     return List<Map<String, dynamic>>.from(response);
   }
 
+  /// Get a single swap by ID
+  Future<Map<String, dynamic>> getSwap(int swapId) async {
+    final response = await client
+        .from('swaps')
+        .select('''
+          *,
+          item_a:items!swaps_item_a_id_fkey(
+            *,
+            user:users(*),
+            category:categories(*),
+            images:item_images(*),
+            wants:item_wants(*, category:categories(*))
+          ),
+          item_b:items!swaps_item_b_id_fkey(
+            *,
+            user:users(*),
+            category:categories(*),
+            images:item_images(*),
+            wants:item_wants(*, category:categories(*))
+          )
+        ''')
+        .eq('id', swapId)
+        .single();
+    return response as Map<String, dynamic>;
+  }
+
   /// Get messages for a swap
   Future<List<Map<String, dynamic>>> getMessages(int swapId) async {
     final response = await client
@@ -551,6 +577,23 @@ class SupabaseService {
         .update({'is_read': true})
         .eq('user_id', userId!)
         .eq('is_read', false);
+  }
+
+  /// Get unread notifications count as a stream
+  /// This will automatically update when notifications change
+  Stream<int> getUnreadNotificationsCount() {
+    if (userId == null) {
+      return Stream.value(0);
+    }
+
+    return client
+        .from('notifications')
+        .stream(primaryKey: ['id'])
+        .map(
+          (notifications) => notifications
+              .where((n) => n['user_id'] == userId && n['is_read'] == false)
+              .length,
+        );
   }
 
   // ==========================================

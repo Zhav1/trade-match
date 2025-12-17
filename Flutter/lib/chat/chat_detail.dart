@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:pusher_channels_flutter/pusher_channels_flutter.dart';
 import 'package:trade_match/chat/location_picker_modal.dart';
 import 'package:trade_match/chat/location_message_bubble.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:trade_match/widget_Template/loading_overlay.dart';
 import 'package:trade_match/services/constants.dart';
+import 'package:trade_match/services/supabase_service.dart';
+import 'package:trade_match/widgets/trade_complete_dialog.dart';
+import 'package:trade_match/screens/submit_review_page.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ChatDetailPage extends StatefulWidget {
   final String matchId;
@@ -26,54 +29,144 @@ class ChatDetailPage extends StatefulWidget {
 class _ChatDetailPageState extends State<ChatDetailPage> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final SupabaseService _supabaseService = SupabaseService();
   List<dynamic> messages = [];
   String? currentUserId;
   bool isLoading = false;
-
-  PusherChannelsFlutter pusher = PusherChannelsFlutter.getInstance();
+  Map<String, dynamic>? swapData;
+  RealtimeChannel? _messageChannel;
 
   @override
   void initState() {
     super.initState();
     _loadMessages();
+    _loadSwapData();
     // TODO: Wire this to your auth service. For local dev you can set
     // AUTH_USER_ID in `lib/services/constants.dart`.
     currentUserId = AUTH_USER_ID;
-    _initPusher();
+    _subscribeToMessages();
   }
 
-  void _initPusher() async {
+  Future<void> _loadSwapData() async {
     try {
-      await pusher.init(
-        apiKey: PUSHER_KEY,
-        cluster: PUSHER_CLUSTER,
-        onEvent: _onEvent,
-      );
-      await pusher.subscribe(channelName: "swap.${widget.matchId}");
-      await pusher.connect();
+      final swapId = int.tryParse(widget.matchId);
+      if (swapId == null) return;
+      
+      final data = await _supabaseService.getSwap(swapId);
+      if (mounted) {
+        setState(() {
+          swapData = data;
+        });
+      }
     } catch (e) {
-      print("ERROR: $e");
+      print('Error loading swap data: $e');
     }
   }
 
-  void _onEvent(PusherEvent event) {
-    if (event.eventName == "App\\Events\\NewChatMessage") {
-       final data = jsonDecode(event.data);
-       // data['message'] contains the message object
-       if (mounted) {
-         setState(() {
-           // Avoid duplicates if message is already in list (e.g. from local send)
-           // But local send adds it immediately.
-           // Ideally we should replace the local optimistic message or check ID.
-           // For simplicity, we just add if not present or just add.
-           // Let's check if ID exists.
-           bool exists = messages.any((m) => m['id'] == data['message']['id']);
-           if (!exists) {
-             messages.add(data['message']);
-             _scrollToBottom();
-           }
-         });
-       }
+  Future<void> _confirmTrade() async {
+    try {
+      setState(() => isLoading = true);
+      
+      final swapId = int.tryParse(widget.matchId);
+      if (swapId == null) throw Exception('Invalid swap ID');
+
+      final response = await _supabaseService.confirmTrade(swapId);
+      
+      // Reload swap data to get updated confirmation status
+      await _loadSwapData();
+      
+      if (mounted) {
+        setState(() => isLoading = false);
+        
+        // Check if both users have confirmed
+        final bothConfirmed = swapData?['item_a_owner_confirmed'] == true &&
+                              swapData?['item_b_owner_confirmed'] == true;
+        
+        if (bothConfirmed) {
+          // Show trade complete dialog
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => TradeCompleteDialog(
+              onLeaveReview: () {
+                Navigator.of(context).pop();
+                // Navigate to review page
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => SubmitReviewPage(
+                      swapId: swapId,
+                      reviewedUserId: swapData?['user_a_id'] == currentUserId
+                          ? swapData?['user_b_id']
+                          : swapData?['user_a_id'],
+                      reviewedUserName: widget.otherUserName,
+                    ),
+                  ),
+                );
+              },
+              onClose: () => Navigator.of(context).pop(),
+            ),
+          );
+        } else {
+          // Show success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Trade confirmed! Waiting for partner...'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error confirming trade: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _subscribeToMessages() {
+    final swapId = int.tryParse(widget.matchId);
+    if (swapId == null) {
+      print('Invalid swap ID for realtime subscription');
+      return;
+    }
+
+    try {
+      _messageChannel = Supabase.instance.client
+          .channel('messages:swap_$swapId')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.insert,
+            schema: 'public',
+            table: 'messages',
+            filter: PostgresChangeFilter(
+              type: PostgresChangeFilterType.eq,
+              column: 'swap_id',
+              value: swapId,
+            ),
+            callback: (payload) {
+              if (mounted) {
+                setState(() {
+                  // Check if message already exists to avoid duplicates
+                  final newMessage = payload.newRecord;
+                  final exists = messages.any((m) => m['id'] == newMessage['id']);
+                  if (!exists) {
+                    messages.add(newMessage);
+                    _scrollToBottom();
+                  }
+                });
+              }
+            },
+          )
+          .subscribe();
+      print('✅ Subscribed to messages for swap $swapId');
+    } catch (e) {
+      print('❌ Error subscribing to messages: $e');
     }
   }
 
@@ -381,13 +474,43 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
           ),
         ),
       ),
+      floatingActionButton: _buildConfirmTradeFAB(),
+    );
+  }
+
+  Widget? _buildConfirmTradeFAB() {
+    if (swapData == null) return null;
+    
+    final status = swapData?['status'];
+    final userAId = swapData?['user_a_id'];
+    final isUserA = userAId == currentUserId;
+    final userConfirmed = isUserA
+        ? swapData?['item_a_owner_confirmed'] == true
+        : swapData?['item_b_owner_confirmed'] == true;
+    
+    // Only show if:
+    // 1. Status is active or location_agreed
+    // 2. User hasn't confirmed yet
+    // 3. Trade not complete
+    if (status == 'trade_complete' || userConfirmed) {
+      return null;
+    }
+    
+    if (!['active', 'location_agreed'].contains(status)) {
+      return null;
+    }
+    
+    return FloatingActionButton.extended(
+      onPressed: isLoading ? null : _confirmTrade,
+      icon: const Icon(Icons.check_circle),
+      label: const Text('Confirm Trade'),
+      backgroundColor: Theme.of(context).primaryColor,
     );
   }
 
   @override
   void dispose() {
-    pusher.unsubscribe(channelName: "swap.${widget.matchId}");
-    pusher.disconnect();
+    _messageChannel?.unsubscribe();
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();

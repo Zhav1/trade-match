@@ -24,6 +24,7 @@ import 'package:trade_match/models/barter_item.dart';
 import 'package:trade_match/services/constants.dart';
 import 'package:trade_match/services/storage_service.dart'; // Phase 2
 import 'package:trade_match/services/cache_manager.dart'; // Phase 2
+import 'package:trade_match/services/supabase_service.dart'; // For notification badges
 
 void main() async {
   print('🚀 [MAIN] Starting app initialization...');
@@ -225,6 +226,7 @@ class MainPage extends StatefulWidget {
 
 class _MainPageState extends State<MainPage> {
   int _selectedIndex = 0;
+  final SupabaseService _supabaseService = SupabaseService();
 
   final List<Widget> _pages = [
     const ExploreScreen(),
@@ -261,7 +263,19 @@ class _MainPageState extends State<MainPage> {
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: <Widget>[
             _buildNavItem(Icons.swap_horiz, 'Explore', 0),
-            _buildNavItem(Icons.chat_bubble_outline, 'Chat', 1),
+            // Chat with notification badge
+            StreamBuilder<int>(
+              stream: _supabaseService.getUnreadNotificationsCount(),
+              builder: (context, snapshot) {
+                final unreadCount = snapshot.data ?? 0;
+                return _buildNavItem(
+                  Icons.chat_bubble_outline,
+                  'Chat',
+                  1,
+                  badgeCount: unreadCount,
+                );
+              },
+            ),
             const SizedBox(width: 40), // The space for the FAB
             _buildNavItem(Icons.inventory_2_outlined, 'Library', 2),
             _buildNavItem(Icons.person_outline, 'Profile', 3),
@@ -271,7 +285,12 @@ class _MainPageState extends State<MainPage> {
     );
   }
 
-  Widget _buildNavItem(IconData icon, String label, int index) {
+  Widget _buildNavItem(
+    IconData icon,
+    String label,
+    int index, {
+    int badgeCount = 0,
+  }) {
     final isSelected = _selectedIndex == index;
     final color = isSelected
         ? Theme.of(context).colorScheme.primary
@@ -284,7 +303,37 @@ class _MainPageState extends State<MainPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            Icon(icon, color: color),
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(icon, color: color),
+                if (badgeCount > 0)
+                  Positioned(
+                    right: -8,
+                    top: -4,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 16,
+                        minHeight: 16,
+                      ),
+                      child: Text(
+                        badgeCount > 9 ? '9+' : '$badgeCount',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
             const SizedBox(height: 2),
             Text(label, style: TextStyle(color: color, fontSize: 12)),
           ],
