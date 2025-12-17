@@ -12,6 +12,7 @@ import 'package:cached_network_image/cached_network_image.dart'; // Phase 3: Per
 import 'package:trade_match/theme.dart';
 import 'package:trade_match/widgets/match_success_dialog.dart';
 import 'package:trade_match/chat/chat_detail.dart';
+import 'package:trade_match/screens/item_detail_page.dart';
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
@@ -599,138 +600,152 @@ class _ExploreScreenState extends State<ExploreScreen>
   Widget _buildCard(BarterItem item) {
     final String? distance = _calculateDistance(item);
 
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppRadius.card),
-        color: AppColors.surface,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(AppRadius.card),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            if (item.images.isNotEmpty)
-              CachedNetworkImage(
-                imageUrl: item.images.first.imageUrl,
-                fit: BoxFit.cover,
-                memCacheWidth: 1200, // Optimize memory for card-sized images
-                placeholder: (context, url) => Container(
-                  color: Colors.grey[300],
-                  child: const Center(
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                ),
-                errorWidget: (context, url, error) => const Center(
-                  child: Icon(Icons.broken_image, color: Colors.grey, size: 50),
-                ),
-              )
-            else
-              const Center(
-                child: Icon(
-                  Icons.image_not_supported,
-                  color: Colors.grey,
-                  size: 50,
-                ),
-              ),
-            Positioned(
-              left: 16,
-              right: 16,
-              bottom: 24,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.68),
-                      borderRadius: BorderRadius.circular(AppRadius.button),
-                    ),
-                    child: Text(
-                      '${item.title} • ${item.condition}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                        shadows: [
-                          Shadow(
-                            color: Colors.black45,
-                            blurRadius: 6,
-                            offset: Offset(0, 1),
-                          ),
-                        ],
-                      ),
+    return GestureDetector(
+      onLongPress: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => ItemDetailPage(item: item)),
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          color: AppColors.surface,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 12,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              if (item.images.isNotEmpty)
+                CachedNetworkImage(
+                  imageUrl: item.images.first.imageUrl,
+                  fit: BoxFit.cover,
+                  memCacheWidth: 1200, // Optimize memory for card-sized images
+                  placeholder: (context, url) => Container(
+                    color: Colors.grey[300],
+                    child: const Center(
+                      child: CircularProgressIndicator(strokeWidth: 2),
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 14,
-                        backgroundImage: item.user.profilePictureUrl != null
-                            ? NetworkImage(item.user.profilePictureUrl!)
-                            : const AssetImage('assets/images/pp-1.png')
-                                  as ImageProvider,
+                  errorWidget: (context, url, error) => const Center(
+                    child: Icon(
+                      Icons.broken_image,
+                      color: Colors.grey,
+                      size: 50,
+                    ),
+                  ),
+                )
+              else
+                const Center(
+                  child: Icon(
+                    Icons.image_not_supported,
+                    color: Colors.grey,
+                    size: 50,
+                  ),
+                ),
+              Positioned(
+                left: 16,
+                right: 16,
+                bottom: 24,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
                       ),
-                      const SizedBox(width: AppSpacing.sm),
-                      Text(
-                        'Offered by ${item.user.name}',
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.68),
+                        borderRadius: BorderRadius.circular(AppRadius.button),
+                      ),
+                      child: Text(
+                        '${item.title} • ${item.condition}',
                         style: const TextStyle(
                           color: Colors.white,
-                          shadows: [Shadow(color: Colors.black, blurRadius: 4)],
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                          shadows: [
+                            Shadow(
+                              color: Colors.black45,
+                              blurRadius: 6,
+                              offset: Offset(0, 1),
+                            ),
+                          ],
                         ),
                       ),
-                      const Spacer(),
-                      // Graceful degradation: Only show distance if location permission granted
-                      if (distance != null)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.6),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.location_on,
-                                size: 14,
-                                color: Colors.white,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                distance,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  shadows: [
-                                    Shadow(
-                                      color: Colors.black45,
-                                      blurRadius: 4,
-                                      offset: Offset(0, 1),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 14,
+                          backgroundImage: item.user.profilePictureUrl != null
+                              ? NetworkImage(item.user.profilePictureUrl!)
+                              : const AssetImage('assets/images/pp-1.png')
+                                    as ImageProvider,
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        Text(
+                          'Offered by ${item.user.name}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            shadows: [
+                              Shadow(color: Colors.black, blurRadius: 4),
                             ],
                           ),
                         ),
-                    ],
-                  ),
-                ],
+                        const Spacer(),
+                        // Graceful degradation: Only show distance if location permission granted
+                        if (distance != null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.6),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.location_on,
+                                  size: 14,
+                                  color: Colors.white,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  distance,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    shadows: [
+                                      Shadow(
+                                        color: Colors.black45,
+                                        blurRadius: 4,
+                                        offset: Offset(0, 1),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
