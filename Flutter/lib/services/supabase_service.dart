@@ -458,8 +458,13 @@ class SupabaseService {
   /// Send a message
   Future<Map<String, dynamic>> sendMessage(
     int swapId,
-    String messageText,
-  ) async {
+    String messageText, {
+    String type = 'text',
+    double? locationLat,
+    double? locationLon,
+    String? locationName,
+    String? locationAddress,
+  }) async {
     if (userId == null) throw Exception('Not authenticated');
 
     final response = await client
@@ -468,6 +473,11 @@ class SupabaseService {
           'swap_id': swapId,
           'sender_user_id': userId,
           'message_text': messageText,
+          'type': type,
+          if (locationLat != null) 'location_lat': locationLat,
+          if (locationLon != null) 'location_lon': locationLon,
+          if (locationName != null) 'location_name': locationName,
+          if (locationAddress != null) 'location_address': locationAddress,
         })
         .select('*, sender:users(id, name)')
         .single();
@@ -497,7 +507,7 @@ class SupabaseService {
         .eq('swap_id', swapId)
         .neq('sender_user_id', userId!)
         .isFilter('read_at', null);
-    
+
     return (response as List).length;
   }
 
@@ -508,14 +518,14 @@ class SupabaseService {
     // Get all swaps user is part of
     final swaps = await getSwaps();
     int totalUnread = 0;
-    
+
     for (final swap in swaps) {
       final swapId = swap['id'] as int?;
       if (swapId != null) {
         totalUnread += await getUnreadMessageCount(swapId);
       }
     }
-    
+
     return totalUnread;
   }
 
