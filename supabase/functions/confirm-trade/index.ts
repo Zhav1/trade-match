@@ -110,21 +110,54 @@ serve(async (req) => {
         const bothConfirmed = (isUserA && swap.item_b_owner_confirmed) ||
             (isUserB && swap.item_a_owner_confirmed)
 
-        // If trade is now complete, update status and create notifications
+        // If trade is now complete, save snapshots and delete items
         if (bothConfirmed) {
-            // Update swap status to complete
-            await supabase
-                .from('swaps')
-                .update({ status: 'trade_complete' })
-                .eq('id', swap_id)
+            console.log(`Both users confirmed! Processing trade completion for swap ${swap_id}`)
 
-            // Mark both items as traded (remove from explore)
-            await supabase
+            // 1. Fetch full item data for snapshots
+            const { data: itemsData } = await supabase
                 .from('items')
-                .update({ status: 'traded' })
+                .select(`
+                    id, title, description, condition, estimated_value, currency,
+                    location_city, user_id,
+                    images:item_images(image_url, display_order),
+                    user:users(id, name, profile_picture_url)
+                `)
                 .in('id', [swap.item_a_id, swap.item_b_id])
 
-            console.log(`Trade ${swap_id} completed! Items ${swap.item_a_id} and ${swap.item_b_id} marked as traded.`)
+            const itemA = itemsData?.find((i: any) => i.id === swap.item_a_id)
+            const itemB = itemsData?.find((i: any) => i.id === swap.item_b_id)
+
+            // 2. Save snapshots to swap and update status
+            await supabase
+                .from('swaps')
+                .update({
+                    status: 'trade_complete',
+                    item_a_snapshot: itemA || null,
+                    item_b_snapshot: itemB || null,
+                    item_a_id: null,
+                    item_b_id: null
+                })
+                .eq('id', swap_id)
+
+            console.log(`Saved item snapshots for swap ${swap_id}`)
+
+            // 3. Delete related records first (swipes, images, wants)
+            await supabase.from('swipes').delete().eq('swiper_item_id', swap.item_a_id)
+            await supabase.from('swipes').delete().eq('swiped_on_item_id', swap.item_a_id)
+            await supabase.from('swipes').delete().eq('swiper_item_id', swap.item_b_id)
+            await supabase.from('swipes').delete().eq('swiped_on_item_id', swap.item_b_id)
+
+            await supabase.from('item_images').delete().in('item_id', [swap.item_a_id, swap.item_b_id])
+            await supabase.from('item_wants').delete().in('item_id', [swap.item_a_id, swap.item_b_id])
+
+            // 4. Delete items from database
+            await supabase
+                .from('items')
+                .delete()
+                .in('id', [swap.item_a_id, swap.item_b_id])
+
+            console.log(`Trade ${swap_id} completed! Items ${swap.item_a_id} and ${swap.item_b_id} deleted from database.`)
 
             const otherUserId = isUserA ? swap.user_b_id : swap.user_a_id
 

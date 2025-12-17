@@ -73,6 +73,8 @@ serve(async (req) => {
 
     // 1. UPSERT swipe record (Create or Update)
     // This allows changing "skip" to "like" later
+    console.log(`Processing swipe: user ${user.id}, swiper_item ${swiper_item_id} -> swiped_on ${swiped_on_item_id}, action: ${action}`)
+
     const { error: swipeError } = await supabase
       .from('swipes')
       .upsert({
@@ -80,13 +82,14 @@ serve(async (req) => {
         swiper_item_id,
         swiped_on_item_id,
         action,
-        updated_at: new Date().toISOString() // Update timestamp to track when decision changed
       }, {
-        onConflict: 'swiper_item_id, swiped_on_item_id, swiper_user_id'
-        // Note: Make sure you have a UNIQUE constraint on these 3 columns in DB
+        onConflict: 'swiper_item_id,swiped_on_item_id'
       })
 
-    if (swipeError) throw swipeError
+    if (swipeError) {
+      console.error('Swipe error:', swipeError)
+      throw swipeError
+    }
 
     // If I just skipped (or updated to skip), we are done.
     if (action !== 'like') {
@@ -96,21 +99,32 @@ serve(async (req) => {
       })
     }
 
-    // Check for mutual like
-    const { data: reciprocal } = await supabase
+    // Check for mutual like - the other item's owner must have liked my item
+    console.log(`Checking for reciprocal like: swiped_on ${swiped_on_item_id} -> swiper ${swiper_item_id}`)
+
+    const { data: reciprocal, error: reciprocalError } = await supabase
       .from('swipes')
       .select('id')
       .eq('swiper_item_id', swiped_on_item_id)
       .eq('swiped_on_item_id', swiper_item_id)
       .eq('action', 'like')
-      .single()
+      .maybeSingle()
+
+    if (reciprocalError) {
+      console.error('Reciprocal check error:', reciprocalError)
+    }
+
+    console.log('Reciprocal result:', reciprocal)
 
     if (!reciprocal) {
+      console.log('No reciprocal like found, no match')
       return new Response(JSON.stringify({ success: true, matched: false }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
+
+    console.log('MATCH FOUND! Creating swap...')
 
     // MATCH FOUND! Create swap with consistent ordering
     const item1 = Math.min(swiper_item_id, swiped_on_item_id)

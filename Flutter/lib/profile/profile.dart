@@ -394,10 +394,12 @@ class _TradeHistoryList extends StatelessWidget {
       separatorBuilder: (context, index) => Divider(color: AppColors.divider),
       itemBuilder: (context, index) {
         final trade = trades[index];
-        final itemA = trade['itemA'];
-        final itemB = trade['itemB'];
+        // Use snapshots if available (for deleted items), otherwise use relational data
+        final itemA = trade['item_a_snapshot'] ?? trade['itemA'];
+        final itemB = trade['item_b_snapshot'] ?? trade['itemB'];
         
         // Determine which item was the user's and which was the partner's
+        // Note: For snapshots, user_id is in the top level of the item object
         final isUserItemA = itemA?['user_id'] == currentUserId;
         final myItem = isUserItemA ? itemA : itemB;
         final theirItem = isUserItemA ? itemB : itemA;

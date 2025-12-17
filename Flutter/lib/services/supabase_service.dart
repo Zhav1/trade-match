@@ -455,6 +455,8 @@ class SupabaseService {
 
     var query = client.from('swaps').select('''
           *,
+          item_a_snapshot,
+          item_b_snapshot,
           itemA:items!item_a_id(*, images:item_images(*), user:users(id, name, profile_picture_url)),
           itemB:items!item_b_id(*, images:item_images(*), user:users(id, name, profile_picture_url)),
           latestMessage:messages(id, message_text, created_at, sender_user_id)
@@ -462,13 +464,28 @@ class SupabaseService {
 
     if (status != null) {
       query = query.eq('status', status);
+    } else {
+      query = query.or('user_a_id.eq.$userId,user_b_id.eq.$userId');
     }
 
     final response = await query.order('updated_at', ascending: false);
-    return List<Map<String, dynamic>>.from(response);
+    
+    // Patch items from snapshots if relational data is missing (e.g. deleted items)
+    final List<Map<String, dynamic>> swaps = List<Map<String, dynamic>>.from(response);
+    for (var swap in swaps) {
+      if (swap['itemA'] == null && swap['item_a_snapshot'] != null) {
+        swap['itemA'] = swap['item_a_snapshot'];
+      }
+      if (swap['itemB'] == null && swap['item_b_snapshot'] != null) {
+        swap['itemB'] = swap['item_b_snapshot'];
+      }
+    }
+    
+    return swaps;
   }
 
   /// Get completed trades (for trade history in profile)
+  /// Uses item snapshots since items are deleted after trade completion
   Future<List<Map<String, dynamic>>> getCompletedTrades() async {
     if (userId == null) return [];
 
@@ -476,10 +493,13 @@ class SupabaseService {
         .from('swaps')
         .select('''
           *,
+          item_a_snapshot,
+          item_b_snapshot,
           itemA:items!item_a_id(*, images:item_images(*), user:users(id, name, profile_picture_url)),
           itemB:items!item_b_id(*, images:item_images(*), user:users(id, name, profile_picture_url))
         ''')
         .eq('status', 'trade_complete')
+        .or('user_a_id.eq.$userId,user_b_id.eq.$userId')
         .order('updated_at', ascending: false);
     return List<Map<String, dynamic>>.from(response);
   }
