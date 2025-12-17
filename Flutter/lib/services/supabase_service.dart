@@ -130,7 +130,8 @@ class SupabaseService {
   Future<String> uploadProfilePicture(File file) async {
     if (userId == null) throw Exception('Not authenticated');
 
-    final fileName = '$userId/profile_${DateTime.now().millisecondsSinceEpoch}.jpg';
+    final fileName =
+        '$userId/profile_${DateTime.now().millisecondsSinceEpoch}.jpg';
     await client.storage.from('profile-pictures').upload(fileName, file);
 
     final url = client.storage.from('profile-pictures').getPublicUrl(fileName);
@@ -147,7 +148,8 @@ class SupabaseService {
   Future<String> uploadBackgroundPicture(File file) async {
     if (userId == null) throw Exception('Not authenticated');
 
-    final fileName = '$userId/background_${DateTime.now().millisecondsSinceEpoch}.jpg';
+    final fileName =
+        '$userId/background_${DateTime.now().millisecondsSinceEpoch}.jpg';
     await client.storage.from('profile-pictures').upload(fileName, file);
 
     final url = client.storage.from('profile-pictures').getPublicUrl(fileName);
@@ -579,7 +581,7 @@ class SupabaseService {
   }
 
   /// Mark notification as read
-  Future<void> markNotificationAsRead(int notificationId) async {
+  Future<void> markNotificationAsRead(String notificationId) async {
     await client
         .from('notifications')
         .update({'is_read': true})
