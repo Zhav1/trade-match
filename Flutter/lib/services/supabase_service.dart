@@ -19,16 +19,37 @@ class SupabaseService {
   // ==========================================
 
   /// Sign up with email and password
+  /// Creates auth user AND inserts profile row in users table
   Future<AuthResponse> signUpWithEmail(
     String email,
     String password,
-    String name,
-  ) async {
+    String name, {
+    String? phone,
+  }) async {
     final response = await client.auth.signUp(
       email: email,
       password: password,
       data: {'name': name},
     );
+
+    // Create user profile in public.users table
+    // This is required because Supabase Auth only creates auth.users row
+    if (response.user != null) {
+      try {
+        await client.from('users').upsert({
+          'id': response.user!.id,
+          'name': name,
+          'email': email,
+          'phone': phone,
+          'created_at': DateTime.now().toIso8601String(),
+        });
+        print('✅ User profile created in users table');
+      } catch (e) {
+        print('⚠️ Failed to create user profile: $e');
+        // Don't throw - auth was successful, profile creation can be retried
+      }
+    }
+
     return response;
   }
 
@@ -171,6 +192,7 @@ class SupabaseService {
     double? locationLon,
     String? wantsDescription,
     List<int>? wantedCategoryIds,
+    List<String>? imageUrls,
   }) async {
     if (userId == null) throw Exception('Not authenticated');
 
@@ -202,6 +224,21 @@ class SupabaseService {
                 )
                 .toList(),
           );
+    }
+
+    // Add images to item_images table
+    if (imageUrls != null && imageUrls.isNotEmpty) {
+      final imageInserts = imageUrls.asMap().entries.map((entry) {
+        return {
+          'item_id': response['id'],
+          'image_url': entry.value,
+          'display_order': entry.key,
+        };
+      }).toList();
+      
+      print('📸 Inserting ${imageInserts.length} images to item_images table');
+      await client.from('item_images').insert(imageInserts);
+      print('✅ Images linked to item successfully');
     }
 
     return response;
