@@ -8,9 +8,9 @@ class LocationPickerModal extends StatefulWidget {
   final Function(String name, String address, double lat, double lng) onLocationPicked;
 
   const LocationPickerModal({
-    Key? key,
+    super.key,
     required this.onLocationPicked,
-  }) : super(key: key);
+  });
 
   @override
   _LocationPickerModalState createState() => _LocationPickerModalState();

@@ -363,7 +363,7 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.button)),
                 ).copyWith(
-                  elevation: MaterialStateProperty.all(0),
+                  elevation: WidgetStateProperty.all(0),
                 ),
               ),
             ),

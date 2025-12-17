@@ -9,14 +9,14 @@ class LocationMessageBubble extends StatelessWidget {
   final VoidCallback? onAgree;
 
   const LocationMessageBubble({
-    Key? key,
+    super.key,
     required this.locationName,
     required this.address,
     required this.isMe,
     required this.isAgreed,
     required this.isOtherUserAgreed,
     this.onAgree,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -63,10 +63,10 @@ class LocationMessageBubble extends StatelessWidget {
             if (!isMe && !isAgreed && onAgree != null)
               ElevatedButton(
                 onPressed: onAgree,
-                child: Text('Agree to Location'),
                 style: ElevatedButton.styleFrom(
                   minimumSize: Size(double.infinity, 36),
                 ),
+                child: Text('Agree to Location'),
               ),
             if (isAgreed || isOtherUserAgreed)
               Wrap(

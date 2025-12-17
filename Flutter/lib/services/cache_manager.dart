@@ -65,7 +65,7 @@ class CacheManager {
   static Future<String> getCacheSize() async {
     try {
       final appDir = await getApplicationDocumentsDirectory();
-      final hiveDir = Directory('${appDir.path}');
+      final hiveDir = Directory(appDir.path);
       
       if (!await hiveDir.exists()) {
         return '0 KB';

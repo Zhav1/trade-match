@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:trade_match/models/category.dart';
@@ -6,7 +5,6 @@ import 'package:trade_match/models/barter_item.dart';
 import 'package:trade_match/models/item.dart';
 import 'package:trade_match/services/supabase_service.dart';
 import 'package:trade_match/services/permission_service.dart'; // Technical Implementation: Permissions
-import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:appinio_swiper/appinio_swiper.dart';
 import 'package:shimmer/shimmer.dart';
@@ -60,7 +58,8 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
   @override
   void dispose() {
     _likeController.dispose(); // CRITICAL FIX: Prevent memory leak
-    super.dispose();
+    _swiperController.dispose();
+    super.dispose();    
   }
   
   /// Load explore items from Supabase
@@ -344,11 +343,6 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
   }
 
   @override
-  void dispose() {
-    _likeController.dispose();
-    _swiperController.dispose();
-    super.dispose();
-  }
 
   Widget _buildCard(BarterItem item) {
     final String? distance = _calculateDistance(item);

@@ -24,7 +24,7 @@ class ItemController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        return ItemResource::collection($items);
+        return response()->json(['items' => ItemResource::collection($items)]);
     }
 
     /**

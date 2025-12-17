@@ -74,7 +74,6 @@ class MyApp extends StatelessWidget {
         '/add_item': (context) => const AddItemPage(),
         '/matches': (context) => const MatchesPage(),
         '/notifications': (context) => const NotificationsPage(),
-        '/reviews': (context) => const ReviewsPage(),
         '/search': (context) => const SearchFilterPage(),
         '/trade_history': (context) => const TradeHistoryPage(),
         '/auth': (context) => const AuthPage(),
@@ -92,6 +91,12 @@ class MyApp extends StatelessWidget {
           final item = settings.arguments as BarterItem?;
           if (item != null) {
             return MaterialPageRoute(builder: (_) => TradeOfferPage(theirItem: item));
+          }
+        }
+        if (settings.name == '/reviews') {
+          final userId = settings.arguments as int?;
+          if (userId != null) {
+            return MaterialPageRoute(builder: (_) => ReviewsPage(userId: userId));
           }
         }
         // If the route is not found or arguments are invalid, show an error page.
@@ -193,9 +198,9 @@ class _MainPageState extends State<MainPage> {
       body: _pages[_selectedIndex],
       floatingActionButton: FloatingActionButton(
         onPressed: () => Navigator.pushNamed(context, '/add_item'),
-        child: const Icon(Icons.add, color: Colors.white),
         backgroundColor: Theme.of(context).colorScheme.primary,
         elevation: 2.0,
+        child: const Icon(Icons.add, color: Colors.white),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: BottomAppBar(

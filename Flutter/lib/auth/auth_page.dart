@@ -402,13 +402,15 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
         }
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to register: ${e.toString()}')),
+          SnackBar(content: Text('$errorMessage: ${e.toString()}')),
         );
       } finally {
         if (mounted) {
           setState(() => _isLoading = false);
         }
       }
+    } else {
+      print("Validation FAILED. Check text fields for red error messages.");
     }
   }
 

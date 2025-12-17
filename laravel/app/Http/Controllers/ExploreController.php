@@ -41,6 +41,6 @@ class ExploreController extends Controller
 
         // SECURITY FIX: Wrap with ItemResource to filter sensitive data
         // (MASTER_ARCHITECTURE.md Issue #2: Data Exposure)
-        return ItemResource::collection($feedItems);
+        return response()->json(['items' => ItemResource::collection($feedItems)]);
     }
 }

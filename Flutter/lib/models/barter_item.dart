@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart' hide Category;
 import 'package:trade_match/models/user.dart';
 import 'package:trade_match/models/category.dart';
 import 'package:trade_match/models/item_image.dart';
