@@ -455,37 +455,20 @@ class SupabaseService {
     return List<Map<String, dynamic>>.from(response);
   }
 
-  /// Send a message (supports text and location types)
+  /// Send a message
   Future<Map<String, dynamic>> sendMessage(
     int swapId,
-    String messageText, {
-    String type = 'text',
-    double? locationLat,
-    double? locationLon,
-    String? locationName,
-    String? locationAddress,
-  }) async {
+    String messageText,
+  ) async {
     if (userId == null) throw Exception('Not authenticated');
-
-    final messageData = {
-      'swap_id': swapId,
-      'sender_user_id': userId,
-      'message_text': messageText,
-      'type': type,
-    };
-
-    // Add location fields if this is a location message
-    if (type == 'location') {
-      if (locationLat != null) messageData['location_lat'] = locationLat;
-      if (locationLon != null) messageData['location_lon'] = locationLon;
-      if (locationName != null) messageData['location_name'] = locationName;
-      if (locationAddress != null)
-        messageData['location_address'] = locationAddress;
-    }
 
     final response = await client
         .from('messages')
-        .insert(messageData)
+        .insert({
+          'swap_id': swapId,
+          'sender_user_id': userId,
+          'message_text': messageText,
+        })
         .select('*, sender:users(id, name)')
         .single();
 

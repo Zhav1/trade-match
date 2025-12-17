@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:trade_match/chat/location_picker_modal.dart';
 import 'package:trade_match/chat/location_message_bubble.dart';
-import 'package:flutter/material.dart';
-import 'package:trade_match/chat/location_picker_modal.dart';
-import 'package:trade_match/chat/location_message_bubble.dart';
+
 import 'package:trade_match/widget_Template/loading_overlay.dart';
 import 'package:trade_match/services/supabase_service.dart';
 import 'package:trade_match/widgets/trade_complete_dialog.dart';
@@ -41,9 +39,8 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     super.initState();
     _loadMessages();
     _loadSwapData();
-    // TODO: Wire this to your auth service. For local dev you can set
-    // AUTH_USER_ID in `lib/services/constants.dart`.
-    currentUserId = AUTH_USER_ID;
+    // Use Supabase user ID directly
+    currentUserId = _supabaseService.userId;
     _subscribeToMessages();
   }
 
@@ -229,6 +226,8 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
         throw Exception('Invalid swap ID');
       }
 
+      print('📤 Sending message to swap $swapId: $content');
+
       // Send message with optional location data
       await _supabaseService.sendMessage(
         swapId,
@@ -240,9 +239,12 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
         locationAddress: locationData?['location_address'],
       );
 
+      print('✅ Message sent successfully');
       _messageController.clear();
       await _loadMessages();
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('❌ Error sending message: $e');
+      print('Stack trace: $stackTrace');
       if (mounted) {
         ScaffoldMessenger.of(
           context,
