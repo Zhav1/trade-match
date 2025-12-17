@@ -177,16 +177,16 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     }
 
     try {
-      final response = await http.get(
-        Uri.parse('$API_BASE/api/swaps/${widget.matchId}/messages'),
-        headers: {
-          'Authorization': 'Bearer $AUTH_TOKEN',
-        },
-      );
-
-      if (response.statusCode == 200 && mounted) {
+      final swapId = int.tryParse(widget.matchId);
+      if (swapId == null) {
+        throw Exception('Invalid swap ID');
+      }
+      
+      final messagesData = await _supabaseService.getMessages(swapId);
+      
+      if (mounted) {
         setState(() {
-          messages = json.decode(response.body)['messages'];
+          messages = messagesData;
           isLoading = false;
         });
         _scrollToBottom();
@@ -217,32 +217,23 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     if (content.isEmpty) return;
 
     try {
-      final Map<String, dynamic> body = {
-        'content': content,
-        'type': type,
-      };
-
-      if (locationData != null) {
-        body.addAll(locationData);
+      final swapId = int.tryParse(widget.matchId);
+      if (swapId == null) {
+        throw Exception('Invalid swap ID');
       }
-
-      final response = await http.post(
-        Uri.parse('$API_BASE/api/swaps/${widget.matchId}/messages'),
-        headers: {
-          'Authorization': 'Bearer $AUTH_TOKEN',
-          'Content-Type': 'application/json',
-        },
-        body: json.encode(body),
-      );
-
-      if (response.statusCode == 201) {
-        _messageController.clear();
-        await _loadMessages();
-      }
+      
+      // For now, only support text messages via Supabase
+      // Location messages will need additional handling
+      await _supabaseService.sendMessage(swapId, content);
+      
+      _messageController.clear();
+      await _loadMessages();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error sending message: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error sending message: $e')),
+        );
+      }
     }
   }
 
@@ -289,13 +280,17 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   }
 
   Widget _buildMessage(dynamic message) {
-    final bool isMe = message['user_id'].toString() == currentUserId;
+    // Supabase uses 'sender_user_id', old API used 'user_id'
+    final senderId = message['sender_user_id']?.toString() ?? message['user_id']?.toString();
+    final bool isMe = senderId == currentUserId;
+    final String messageType = message['type'] ?? 'text';
+    final String messageContent = message['message_text'] ?? message['content'] ?? '';
 
-    switch (message['type']) {
+    switch (messageType) {
       case 'location':
         return LocationMessageBubble(
-          locationName: message['location_name'],
-          address: message['location_address'],
+          locationName: message['location_name'] ?? '',
+          address: message['location_address'] ?? '',
           isMe: isMe,
           isAgreed: isMe
               ? message['location_agreed_by_user_a'] ?? false
@@ -313,7 +308,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
           alignment: Alignment.center,
           padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
           child: Text(
-            message['content'],
+            messageContent,
             style: TextStyle(
               color: Colors.green,
               fontWeight: FontWeight.bold,
@@ -335,7 +330,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
               color: isMe ? Colors.blue[100] : Colors.grey[200],
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Text(message['content']),
+            child: Text(messageContent),
           ),
         );
     }
