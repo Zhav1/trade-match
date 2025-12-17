@@ -228,13 +228,17 @@ class SupabaseService {
 
     // Add images to item_images table
     if (imageUrls != null && imageUrls.isNotEmpty) {
-      await client.from('item_images').insert(
-        imageUrls.asMap().entries.map((entry) => {
+      final imageInserts = imageUrls.asMap().entries.map((entry) {
+        return {
           'item_id': response['id'],
           'image_url': entry.value,
           'display_order': entry.key,
-        }).toList(),
-      );
+        };
+      }).toList();
+      
+      print('📸 Inserting ${imageInserts.length} images to item_images table');
+      await client.from('item_images').insert(imageInserts);
+      print('✅ Images linked to item successfully');
     }
 
     return response;
