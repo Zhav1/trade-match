@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:hive_flutter/hive_flutter.dart'; // Technical Implementation: Phase 2
 import 'package:supabase_flutter/supabase_flutter.dart'; // Supabase integration
 import 'package:trade_match/theme.dart';
@@ -25,36 +26,46 @@ import 'package:trade_match/services/storage_service.dart'; // Phase 2
 import 'package:trade_match/services/cache_manager.dart'; // Phase 2
 
 void main() async {
+  print('🚀 [MAIN] Starting app initialization...');
   WidgetsFlutterBinding.ensureInitialized();
+  print('✅ [MAIN] WidgetsFlutterBinding initialized');
 
   // SUPABASE INITIALIZATION
-  // Initialize Supabase for future migration (doesn't affect existing Laravel API)
+  print('⏳ [MAIN] Initializing Supabase...');
+  print('   URL: $SUPABASE_URL');
+  print('   Key length: ${SUPABASE_ANON_KEY.length} chars');
   try {
     await Supabase.initialize(url: SUPABASE_URL, anonKey: SUPABASE_ANON_KEY);
-    print('✅ Supabase initialized successfully');
-  } catch (e) {
-    print('⚠️ Supabase initialization failed: $e');
-    // App continues - Supabase is optional for now
+    print('✅ [MAIN] Supabase initialized successfully');
+    print(
+      '   Client state: ${Supabase.instance.client.auth.currentSession != null ? "Session exists" : "No session"}',
+    );
+  } catch (e, stackTrace) {
+    print('❌ [MAIN] Supabase initialization FAILED!');
+    print('   Error: $e');
+    print('   Stack: ${stackTrace.toString().split('\n').take(3).join('\n')}');
   }
 
   // PHASE 2: Initialize Hive + StorageService + CacheManager with fallback
-  // CRITICAL: App continues even if init fails (zero regression)
+  print('⏳ [MAIN] Initializing Hive storage...');
   try {
     await Hive.initFlutter();
-    print('✅ Hive initialized successfully');
+    print('✅ [MAIN] Hive initialized successfully');
 
     // Initialize StorageService (register adapters, open boxes)
     await StorageService.init();
+    print('✅ [MAIN] StorageService initialized');
 
     // Cleanup expired cache entries on startup
     await CacheManager.cleanupExpiredData();
-  } catch (e) {
-    print(
-      '⚠️ Storage initialization failed, app will continue without caching: $e',
-    );
-    // App continues normally - caching features will gracefully degrade
+    print('✅ [MAIN] Cache cleanup complete');
+  } catch (e, stackTrace) {
+    print('❌ [MAIN] Storage initialization FAILED!');
+    print('   Error: $e');
+    print('   Stack: ${stackTrace.toString().split('\n').take(3).join('\n')}');
   }
 
+  print('🎬 [MAIN] Launching MyApp widget...');
   runApp(const MyApp());
 }
 
@@ -130,45 +141,77 @@ class _SplashPageState extends State<SplashPage> {
   @override
   void initState() {
     super.initState();
+    print('🔍 [SPLASH] SplashPage initState called');
     _checkLogin();
   }
 
   Future<void> _checkLogin() async {
+    print('🔐 [SPLASH] Starting auth check...');
     try {
-      // Check if user is already authenticated with Supabase
-      final session = Supabase.instance.client.auth.currentSession;
+      print('   [SPLASH] Accessing Supabase client...');
+      final client = Supabase.instance.client;
+      print('   [SPLASH] Client obtained, checking session...');
 
-      if (session != null) {
-        // User is authenticated, get their profile
-        final userId = session.user.id;
-        AUTH_USER_ID = userId;
+      final session = client.auth.currentSession;
+      print(
+        '   [SPLASH] Session check complete: ${session != null ? "Session found" : "No session"}',
+      );
 
-        if (mounted) {
-          Navigator.pushReplacementNamed(context, '/main');
+      // Use addPostFrameCallback to navigate AFTER the current frame completes
+      // This prevents Navigator._debugLocked errors
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          print(
+            '⚠️ [SPLASH] Widget not mounted after frame, skipping navigation',
+          );
+          return;
         }
-      } else {
-        if (mounted) {
-          // No active session, go to Welcome
+
+        if (session != null) {
+          print('✅ [SPLASH] User authenticated, userId: ${session.user.id}');
+          AUTH_USER_ID = session.user.id;
+          print('🚀 [SPLASH] Navigating to /main...');
+          Navigator.pushReplacementNamed(context, '/main');
+          print('✅ [SPLASH] Navigation to /main initiated');
+        } else {
+          print('🔓 [SPLASH] No active session found');
+          print('🚀 [SPLASH] Navigating to WelcomePage...');
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (_) => const WelcomePage()),
           );
+          print('✅ [SPLASH] Navigation to WelcomePage initiated');
         }
-      }
-    } catch (e) {
-      // Supabase not initialized or other error - go to welcome page
-      print('⚠️ Auth check failed: $e');
-      if (mounted) {
+      });
+    } catch (e, stackTrace) {
+      print('❌ [SPLASH] Auth check FAILED!');
+      print('   Error: $e');
+      print('   Type: ${e.runtimeType}');
+      print(
+        '   Stack: ${stackTrace.toString().split('\n').take(5).join('\n')}',
+      );
+
+      // Use addPostFrameCallback for error recovery too
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          print('⚠️ [SPLASH] Widget not mounted, cannot navigate');
+          return;
+        }
+        print('🚀 [SPLASH] Navigating to WelcomePage (error recovery)...');
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const WelcomePage()),
         );
-      }
+        print(
+          '✅ [SPLASH] Navigation to WelcomePage initiated (error recovery)',
+        );
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // Removed logging here to prevent rebuild loops
     return const Scaffold(body: Center(child: CircularProgressIndicator()));
   }
 }

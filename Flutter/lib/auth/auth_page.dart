@@ -376,11 +376,48 @@ class _AuthPageState extends State<AuthPage>
             MaterialPageRoute(builder: (context) => const MainPage()),
           );
         }
+      } on AuthException catch (e) {
+        // Handle Supabase-specific authentication errors
+        String errorMessage = 'Sign in failed';
+
+        if (e.message.contains('Invalid login credentials') ||
+            e.message.contains('invalid_grant')) {
+          errorMessage =
+              'Invalid email or password. Please check your credentials.';
+        } else if (e.message.contains('Email not confirmed') ||
+            e.message.contains('email_not_confirmed')) {
+          errorMessage =
+              'Please confirm your email before signing in.\n\n'
+              'Check your inbox for the confirmation link or contact support if you need help.';
+        } else if (e.message.contains('not authenticated') ||
+            e.message.contains('User not found')) {
+          errorMessage =
+              'No account found with this email.\n\n'
+              'Please register first or check your email address.';
+        } else {
+          errorMessage = 'Sign in failed: ${e.message}';
+        }
+
+        print("AuthException in _handleSignIn: $errorMessage");
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(errorMessage),
+              duration: const Duration(seconds: 6),
+              backgroundColor: Colors.red[700],
+            ),
+          );
+        }
       } catch (e, stackTrace) {
         print("Exception in _handleSignIn: $e\nStack Trace: $stackTrace");
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to sign in: ${e.toString()}')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('An unexpected error occurred: ${e.toString()}'),
+              duration: const Duration(seconds: 5),
+            ),
+          );
+        }
       } finally {
         if (mounted) {
           setState(() => _isLoading = false);
@@ -402,20 +439,84 @@ class _AuthPageState extends State<AuthPage>
         );
 
         if (response.user != null) {
+          // Check if email confirmation is required
+          if (response.session == null) {
+            // User created but email confirmation required
+            print(
+              "⚠️ Email confirmation required for: ${_emailController.text}",
+            );
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    '✅ Account created!\n\n'
+                    '📧 Please check your email and click the confirmation link to activate your account.\n\n'
+                    'After confirming, you can sign in.',
+                  ),
+                  duration: Duration(seconds: 8),
+                  backgroundColor: Colors.blue,
+                ),
+              );
+              // Switch to Sign In tab
+              _tabController.animateTo(0);
+              // Clear password fields
+              _passwordController.clear();
+              _confirmPasswordController.clear();
+            }
+            return;
+          }
+
+          // Email confirmation disabled or session created immediately
           AUTH_USER_ID = response.user!.id;
 
           // Update phone number
           await _supabaseService.updateProfile(phone: _phoneController.text);
 
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const MainPage()),
+          if (mounted) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const MainPage()),
+            );
+          }
+        }
+      } on AuthException catch (e) {
+        // Handle Supabase-specific registration errors
+        String errorMessage = 'Registration failed';
+
+        if (e.message.contains('already registered') ||
+            e.message.contains('User already registered')) {
+          errorMessage =
+              'This email is already registered.\n\n'
+              'Please use the Sign In tab instead, or use a different email.';
+        } else if (e.message.contains('invalid email')) {
+          errorMessage =
+              'Invalid email address format. Please check and try again.';
+        } else if (e.message.contains('Password should be')) {
+          errorMessage = 'Password is too weak. ${e.message}';
+        } else {
+          errorMessage = 'Registration failed: ${e.message}';
+        }
+
+        print("AuthException in _handleRegister: $errorMessage");
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(errorMessage),
+              duration: const Duration(seconds: 6),
+              backgroundColor: Colors.red[700],
+            ),
           );
         }
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to register: ${e.toString()}')),
-        );
+        print("Exception in _handleRegister: $e");
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('An unexpected error occurred: ${e.toString()}'),
+              duration: const Duration(seconds: 5),
+            ),
+          );
+        }
       } finally {
         if (mounted) {
           setState(() => _isLoading = false);
@@ -483,11 +584,44 @@ class _AuthPageState extends State<AuthPage>
         }
       } else {
         print("CRITICAL: Google ID Token is NULL");
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Google authentication failed. Please try again.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
-    } catch (e) {
+    } on AuthException catch (e) {
+      // Handle Supabase Google auth errors
+      String errorMessage = 'Google sign in failed';
+
+      if (e.message.contains('Email not confirmed')) {
+        errorMessage =
+            'Please confirm your email before signing in with Google.';
+      } else {
+        errorMessage = 'Google sign in failed: ${e.message}';
+      }
+
+      print("AuthException in _handleGoogleSignIn: $errorMessage");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to sign in with Google: $e')),
+          SnackBar(
+            content: Text(errorMessage),
+            duration: const Duration(seconds: 5),
+            backgroundColor: Colors.red[700],
+          ),
+        );
+      }
+    } catch (e) {
+      print("Exception in _handleGoogleSignIn: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to sign in with Google: ${e.toString()}'),
+            duration: const Duration(seconds: 5),
+          ),
         );
       }
     } finally {
@@ -583,17 +717,54 @@ class _AuthPageState extends State<AuthPage>
         await _handleAuthResponse(response);
       } else {
         print("CRITICAL: Google ID Token is NULL");
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Google authentication failed. Please try again.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } on AuthException catch (e) {
+      // Handle Supabase Google auth errors
+      String errorMessage = 'Google registration failed';
+
+      if (e.message.contains('already registered')) {
+        errorMessage =
+            'This Google account is already registered.\n\n'
+            'Please use the Sign In tab instead.';
+      } else if (e.message.contains('Email not confirmed')) {
+        errorMessage =
+            'Please confirm your email before signing in with Google.';
+      } else {
+        errorMessage = 'Google registration failed: ${e.message}';
+      }
+
+      print("AuthException in _handleGoogleRegister: $errorMessage");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            duration: const Duration(seconds: 5),
+            backgroundColor: Colors.red[700],
+          ),
+        );
       }
     } catch (e) {
+      print("Exception in _handleGoogleRegister: $e");
       if (mounted) {
-        // Clean up exception message
         String errorMessage = e.toString();
+        // Clean up exception message
         if (errorMessage.contains("Exception:")) {
           errorMessage = errorMessage.replaceAll("Exception:", "").trim();
         }
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(errorMessage)));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            duration: const Duration(seconds: 5),
+          ),
+        );
       }
     } finally {
       if (mounted) {
