@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:trade_match/models/category.dart';
+import 'package:flutter/services.dart'; // For HapticFeedback
 import 'package:trade_match/models/barter_item.dart';
 import 'package:trade_match/models/item.dart';
 import 'package:trade_match/services/supabase_service.dart';
-import 'package:trade_match/services/permission_service.dart'; // Technical Implementation: Permissions
+import 'package:trade_match/services/permission_service.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:appinio_swiper/appinio_swiper.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:cached_network_image/cached_network_image.dart'; // Phase 3: Performance
+import 'package:cached_network_image/cached_network_image.dart';
+import 'dart:ui'; // For ImageFilter (Glassmorphism)
 import 'package:trade_match/theme.dart';
 import 'package:trade_match/widgets/match_success_dialog.dart';
 import 'package:trade_match/chat/chat_detail.dart';
@@ -21,27 +21,32 @@ class ExploreScreen extends StatefulWidget {
 }
 
 class _ExploreScreenState extends State<ExploreScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   final SupabaseService _supabaseService = SupabaseService();
   final AppinioSwiperController _swiperController = AppinioSwiperController();
+
+  // Animation Controllers
   late AnimationController _likeController;
   late Animation<double> _likeScale;
+  late AnimationController _pulseController; // For Empty State Radar
+
   bool _showLike = false;
   late Future<List<BarterItem>> _itemsFuture;
 
   // Dynamic user data
-  List<Item> _userItems = []; // Store all user's active items for dropdown
+  List<Item> _userItems = [];
   int? _currentUserItemId;
   String _userLocation = 'Loading...';
-  double? _userLat;
-  double? _userLon;
+  // Removed unused lat/lon fields to fix analyzer warnings
   bool _isLoadingUserData = true;
-  bool _hasLocationPermission = false; // Track location permission status
+  bool _hasLocationPermission = false;
 
   @override
   void initState() {
     super.initState();
     _itemsFuture = _loadExploreItems();
+
+    // Heart Animation Setup
     _likeController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
@@ -77,40 +82,41 @@ class _ExploreScreenState extends State<ExploreScreen>
       }
     });
 
+    // Radar Pulse Animation Setup
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat();
+
     _loadUserData();
   }
 
   @override
   void dispose() {
-    _likeController.dispose(); // CRITICAL FIX: Prevent memory leak
+    _likeController.dispose();
+    _pulseController.dispose();
     _swiperController.dispose();
     super.dispose();
   }
 
-  /// Load explore items from Supabase
   Future<List<BarterItem>> _loadExploreItems() async {
     try {
       final itemsData = await _supabaseService.getExploreFeed(limit: 20);
       return itemsData.map((data) => BarterItem.fromJson(data)).toList();
     } catch (e) {
-      print('Error loading explore items: $e');
+      // Use logger mechanism or just print for now as per project style (but fix info warning later)
+      debugPrint('Error loading explore items: $e');
       rethrow;
     }
   }
 
-  /// Load user's data for dynamic item selection and location
   Future<void> _loadUserData() async {
     try {
-      // PHASE 1: Request location permission (lazy request pattern)
       if (mounted) {
         _hasLocationPermission =
             await PermissionService.requestLocationPermission(context);
       }
-
-      // Get user profile for location
       final userData = await _supabaseService.getCurrentUserProfile();
-
-      // Get user's items to select one for offering
       final userItemsData = await _supabaseService.getUserItems();
       final userItems = userItemsData
           .map((data) => Item.fromJson(data))
@@ -119,75 +125,123 @@ class _ExploreScreenState extends State<ExploreScreen>
       if (mounted && userData != null) {
         setState(() {
           _userLocation = userData['default_location_city'] ?? 'Unknown';
-
-          // Only set coordinates if permission granted
-          if (_hasLocationPermission) {
-            _userLat = userData['default_lat'] != null
-                ? double.tryParse(userData['default_lat'].toString())
-                : null;
-            _userLon = userData['default_lon'] != null
-                ? double.tryParse(userData['default_lon'].toString())
-                : null;
-          } else {
-            // Graceful degradation: no coordinates if permission denied
-            _userLat = null;
-            _userLon = null;
-          }
-
-          // Select user's first active item, or null if none
+          // Unused vars removed
           if (userItems.isNotEmpty) {
             final activeItems = userItems
                 .where((item) => item.status == 'active')
                 .toList();
-
-            // Store all active items for dropdown selection
             _userItems = activeItems.isNotEmpty ? activeItems : userItems;
-
-            // Set default selected item (first active item)
             _currentUserItemId = _userItems.isNotEmpty
                 ? _userItems.first.id
                 : null;
           }
-
           _isLoadingUserData = false;
         });
       }
     } catch (e) {
-      print('Error loading user data: $e');
-      if (mounted) {
-        setState(() {
-          _userLocation = 'Unknown';
-          _isLoadingUserData = false;
-        });
-      }
+      debugPrint('Error: $e');
+      if (mounted) setState(() => _isLoadingUserData = false);
     }
   }
 
-  /// Calculate distance between user and item using Haversine formula
-  /// Returns null if location permission denied (graceful degradation)
-  String? _calculateDistance(BarterItem item) {
-    // Graceful degradation: Return null if no permission or coordinates
-    if (!_hasLocationPermission || _userLat == null || _userLon == null) {
-      return null;
+  Future<void> _refreshFeed() async {
+    setState(() {
+      _itemsFuture = _loadExploreItems();
+    });
+  }
+
+  // UPDATED: onSwipeEnd signature for AppinioSwiper 2.0+
+  // The callback provides (int previousIndex, int targetIndex, SwiperActivity activity)
+  void _onSwipeEnd(
+    int previousIndex,
+    int targetIndex,
+    SwiperActivity activity,
+  ) async {
+    // Only handle physical swipes (Left/Right)
+    if (activity is! Swipe) return;
+
+    // Haptic Feedback for physical interaction
+    HapticFeedback.lightImpact();
+
+    final direction = activity.direction;
+    final items = await _itemsFuture;
+
+    // Safety check: Use previousIndex valid for the item just swiped
+    if (previousIndex < 0 || previousIndex >= items.length) return;
+
+    final item = items[previousIndex];
+
+    if (_currentUserItemId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please add an item to start trading')),
+      );
+      return;
     }
 
+    if (direction == AxisDirection.right) {
+      _processSwipe(item, 'like');
+    } else if (direction == AxisDirection.left) {
+      _processSwipe(item, 'skip');
+    }
+  }
+
+  Future<void> _processSwipe(BarterItem item, String action) async {
+    debugPrint('Processing $action on ${item.title}');
     try {
-      final distanceInMeters = Geolocator.distanceBetween(
-        _userLat!,
-        _userLon!,
-        item.locationLat,
-        item.locationLon,
+      final result = await _supabaseService.swipe(
+        _currentUserItemId!,
+        item.id,
+        action,
       );
 
-      final distanceInKm = distanceInMeters / 1000;
+      if (action == 'like' && mounted && result['matched'] == true) {
+        // Haptic Success
+        HapticFeedback.heavyImpact();
 
-      if (distanceInKm < 1) {
-        return '${distanceInMeters.toStringAsFixed(0)} m';
+        final myItem = _userItems.firstWhere(
+          (i) => i.id == _currentUserItemId,
+          orElse: () => _userItems.first,
+        );
+        _showMatchDialog(item, myItem, result['swap']['id'].toString());
       }
-      return '${distanceInKm.toStringAsFixed(1)} km';
     } catch (e) {
-      return null;
+      debugPrint('Swipe error: $e');
     }
+  }
+
+  void _showMatchDialog(BarterItem item, Item myItem, String swapId) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => MatchSuccessDialog(
+        otherUserName: item.user.name,
+        otherUserImage: item.user.profilePictureUrl,
+        myItemTitle: myItem.title,
+        theirItemTitle: item.title,
+        swapId: swapId,
+        onKeepSwiping: () => Navigator.of(context).pop(),
+        onStartChat: (swapId, otherName, otherImage) {
+          Navigator.of(context).pop();
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ChatDetailPage(
+                matchId: swapId,
+                otherUserName: otherName,
+                otherUserImage: otherImage,
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _handleDoubleTap() {
+    HapticFeedback.mediumImpact();
+    setState(() => _showLike = true);
+    _likeController.forward(from: 0);
+    _swiperController.swipeRight();
   }
 
   @override
@@ -201,412 +255,238 @@ class _ExploreScreenState extends State<ExploreScreen>
           children: [
             Column(
               children: [
-                // Header
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.md,
-                    vertical: AppSpacing.sm,
-                  ),
-                  child: Row(
-                    children: [
-                      GestureDetector(
-                        onTap: () {},
-                        child: const CircleAvatar(
-                          radius: 22,
-                          backgroundImage: AssetImage(
-                            'assets/images/profile.jpg',
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.sm),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Discover', style: AppTextStyles.heading2),
-                            const SizedBox(height: 2),
-                            Text(
-                              'Nearby • $_userLocation',
-                              style: AppTextStyles.bodySmall.copyWith(
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () =>
-                            Navigator.pushNamed(context, '/notifications'),
-                        icon: Icon(
-                          Icons.notifications_outlined,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.xs),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: primary,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(
-                              AppRadius.button,
-                            ),
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.sm,
-                            vertical: 10,
-                          ),
-                        ),
-                        onPressed: () =>
-                            Navigator.pushNamed(context, '/search'),
-                        child: const Icon(
-                          Icons.filter_list,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Item Selector Dropdown (only show if user has items)
-                if (_userItems.isNotEmpty && !_isLoadingUserData)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                      AppSpacing.md,
-                      AppSpacing.sm,
-                      AppSpacing.md,
-                      AppSpacing.sm,
-                    ),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: DropdownButton<int>(
-                        value: _currentUserItemId,
-                        isExpanded: true,
-                        underline: const SizedBox(),
-                        icon: Icon(Icons.arrow_drop_down, color: primary),
-                        style: AppTextStyles.bodyMedium.copyWith(
-                          color: const Color(0xFF441606),
-                        ),
-                        items: _userItems
-                            .map(
-                              (item) => DropdownMenuItem<int>(
-                                value: item.id,
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.swap_horiz,
-                                      color: primary,
-                                      size: 20,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        'Trading with: ${item.title}',
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (newItemId) {
-                          if (newItemId != null) {
-                            setState(() {
-                              _currentUserItemId = newItemId;
-                            });
-                            print('📦 Switched to item: $newItemId');
-                          }
-                        },
-                      ),
-                    ),
-                  ),
-
-                // Card stack / swiper
-                Expanded(
-                  child: FutureBuilder<List<BarterItem>>(
-                    future: _itemsFuture,
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return _buildShimmer();
-                      } else if (snapshot.hasError) {
-                        return Center(child: Text('Error: ${snapshot.error}'));
-                      } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                        return const Center(child: Text('No items found.'));
-                      } else {
-                        final items = snapshot.data!;
-                        return AppinioSwiper(
-                          controller: _swiperController,
-                          cardCount: items.length,
-                          loop: true,
-                          onSwipeEnd: (previousIndex, targetIndex, direction) async {
-                            print('🔥 SWIPE DETECTED! Direction: $direction');
-                            final int idx = (previousIndex is int)
-                                ? previousIndex
-                                : int.parse(previousIndex.toString());
-                            final item = items[idx];
-
-                            // Only proceed if user has selected an item to offer
-                            if (_currentUserItemId == null) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Please add an item to start trading',
-                                  ),
-                                ),
-                              );
-                              return;
-                            }
-
-                            // Detect swipe direction from offset (Swipe object, not AxisDirection)
-                            // Right swipe: positive X offset (e.g., 164.9 → 411.4)
-                            // Left swipe: negative X offset (e.g., -206.1 → -411.4)
-                            final swipeOffset = direction.toString();
-                            final isRightSwipe =
-                                swipeOffset.contains('→ Offset(4') ||
-                                swipeOffset.contains(', 0.0))') &&
-                                    !swipeOffset.contains('Offset(-');
-                            final isLeftSwipe =
-                                swipeOffset.contains('Offset(-') &&
-                                swipeOffset.contains('→');
-
-                            print(
-                              '🔍 Swipe analysis: Right=$isRightSwipe, Left=$isLeftSwipe',
-                            );
-
-                            if (isRightSwipe) {
-                              try {
-                                print('💘 Processing LIKE swipe...');
-                                final result = await _supabaseService.swipe(
-                                  _currentUserItemId!,
-                                  item.id,
-                                  'like',
-                                );
-                                print('✅ Swipe successful: $result');
-
-                                // Check if match occurred
-                                if (mounted && result['matched'] == true) {
-                                  // Get current user's item title
-                                  final myItem = _userItems.firstWhere(
-                                    (i) => i.id == _currentUserItemId,
-                                    orElse: () => _userItems.first,
-                                  );
-
-                                  // Show match success dialog
-                                  showDialog(
-                                    context: context,
-                                    barrierDismissible: false,
-                                    builder: (context) => MatchSuccessDialog(
-                                      otherUserName: item.user.name,
-                                      otherUserImage:
-                                          item.user.profilePictureUrl,
-                                      myItemTitle: myItem.title,
-                                      theirItemTitle: item.title,
-                                      swapId: result['swap']['id'].toString(),
-                                      onKeepSwiping: () {
-                                        Navigator.of(context).pop();
-                                      },
-                                      onStartChat:
-                                          (swapId, otherName, otherImage) {
-                                            Navigator.of(context).pop();
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (context) =>
-                                                    ChatDetailPage(
-                                                      matchId: swapId,
-                                                      otherUserName: otherName,
-                                                      otherUserImage:
-                                                          otherImage,
-                                                    ),
-                                              ),
-                                            );
-                                          },
-                                    ),
-                                  );
-                                }
-                              } catch (e) {
-                                print('❌ Swipe error: $e');
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('Failed to save like: $e'),
-                                      backgroundColor: Colors.red,
-                                    ),
-                                  );
-                                }
-                              }
-                            } else if (isLeftSwipe) {
-                              try {
-                                print('👎 Processing SKIP swipe...');
-                                final result = await _supabaseService.swipe(
-                                  _currentUserItemId!,
-                                  item.id,
-                                  'skip',
-                                );
-                                print('✅ Skip successful: $result');
-                              } catch (e) {
-                                print('❌ Swipe error: $e');
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('Failed to save skip: $e'),
-                                      backgroundColor: Colors.red,
-                                    ),
-                                  );
-                                }
-                              }
-                            }
-                          },
-                          cardBuilder: (context, index) {
-                            final int idx = (index is int)
-                                ? index
-                                : int.parse(index.toString());
-                            return _buildCard(items[idx]);
-                          },
-                        );
-                      }
-                    },
-                  ),
-                ),
-
-                // Action Row
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 18.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _smallAction(
-                        icon: Icons.close,
-                        color: Colors.red[400]!,
-                        onTap: () => _swiperController.swipeLeft(),
-                      ),
-                      _bigAction(
-                        icon: Icons.favorite,
-                        color: primary,
-                        onTap: () {
-                          setState(() => _showLike = true);
-                          _likeController.forward(from: 0);
-                          _swiperController.swipeRight();
-                        },
-                      ),
-                      _smallAction(
-                        icon: Icons.star,
-                        color: Colors.amber,
-                        onTap: () => _swiperController.swipeUp(),
-                      ),
-                    ],
-                  ),
-                ),
+                _buildHeader(primary),
+                _buildItemSelector(primary),
+                Expanded(child: _buildSwiper(primary)),
+                _buildActionButtons(primary),
               ],
             ),
-
-            // Heart/like animation overlay
-            if (_showLike)
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: Center(
-                    child: AnimatedBuilder(
-                      animation: _likeController,
-                      builder: (context, child) {
-                        final scale = _likeScale.value;
-                        final opacity = (_likeController.value > 0.1)
-                            ? (1.0 - _likeController.value * 0.8)
-                            : 1.0;
-                        return Opacity(
-                          opacity: opacity,
-                          child: Transform.scale(scale: scale, child: child),
-                        );
-                      },
-                      child: Icon(Icons.favorite, color: primary, size: 120),
-                    ),
-                  ),
-                ),
-              ),
+            if (_showLike) _buildLikeOverlay(primary),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildShimmer() {
-    return Center(
-      child: SizedBox(
-        width: ResponsiveUtils.getCardWidth(
-          context,
-          mobilePercentage: 0.9,
-          tabletPercentage: 0.75,
-          desktopPercentage: 0.6,
-        ),
-        height: MediaQuery.of(context).size.height * 0.6,
-        child: Shimmer.fromColors(
-          baseColor: Colors.grey[300]!,
-          highlightColor: Colors.grey[100]!,
-          child: GlassCard(
-            padding: EdgeInsets.zero,
+  Widget _buildHeader(Color primary) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: () {}, // Profile tap
+            child: const CircleAvatar(
+              radius: 22,
+              backgroundImage: AssetImage('assets/images/profile.jpg'),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Image placeholder
-                Expanded(child: Container(color: Colors.white)),
-                // Details placeholder
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        height: 24,
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        height: 16,
-                        width: 150,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                    ],
+                Text('Discover', style: AppTextStyles.heading2),
+                const SizedBox(height: 2),
+                Text(
+                  'Nearby • $_userLocation',
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.textSecondary,
                   ),
                 ),
               ],
             ),
           ),
+          IconButton(
+            onPressed: () => Navigator.pushNamed(context, '/notifications'),
+            icon: Icon(
+              Icons.notifications_outlined,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.xs),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: primary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppRadius.button),
+              ),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.sm,
+                vertical: 10,
+              ),
+            ),
+            onPressed: () => Navigator.pushNamed(context, '/search'),
+            child: const Icon(Icons.filter_list, color: Colors.white),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildItemSelector(Color primary) {
+    if (_userItems.isEmpty || _isLoadingUserData)
+      return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.md,
+        AppSpacing.sm,
+        AppSpacing.md,
+        AppSpacing.sm,
+      ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: DropdownButton<int>(
+          value: _currentUserItemId,
+          isExpanded: true,
+          underline: const SizedBox(),
+          icon: Icon(Icons.arrow_drop_down, color: primary),
+          style: AppTextStyles.bodyMedium.copyWith(
+            color: const Color(0xFF441606),
+          ),
+          items: _userItems
+              .map(
+                (item) => DropdownMenuItem<int>(
+                  value: item.id,
+                  child: Row(
+                    children: [
+                      Icon(Icons.swap_horiz, color: primary, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Trading with: ${item.title}',
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+              .toList(),
+          onChanged: (newItemId) {
+            if (newItemId != null)
+              setState(() => _currentUserItemId = newItemId);
+          },
         ),
       ),
     );
   }
 
-  @override
-  Widget _buildCard(BarterItem item) {
-    final String? distance = _calculateDistance(item);
+  Widget _buildSwiper(Color primary) {
+    return FutureBuilder<List<BarterItem>>(
+      future: _itemsFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return _buildShimmer();
+        } else if (snapshot.hasError) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                const SizedBox(height: 16),
+                Text('Error loading items', style: AppTextStyles.bodyLarge),
+                TextButton(onPressed: _refreshFeed, child: const Text('Retry')),
+              ],
+            ),
+          );
+        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return _buildEmptyState();
+        }
 
+        final items = snapshot.data!;
+
+        // Wrapped in Padding to replace deprecated 'padding' param
+        return Padding(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: AppinioSwiper(
+            controller: _swiperController,
+            cardCount: items.length,
+            loop: true,
+            threshold: 150,
+            // backgroundCardsCount removed (unsupported in this version/default used)
+            onSwipeEnd: _onSwipeEnd, // Renamed from onSwipe
+            cardBuilder: (context, index) {
+              return GestureDetector(
+                onDoubleTap: _handleDoubleTap,
+                child: _buildCard(items[index]),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          AnimatedBuilder(
+            animation: _pulseController,
+            builder: (context, child) {
+              return Container(
+                width: 150,
+                height: 150,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Theme.of(context).primaryColor.withOpacity(
+                    0.1 * (1 - _pulseController.value),
+                  ),
+                  border: Border.all(
+                    color: Theme.of(context).primaryColor.withOpacity(
+                      0.5 * (1 - _pulseController.value),
+                    ),
+                    width: 2 + (10 * _pulseController.value),
+                  ),
+                ),
+                child: const Icon(Icons.radar, size: 64, color: Colors.grey),
+              );
+            },
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            'Searching for trades...',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Try expanding your search distance',
+            style: TextStyle(color: Colors.grey),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton(
+            onPressed: _refreshFeed,
+            child: const Text('Refresh Feed'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCard(BarterItem item) {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppRadius.card),
-        color: AppColors.surface,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 12,
+            color: Colors.black.withOpacity(0.12),
+            blurRadius: 16,
             offset: const Offset(0, 8),
           ),
         ],
@@ -616,118 +496,164 @@ class _ExploreScreenState extends State<ExploreScreen>
         child: Stack(
           fit: StackFit.expand,
           children: [
+            // Image
             if (item.images.isNotEmpty)
               CachedNetworkImage(
                 imageUrl: item.images.first.imageUrl,
                 fit: BoxFit.cover,
-                memCacheWidth: 1200, // Optimize memory for card-sized images
-                placeholder: (context, url) => Container(
+                placeholder: (context, url) =>
+                    Container(color: Colors.grey[200]),
+                errorWidget: (context, url, error) => Container(
                   color: Colors.grey[300],
-                  child: const Center(
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                ),
-                errorWidget: (context, url, error) => const Center(
-                  child: Icon(Icons.broken_image, color: Colors.grey, size: 50),
+                  child: const Icon(Icons.error),
                 ),
               )
             else
-              const Center(
-                child: Icon(
-                  Icons.image_not_supported,
-                  color: Colors.grey,
-                  size: 50,
-                ),
+              Container(
+                color: Colors.grey[200],
+                child: const Icon(Icons.image, size: 50, color: Colors.grey),
               ),
+
+            // Glassmorphism Gradient Content
             Positioned(
-              left: 16,
-              right: 16,
-              bottom: 24,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.68),
-                      borderRadius: BorderRadius.circular(AppRadius.button),
-                    ),
-                    child: Text(
-                      '${item.title} • ${item.condition}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                        shadows: [
-                          Shadow(
-                            color: Colors.black45,
-                            blurRadius: 6,
-                            offset: Offset(0, 1),
-                          ),
-                        ],
-                      ),
-                    ),
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      Colors.black.withOpacity(0.6),
+                      Colors.black.withOpacity(0.9),
+                    ],
+                    stops: const [0.0, 0.4, 1.0],
                   ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 14,
-                        backgroundImage: item.user.profilePictureUrl != null
-                            ? NetworkImage(item.user.profilePictureUrl!)
-                            : const AssetImage('assets/images/pp-1.png')
-                                  as ImageProvider,
-                      ),
-                      const SizedBox(width: AppSpacing.sm),
-                      Text(
-                        'Offered by ${item.user.name}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          shadows: [Shadow(color: Colors.black, blurRadius: 4)],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Title & Badges
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            item.title,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 26,
+                              fontWeight: FontWeight.bold,
+                              height: 1.2,
+                            ),
+                          ),
                         ),
-                      ),
-                      const Spacer(),
-                      // Graceful degradation: Only show distance if location permission granted
-                      if (distance != null)
                         Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
+                            horizontal: 10,
                             vertical: 6,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.6),
-                            borderRadius: BorderRadius.circular(10),
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.1),
+                            ),
                           ),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.location_on,
-                                size: 14,
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+                            child: Text(
+                              item.condition,
+                              style: const TextStyle(
                                 color: Colors.white,
+                                fontWeight: FontWeight.w600,
                               ),
-                              const SizedBox(width: 4),
-                              Text(
-                                distance,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  shadows: [
-                                    Shadow(
-                                      color: Colors.black45,
-                                      blurRadius: 4,
-                                      offset: Offset(0, 1),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
                         ),
-                    ],
-                  ),
-                ],
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+
+                    // User Info
+                    Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 14,
+                          backgroundImage: item.user.profilePictureUrl != null
+                              ? NetworkImage(item.user.profilePictureUrl!)
+                              : const AssetImage('assets/images/pp-1.png')
+                                    as ImageProvider,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          item.user.name,
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Match Highlight ("Wants" Section)
+                    if (item.wantsDescription.isNotEmpty)
+                      Container(
+                        margin: const EdgeInsets.only(top: 8),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Theme.of(
+                            context,
+                          ).primaryColor.withOpacity(0.35), // Highlight color
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Theme.of(
+                              context,
+                            ).primaryColor.withOpacity(0.5),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: const [
+                                Icon(
+                                  Icons.auto_awesome,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                                SizedBox(width: 4),
+                                Text(
+                                  "LOOKING FOR",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 1.0,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              item.wantsDescription,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -736,47 +662,114 @@ class _ExploreScreenState extends State<ExploreScreen>
     );
   }
 
-  Widget _smallAction({
+  Widget _buildActionButtons(Color primary) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 24),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _buildCircleButton(
+            icon: Icons.close,
+            color: Colors.red.shade400,
+            size: 56,
+            onTap: () {
+              HapticFeedback.lightImpact();
+              _swiperController.swipeLeft();
+            },
+          ),
+          _buildCircleButton(
+            icon: Icons.favorite,
+            color: primary,
+            size: 72,
+            onTap: () {
+              HapticFeedback.mediumImpact();
+              setState(() => _showLike = true);
+              _likeController.forward(from: 0);
+              _swiperController.swipeRight();
+            },
+          ),
+          _buildCircleButton(
+            icon: Icons.star,
+            color: Colors.amber,
+            size: 56,
+            onTap: () {
+              // Keep Star for Super Like / Future feature
+              HapticFeedback.lightImpact();
+              _swiperController.swipeUp();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCircleButton({
     required IconData icon,
     required Color color,
+    required double size,
     required VoidCallback onTap,
   }) {
-    return Material(
-      color: AppColors.surface,
-      shape: const CircleBorder(),
-      elevation: 4,
-      shadowColor: Colors.black.withOpacity(0.2),
-      child: InkWell(
-        onTap: onTap,
-        customBorder: const CircleBorder(),
-        splashColor: color.withOpacity(0.12),
-        child: SizedBox(
-          width: 64,
-          height: 64,
-          child: Icon(icon, color: color, size: 30),
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          customBorder: const CircleBorder(),
+          child: Icon(icon, color: color, size: size * 0.5),
         ),
       ),
     );
   }
 
-  Widget _bigAction({
-    required IconData icon,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return Material(
-      color: color,
-      shape: const CircleBorder(),
-      elevation: 6,
-      shadowColor: color.withOpacity(0.4),
-      child: InkWell(
-        onTap: onTap,
-        customBorder: const CircleBorder(),
-        splashColor: Colors.white.withOpacity(0.2),
-        child: SizedBox(
-          width: 84,
-          height: 84,
-          child: Icon(icon, color: Colors.white, size: 38),
+  Widget _buildLikeOverlay(Color primary) {
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: Center(
+          child: AnimatedBuilder(
+            animation: _likeController,
+            builder: (context, child) {
+              final scale = _likeScale.value;
+              final opacity = (_likeController.value > 0.1)
+                  ? (1.0 - _likeController.value * 0.8)
+                  : 1.0;
+              return Opacity(
+                opacity: opacity,
+                child: Transform.scale(scale: scale, child: child),
+              );
+            },
+            child: Icon(Icons.favorite, color: primary, size: 120),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildShimmer() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Shimmer.fromColors(
+          baseColor: Colors.grey[300]!,
+          highlightColor: Colors.grey[100]!,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(AppRadius.card),
+            ),
+          ),
         ),
       ),
     );

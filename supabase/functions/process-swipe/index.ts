@@ -71,36 +71,25 @@ serve(async (req) => {
       })
     }
 
-    // Create swipe record
+    // 1. UPSERT swipe record (Create or Update)
+    // This allows changing "skip" to "like" later
     const { error: swipeError } = await supabase
       .from('swipes')
-      .insert({
+      .upsert({
         swiper_user_id: user.id,
         swiper_item_id,
         swiped_on_item_id,
-        action
+        action,
+        updated_at: new Date().toISOString() // Update timestamp to track when decision changed
+      }, {
+        onConflict: 'swiper_item_id, swiped_on_item_id, swiper_user_id'
+        // Note: Make sure you have a UNIQUE constraint on these 3 columns in DB
       })
 
-    // Handle duplicate swipe
-    let isDuplicate = false
-    if (swipeError) {
-      if (swipeError.code === '23505') {
-        // Duplicate swipe - still check for match if it's a like!
-        isDuplicate = true
-        if (action !== 'like') {
-          return new Response(JSON.stringify({ error: 'Already swiped on this item' }), {
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          })
-        }
-        // For duplicate likes, continue to match check
-      } else {
-        throw swipeError
-      }
-    }
+    if (swipeError) throw swipeError
 
-    // If not a like (and not duplicate), we're done
-    if (action !== 'like' && !isDuplicate) {
+    // If I just skipped (or updated to skip), we are done.
+    if (action !== 'like') {
       return new Response(JSON.stringify({ success: true, matched: false }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -149,22 +138,31 @@ serve(async (req) => {
       const userA = items.find(i => i.id === item1)
       const userB = items.find(i => i.id === item2)
 
-      await supabase.from('notifications').insert([
-        {
-          user_id: userA.user_id,
-          type: 'new_swap',
-          title: 'New Match!',
-          message: `You matched with ${userB.user.name}`,
-          data: { swap_id: swap.id }
-        },
-        {
-          user_id: userB.user_id,
-          type: 'new_swap',
-          title: 'New Match!',
-          message: `You matched with ${userA.user.name}`,
-          data: { swap_id: swap.id }
-        }
-      ])
+      // Check if notification already exists to avoid spamming on re-match
+      const { count } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('type', 'new_swap')
+        .contains('data', { swap_id: swap.id })
+
+      if (count === 0) {
+        await supabase.from('notifications').insert([
+          {
+            user_id: userA.user_id,
+            type: 'new_swap',
+            title: 'New Match!',
+            message: `You matched with ${userB.user.name}`,
+            data: { swap_id: swap.id }
+          },
+          {
+            user_id: userB.user_id,
+            type: 'new_swap',
+            title: 'New Match!',
+            message: `You matched with ${userA.user.name}`,
+            data: { swap_id: swap.id }
+          }
+        ])
+      }
     }
 
     return new Response(JSON.stringify({ success: true, matched: true, swap }), {
