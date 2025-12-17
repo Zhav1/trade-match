@@ -222,6 +222,7 @@ class _AddItemPageState extends State<AddItemPage> {
           _imageUrls.add(imageUrl);
         }
 
+        // Build update data - only include actual columns from items table
         final itemData = {
           'title': _title,
           'description': _description,
@@ -233,15 +234,23 @@ class _AddItemPageState extends State<AddItemPage> {
           'location_lat': _locationLat,
           'location_lon': _locationLon,
           'wants_description': _wantsDescription,
-          'image_urls': _imageUrls, // Contains both old and new URLs
-          'wanted_category_ids': _wantedCategoryIds,
         };
 
         if (_isEditing) {
           await _supabaseService.updateItem(widget.item!.id, itemData);
+          
+          // Handle new images separately if any were added
+          for (final imageFile in _imageFiles) {
+            await _supabaseService.uploadItemImage(
+              widget.item!.id,
+              File(imageFile.path),
+              _imageUrls.length,
+            );
+          }
+          
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Item updated successfully')),
+              const SnackBar(content: Text('Item updated successfully'), backgroundColor: Colors.green),
             );
           }
         } else {
