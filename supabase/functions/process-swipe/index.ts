@@ -20,23 +20,23 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
-    
+
     // Verify JWT
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Missing authorization header' }), { 
-        status: 401, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      return new Response(JSON.stringify({ error: 'Missing authorization header' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
-    
+
     const token = authHeader.replace('Bearer ', '')
     const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-    
+
     if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { 
-        status: 401, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
 
@@ -44,16 +44,16 @@ serve(async (req) => {
 
     // Validate input
     if (!swiper_item_id || !swiped_on_item_id || !action) {
-      return new Response(JSON.stringify({ error: 'Missing required fields' }), { 
-        status: 400, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      return new Response(JSON.stringify({ error: 'Missing required fields' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
 
     if (!['like', 'skip'].includes(action)) {
-      return new Response(JSON.stringify({ error: 'Invalid action' }), { 
-        status: 400, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      return new Response(JSON.stringify({ error: 'Invalid action' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
 
@@ -65,9 +65,9 @@ serve(async (req) => {
       .single()
 
     if (itemError || !swiperItem || swiperItem.user_id !== user.id) {
-      return new Response(JSON.stringify({ error: 'You can only swipe with your own items' }), { 
-        status: 403, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      return new Response(JSON.stringify({ error: 'You can only swipe with your own items' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
 
@@ -81,21 +81,29 @@ serve(async (req) => {
         action
       })
 
+    // Handle duplicate swipe
+    let isDuplicate = false
     if (swipeError) {
       if (swipeError.code === '23505') {
-        return new Response(JSON.stringify({ error: 'Already swiped on this item' }), { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        })
+        // Duplicate swipe - still check for match if it's a like!
+        isDuplicate = true
+        if (action !== 'like') {
+          return new Response(JSON.stringify({ error: 'Already swiped on this item' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          })
+        }
+        // For duplicate likes, continue to match check
+      } else {
+        throw swipeError
       }
-      throw swipeError
     }
 
-    // If not a like, we're done
-    if (action !== 'like') {
-      return new Response(JSON.stringify({ success: true, matched: false }), { 
-        status: 200, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    // If not a like (and not duplicate), we're done
+    if (action !== 'like' && !isDuplicate) {
+      return new Response(JSON.stringify({ success: true, matched: false }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
 
@@ -109,9 +117,9 @@ serve(async (req) => {
       .single()
 
     if (!reciprocal) {
-      return new Response(JSON.stringify({ success: true, matched: false }), { 
-        status: 200, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      return new Response(JSON.stringify({ success: true, matched: false }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
 
@@ -140,7 +148,7 @@ serve(async (req) => {
     if (items && items.length === 2) {
       const userA = items.find(i => i.id === item1)
       const userB = items.find(i => i.id === item2)
-      
+
       await supabase.from('notifications').insert([
         {
           user_id: userA.user_id,
@@ -159,16 +167,16 @@ serve(async (req) => {
       ])
     }
 
-    return new Response(JSON.stringify({ success: true, matched: true, swap }), { 
-      status: 200, 
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    return new Response(JSON.stringify({ success: true, matched: true, swap }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
 
   } catch (error) {
     console.error('Error in process-swipe:', error)
-    return new Response(JSON.stringify({ error: error.message }), { 
-      status: 500, 
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
   }
 })

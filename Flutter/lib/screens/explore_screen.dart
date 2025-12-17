@@ -28,6 +28,7 @@ class _ExploreScreenState extends State<ExploreScreen>
   late Future<List<BarterItem>> _itemsFuture;
 
   // Dynamic user data
+  List<Item> _userItems = []; // Store all user's active items for dropdown
   int? _currentUserItemId;
   String _userLocation = 'Loading...';
   double? _userLat;
@@ -136,9 +137,14 @@ class _ExploreScreenState extends State<ExploreScreen>
             final activeItems = userItems
                 .where((item) => item.status == 'active')
                 .toList();
-            _currentUserItemId = activeItems.isNotEmpty
-                ? activeItems.first.id
-                : userItems.first.id;
+
+            // Store all active items for dropdown selection
+            _userItems = activeItems.isNotEmpty ? activeItems : userItems;
+
+            // Set default selected item (first active item)
+            _currentUserItemId = _userItems.isNotEmpty
+                ? _userItems.first.id
+                : null;
           }
 
           _isLoadingUserData = false;
@@ -258,6 +264,74 @@ class _ExploreScreenState extends State<ExploreScreen>
                     ],
                   ),
                 ),
+
+                // Item Selector Dropdown (only show if user has items)
+                if (_userItems.isNotEmpty && !_isLoadingUserData)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.md,
+                      AppSpacing.sm,
+                      AppSpacing.md,
+                      AppSpacing.sm,
+                    ),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: DropdownButton<int>(
+                        value: _currentUserItemId,
+                        isExpanded: true,
+                        underline: const SizedBox(),
+                        icon: Icon(Icons.arrow_drop_down, color: primary),
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          color: const Color(0xFF441606),
+                        ),
+                        items: _userItems
+                            .map(
+                              (item) => DropdownMenuItem<int>(
+                                value: item.id,
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.swap_horiz,
+                                      color: primary,
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        'Trading with: ${item.title}',
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (newItemId) {
+                          if (newItemId != null) {
+                            setState(() {
+                              _currentUserItemId = newItemId;
+                            });
+                            print('📦 Switched to item: $newItemId');
+                          }
+                        },
+                      ),
+                    ),
+                  ),
 
                 // Card stack / swiper
                 Expanded(
