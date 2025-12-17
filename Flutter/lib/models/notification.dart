@@ -1,13 +1,8 @@
-enum NotificationType {
-  newSwap,
-  newMessage,
-  swapStatusChange,
-  system,
-}
+enum NotificationType { newSwap, newMessage, swapStatusChange, system }
 
 class AppNotification {
-  final int id;
-  final int userId;
+  final String id;
+  final String userId;
   final NotificationType type;
   final String title;
   final String message;
@@ -28,11 +23,11 @@ class AppNotification {
 
   factory AppNotification.fromJson(Map<String, dynamic> json) {
     return AppNotification(
-      id: json['id'],
-      userId: json['user_id'],
-      type: _parseNotificationType(json['type']),
-      title: json['title'],
-      message: json['message'],
+      id: json['id'].toString(),
+      userId: json['user_id'].toString(),
+      type: _parseNotificationType(json['type'] ?? 'system'),
+      title: json['title'] ?? 'Notification',
+      message: json['message'] ?? '',
       data: json['data'],
       isRead: json['is_read'] ?? false,
       createdAt: DateTime.parse(json['created_at']),
