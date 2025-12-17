@@ -5,6 +5,7 @@ import 'package:trade_match/models/item.dart';
 import 'package:trade_match/services/supabase_service.dart';
 import 'package:trade_match/services/permission_service.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:appinio_swiper/appinio_swiper.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -123,9 +124,35 @@ class _ExploreScreenState extends State<ExploreScreen>
           .map((data) => Item.fromJson(data))
           .toList();
 
-      if (mounted && userData != null) {
+      if (mounted) {
+        String locationDisplay =
+            userData != null && userData['default_location_city'] != null
+            ? userData['default_location_city']
+            : 'Unknown';
+
+        // Try to get real location
+        if (_hasLocationPermission) {
+          try {
+            Position position = await Geolocator.getCurrentPosition();
+            List<Placemark> placemarks = await placemarkFromCoordinates(
+              position.latitude,
+              position.longitude,
+            );
+            if (placemarks.isNotEmpty) {
+              final place = placemarks[0];
+              locationDisplay =
+                  place.locality ??
+                  place.subAdministrativeArea ??
+                  'Unknown Location';
+            }
+          } catch (e) {
+            debugPrint('Failed to get real location: $e');
+            // Fallback to profile location is already set
+          }
+        }
+
         setState(() {
-          _userLocation = userData['default_location_city'] ?? 'Unknown';
+          _userLocation = locationDisplay;
           // Unused vars removed
           if (userItems.isNotEmpty) {
             final activeItems = userItems

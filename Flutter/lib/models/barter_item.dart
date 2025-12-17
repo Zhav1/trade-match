@@ -45,7 +45,7 @@ class BarterItem {
 
   factory BarterItem.fromJson(Map<String, dynamic> json) {
     return BarterItem(
-      id: json['id'] != null ? int.parse(json['id'].toString()) : 0,
+      id: int.tryParse(json['id'].toString()) ?? 0,
       title: json['title'] ?? 'Untitled',
       description: json['description'] ?? '',
       condition: json['condition'] ?? 'unknown',

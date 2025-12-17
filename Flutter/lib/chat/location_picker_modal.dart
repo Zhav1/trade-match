@@ -5,12 +5,10 @@ import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 
 class LocationPickerModal extends StatefulWidget {
-  final Function(String name, String address, double lat, double lng) onLocationPicked;
+  final Function(String name, String address, double lat, double lng)
+  onLocationPicked;
 
-  const LocationPickerModal({
-    super.key,
-    required this.onLocationPicked,
-  });
+  const LocationPickerModal({super.key, required this.onLocationPicked});
 
   @override
   _LocationPickerModalState createState() => _LocationPickerModalState();
@@ -35,35 +33,73 @@ class _LocationPickerModalState extends State<LocationPickerModal> {
       bool serviceEnabled;
       LocationPermission permission;
 
+      // Check service status
       serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        throw Exception('Location services are disabled.');
+        // Option to warn user or ask to enable
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text(
+                'Location services are disabled. Please enable GPS.',
+              ),
+              action: SnackBarAction(
+                label: 'Enable',
+                onPressed: () => Geolocator.openLocationSettings(),
+              ),
+            ),
+          );
+        }
+        setState(() => _isLoading = false);
+        return;
       }
 
+      // Check permission
       permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          throw Exception('Location permissions are denied');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Location permissions are denied')),
+            );
+          }
+          setState(() => _isLoading = false);
+          return;
         }
       }
 
       if (permission == LocationPermission.deniedForever) {
-        throw Exception('Location permissions are permanently denied, we cannot request permissions.');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Location permissions are permanently denied. Please enable in settings.',
+              ),
+            ),
+          );
+        }
+        setState(() => _isLoading = false);
+        return;
       }
 
+      // Get position
       Position position = await Geolocator.getCurrentPosition();
-      setState(() {
-        _selectedLocation = LatLng(position.latitude, position.longitude);
-        _mapController.move(_selectedLocation!, 15.0);
-        _getAddressFromLatLng(_selectedLocation!);
-      });
+      if (mounted) {
+        setState(() {
+          _selectedLocation = LatLng(position.latitude, position.longitude);
+          _mapController.move(_selectedLocation!, 15.0);
+          _getAddressFromLatLng(_selectedLocation!);
+        });
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not get current location: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not get current location: $e')),
+        );
+      }
     }
-    setState(() => _isLoading = false);
+    if (mounted) setState(() => _isLoading = false);
   }
 
   Future<void> _getAddressFromLatLng(LatLng position) async {
@@ -75,12 +111,25 @@ class _LocationPickerModalState extends State<LocationPickerModal> {
       if (placemarks.isNotEmpty) {
         Placemark place = placemarks[0];
         setState(() {
-          _selectedAddress = '${place.street}, ${place.locality}, ${place.country}';
+          _selectedAddress =
+              '${place.street}, ${place.locality}, ${place.country}';
           _selectedName = place.name ?? 'Selected Location';
+        });
+      } else {
+        setState(() {
+          _selectedAddress =
+              'Lat: ${position.latitude.toStringAsFixed(4)}, Lng: ${position.longitude.toStringAsFixed(4)}';
+          _selectedName = 'Pinned Location';
         });
       }
     } catch (e) {
       print('Error getting address: $e');
+      // Set fallback on error too
+      setState(() {
+        _selectedAddress =
+            'Lat: ${position.latitude.toStringAsFixed(4)}, Lng: ${position.longitude.toStringAsFixed(4)}';
+        _selectedName = 'Pinned Location';
+      });
     }
   }
 
@@ -103,17 +152,30 @@ class _LocationPickerModalState extends State<LocationPickerModal> {
               if (_selectedLocation != null)
                 TextButton(
                   onPressed: () {
-                    if (_selectedLocation != null && _selectedAddress != null && _selectedName != null) {
+                    if (_selectedLocation != null) {
                       widget.onLocationPicked(
-                        _selectedName!,
-                        _selectedAddress!,
+                        _selectedName ?? 'Pinned Location',
+                        _selectedAddress ??
+                            '${_selectedLocation!.latitude}, ${_selectedLocation!.longitude}',
                         _selectedLocation!.latitude,
                         _selectedLocation!.longitude,
                       );
                       Navigator.pop(context);
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Please select a location on the map'),
+                        ),
+                      );
                     }
                   },
-                  child: const Text('Confirm', style: TextStyle(color: Colors.white)),
+                  child: Text(
+                    'Confirm',
+                    style: TextStyle(
+                      color: Theme.of(context).primaryColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
             ],
           ),
@@ -129,7 +191,8 @@ class _LocationPickerModalState extends State<LocationPickerModal> {
                     ),
                     children: [
                       TileLayer(
-                        urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                        urlTemplate:
+                            'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
                         subdomains: const ['a', 'b', 'c'],
                       ),
                       if (_selectedLocation != null)
