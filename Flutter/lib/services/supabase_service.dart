@@ -475,6 +475,50 @@ class SupabaseService {
     return response;
   }
 
+  /// Mark messages as read for a swap (messages not sent by current user)
+  Future<void> markMessagesAsRead(int swapId) async {
+    if (userId == null) return;
+
+    await client
+        .from('messages')
+        .update({'read_at': DateTime.now().toIso8601String()})
+        .eq('swap_id', swapId)
+        .neq('sender_user_id', userId!) // Only mark messages from others
+        .isFilter('read_at', null); // Only unread messages
+  }
+
+  /// Get unread message count for a swap
+  Future<int> getUnreadMessageCount(int swapId) async {
+    if (userId == null) return 0;
+
+    final response = await client
+        .from('messages')
+        .select('id')
+        .eq('swap_id', swapId)
+        .neq('sender_user_id', userId!)
+        .isFilter('read_at', null);
+    
+    return (response as List).length;
+  }
+
+  /// Get total unread messages for all swaps
+  Future<int> getTotalUnreadCount() async {
+    if (userId == null) return 0;
+
+    // Get all swaps user is part of
+    final swaps = await getSwaps();
+    int totalUnread = 0;
+    
+    for (final swap in swaps) {
+      final swapId = swap['id'] as int?;
+      if (swapId != null) {
+        totalUnread += await getUnreadMessageCount(swapId);
+      }
+    }
+    
+    return totalUnread;
+  }
+
   /// Confirm a trade
   Future<Map<String, dynamic>> confirmTrade(int swapId) async {
     final response = await client.functions.invoke(
