@@ -50,19 +50,21 @@ class BarterItem {
       description: json['description'] ?? '',
       condition: json['condition'] ?? 'unknown',
       estimatedValue: json['estimated_value'] != null
-          ? double.parse(json['estimated_value'].toString())
+          ? double.tryParse(json['estimated_value'].toString())
           : null,
       currency: json['currency'] ?? 'IDR',
       locationCity: json['location_city'] ?? 'Unknown',
-      locationLat: double.parse((json['location_lat'] ?? 0).toString()),
-      locationLon: double.parse((json['location_lon'] ?? 0).toString()),
+      locationLat: double.tryParse((json['location_lat'] ?? 0).toString()) ?? 0.0,
+      locationLon: double.tryParse((json['location_lon'] ?? 0).toString()) ?? 0.0,
       wantsDescription: json['wants_description'] ?? '',
       status: json['status'] ?? 'active',
-      createdAt: DateTime.parse(json['created_at']),
+      createdAt: json['created_at'] != null 
+          ? DateTime.parse(json['created_at']) 
+          : DateTime.now(),
       updatedAt: json['updated_at'] != null
           ? DateTime.parse(json['updated_at'])
           : null,
-      user: User.fromJson(json['user'] ?? {'id': 0, 'name': 'Unknown'}),
+      user: User.fromJson(json['user'] ?? {'id': '0', 'name': 'Unknown'}),
       category: json['category'] != null
           ? Category.fromJson(json['category'])
           : null,
