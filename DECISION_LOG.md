@@ -1034,3 +1034,87 @@ final items = await _apiService.getUserItems();
 // After (SupabaseService)
 final itemsData = await _supabaseService.getUserItems();
 final items = itemsData.map((data) => Item.fromJson(data)).toList();
+
+---
+
+## DEC 18, 2025: Chat Message Ordering Fix
+
+### Problem
+Chat messages displayed with newest at top instead of bottom. Complex combination of `reverse: true` on ListView with index reversal caused confusion.
+
+### Solution
+- Removed `reverse: true` from ListView
+- Order messages by `created_at ASC` in Supabase query
+- Use `_scrollToBottom()` with `WidgetsBinding.instance.addPostFrameCallback` for reliable scroll after build
+
+### Learning
+Keep ListView simple - avoid `reverse: true` when natural ordering + auto-scroll works better.
+
+---
+
+## DEC 18, 2025: Read/Unread Message Tracking
+
+### Problem
+No visual indication of which conversations have unread messages.
+
+### Solution
+- Added `read_at` column to messages table (requires SQL migration)
+- `markMessagesAsRead()` called when entering chat
+- `getUnreadMessageCount()` displays badge in chat list
+- Visual differences: red badge, bold text, blue timestamp for unread
+
+### Database Requirement
+```sql
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS read_at TIMESTAMPTZ;
+```
+
+---
+
+## DEC 18, 2025: Supabase Schema Cache Errors
+
+### Problem
+"Could not find the {column} column in the schema cache" errors when inserting/updating.
+
+### Root Cause
+Code tried to INSERT/UPDATE columns that don't exist in Supabase table.
+
+### Solution
+1. Add missing columns via SQL, OR
+2. Remove column references from Dart insert/update calls
+
+### Learning
+Always verify Supabase table schema before adding new fields in code. Accept optional parameters but only insert columns that exist.
+
+---
+
+## DEC 18, 2025: Item Update with image_urls Error
+
+### Problem
+Item update failed with "could not find image_urls column" error.
+
+### Root Cause
+`add_item_page.dart` sent `image_urls` in `updateItem()`, but images are stored in separate `item_images` table.
+
+### Solution
+- Removed `image_urls` from `updateItem()` data payload
+- Upload new images separately via `uploadItemImage(itemId, file, displayOrder)`
+
+---
+
+## DEC 18, 2025: Library Screen CRUD Improvements
+
+### Problem
+Library had unused search/filter buttons, unclear CRUD operations.
+
+### Changes Made
+- Removed: Search button, Filter button, Manage button
+- Added: Refresh button, Bottom sheet menu (Edit/Delete), More options (⋮) on cards
+- Added: Status badges, empty/error states, pull-to-refresh
+
+### CRUD Flow
+| Action | UI Trigger |
+|--------|-----------|
+| Create | FAB "Add Item" |
+| Read | Pull-to-refresh |
+| Update | Tap item card |
+| Delete | Long press or ⋮ menu |

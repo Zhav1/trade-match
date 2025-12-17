@@ -2457,3 +2457,79 @@ dev_dependencies:
 - `cached_network_image`: Optimized image loading
 - `path_provider`: Cache directory location
 - `hive_generator` + `build_runner`: Type adapter code generation
+
+---
+
+## Chat System Architecture (2025-12-18)
+
+### Message Table Schema
+```sql
+CREATE TABLE messages (
+  id SERIAL PRIMARY KEY,
+  swap_id INTEGER NOT NULL REFERENCES swaps(id),
+  sender_user_id UUID NOT NULL REFERENCES users(id),
+  message_text TEXT NOT NULL,
+  type TEXT DEFAULT 'text',  -- 'text', 'location'
+  read_at TIMESTAMPTZ,       -- NULL = unread
+  location_lat DOUBLE PRECISION,
+  location_lon DOUBLE PRECISION,
+  location_name TEXT,
+  location_address TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+### Read/Unread Tracking
+**Flow**:
+1. User opens chat → `markMessagesAsRead(swapId)` called
+2. Updates `read_at` for messages from other user
+3. Chat list shows unread badge via `getUnreadMessageCount(swapId)`
+4. Returning from chat reloads unread counts
+
+**Visual Indicators**:
+| State | Badge | Name | Preview | Timestamp |
+|-------|-------|------|---------|-----------|
+| Unread | 🔴 Number | Bold | Bold/Dark | Blue/Bold |
+| Read | None | Normal | Grey | Grey |
+
+### Real-time Messaging
+**Technology**: Supabase Realtime (PostgresChanges)
+
+**Subscription Pattern**:
+```dart
+Supabase.instance.client
+    .channel('messages:swap_$swapId')
+    .onPostgresChanges(
+      event: PostgresChangeEvent.insert,
+      table: 'messages',
+      filter: PostgresChangeFilter(
+        type: PostgresChangeFilterType.eq,
+        column: 'swap_id',
+        value: swapId,
+      ),
+      callback: (payload) => handleNewMessage(payload.newRecord),
+    )
+    .subscribe();
+```
+
+---
+
+## Library Screen CRUD (2025-12-18)
+
+### Architecture
+**File**: `lib/screens/library_screen.dart`
+
+**CRUD Operations**:
+| Operation | UI Element | Action |
+|-----------|------------|--------|
+| Create | FAB "Add Item" | Navigate to AddItemPage |
+| Read | Pull-to-refresh | `SupabaseService.getUserItems()` |
+| Update | Tap item card | Navigate to AddItemPage with item |
+| Delete | Long press or ⋮ menu | Confirm dialog → `SupabaseService.deleteItem()` |
+
+### UI Components
+- **Item Cards**: Status badge, more options button, image preview
+- **Bottom Sheet Menu**: Edit/Delete options on long press
+- **Empty State**: Custom illustration with create CTA
+- **Error State**: Retry button with error message
+- **Loading State**: Shimmer skeleton grid

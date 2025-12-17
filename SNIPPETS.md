@@ -1822,3 +1822,135 @@ void dispose() {
   super.dispose();
 }
 Tags: #Flutter #Supabase #Realtime #WebSockets
+
+---
+
+## Mark Messages as Read (Supabase)
+
+**Use Case**: Track read/unread status for chat messages.
+
+**Service Method**:
+```dart
+// Mark messages as read when entering chat
+Future<void> markMessagesAsRead(int swapId) async {
+  if (userId == null) return;
+
+  await client
+      .from('messages')
+      .update({'read_at': DateTime.now().toIso8601String()})
+      .eq('swap_id', swapId)
+      .neq('sender_user_id', userId!) // Only mark messages from others
+      .isFilter('read_at', null); // Only unread messages
+}
+
+// Get unread count for badge display
+Future<int> getUnreadMessageCount(int swapId) async {
+  if (userId == null) return 0;
+
+  final response = await client
+      .from('messages')
+      .select('id')
+      .eq('swap_id', swapId)
+      .neq('sender_user_id', userId!)
+      .isFilter('read_at', null);
+  
+  return (response as List).length;
+}
+```
+
+**Tags**: #Flutter #Supabase #ReadUnread #Chat
+
+---
+
+## Reliable Scroll to Bottom (Flutter)
+
+**Use Case**: Scroll to bottom after ListView builds, especially for chat screens.
+
+**Code**:
+```dart
+void _scrollToBottom() {
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
+  });
+}
+```
+
+**Why**: Using `addPostFrameCallback` ensures scroll happens after the frame is rendered, avoiding timing issues.
+
+**Tags**: #Flutter #Scroll #ListView #UX
+
+---
+
+## SQL: Add Chat Message Columns
+
+**Use Case**: Enable read/unread tracking and location messages in Supabase.
+
+**Code**:
+```sql
+-- Run in Supabase SQL Editor
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'text';
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS read_at TIMESTAMPTZ;
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS location_lat DOUBLE PRECISION;
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS location_lon DOUBLE PRECISION;
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS location_name TEXT;
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS location_address TEXT;
+```
+
+**Tags**: #Supabase #SQL #Migration #Schema
+
+---
+
+## Bottom Sheet CRUD Menu (Flutter)
+
+**Use Case**: Show Edit/Delete options on long press for list items.
+
+**Code**:
+```dart
+void _showItemOptions(Item item) {
+  showModalBottomSheet(
+    context: context,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+    ),
+    builder: (context) => SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            margin: const EdgeInsets.only(top: 8),
+            width: 40, height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey[300],
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.edit, color: Colors.blue),
+            title: const Text('Edit'),
+            onTap: () {
+              Navigator.pop(context);
+              _editItem(item);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.delete, color: Colors.red),
+            title: const Text('Delete', style: TextStyle(color: Colors.red)),
+            onTap: () {
+              Navigator.pop(context);
+              _confirmDelete(item);
+            },
+          ),
+        ],
+      ),
+    ),
+  );
+}
+```
+
+**Tags**: #Flutter #BottomSheet #CRUD #UX
