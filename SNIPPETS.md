@@ -4,6 +4,184 @@
 
 ---
 
+## Real-time Notification Badge (Flutter + Supabase)
+
+**Use Case**: Show unread count badge on navigation items that auto-updates
+
+**Service Method**:
+```dart
+/// Get unread notifications count as a stream
+Stream<int> getUnreadNotificationsCount() {
+  if (userId == null) return Stream.value(0);
+
+  return client
+      .from('notifications')
+      .stream(primaryKey: ['id'])
+      .map((notifications) => notifications
+          .where((n) => n['user_id'] == userId && n['is_read'] == false)
+          .length);
+}
+```
+
+**UI Integration**:
+```dart
+StreamBuilder<int>(
+  stream: _supabaseService.getUnreadNotificationsCount(),
+  builder: (context, snapshot) {
+    final unreadCount = snapshot.data ?? 0;
+    return _buildNavItem(
+      Icons.chat_bubble_outline,
+      'Chat',
+      badgeCount: unreadCount,
+    );
+  },
+)
+```
+
+**Badge Widget**:
+```dart
+if (badgeCount > 0)
+  Positioned(
+    right: -8, top: -4,
+    child: Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+      child: Text(
+        badgeCount > 9 ? '9+' : '$badgeCount',
+        style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+      ),
+    ),
+  )
+```
+
+**Tags**: #Flutter #Supabase #Realtime #Notifications #Badge
+
+---
+
+## Supabase Realtime Message Subscription
+
+**Use Case**: Real-time chat messages without external services (replaces Pusher)
+
+**Implementation**:
+```dart
+class _ChatDetailPageState extends State<ChatDetailPage> {
+  RealtimeChannel? _messageChannel;
+  
+  void _subscribeToMessages() {
+    final swapId = int.tryParse(widget.matchId);
+    if (swapId == null) return;
+
+    _messageChannel = Supabase.instance.client
+        .channel('messages:swap_$swapId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'messages',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'swap_id',
+            value: swapId,
+          ),
+          callback: (payload) {
+            if (mounted) {
+              setState(() {
+                final newMessage = payload.newRecord;
+                final exists = messages.any((m) => m['id'] == newMessage['id']);
+                if (!exists) {
+                  messages.add(newMessage);
+                  _scrollToBottom();
+                }
+              });
+            }
+          },
+        )
+        .subscribe();
+  }
+  
+  @override
+  void dispose() {
+    _messageChannel?.unsubscribe(); // Prevent memory leaks
+    super.dispose();
+  }
+}
+```
+
+**Database Requirements**:
+```sql
+-- Enable Realtime on messages table
+ALTER PUBLICATION supabase_realtime ADD TABLE messages;
+```
+
+**Tags**: #Flutter #Supabase #Realtime #PostgresChanges #Chat
+
+---
+
+## Conditional FAB Display Logic
+
+**Use Case**: Show action button only when user is eligible
+
+**Pattern**:
+```dart
+Widget? _buildConfirmTradeFAB() {
+  if (swapData == null) return null;
+  
+  final status = swapData?['status'];
+  final userAId = swapData?['user_a_id'];
+  final isUserA = userAId == currentUserId;
+  final userConfirmed = isUserA
+      ? swapData?['item_a_owner_confirmed'] == true
+      : swapData?['item_b_owner_confirmed'] == true;
+  
+  // Hide if: 1) complete, 2) user confirmed, 3) wrong status
+  if (status == 'trade_complete') return null;
+  if (userConfirmed) returnull;
+  if (!['active', 'location_agreed'].contains(status)) return null;
+  
+  return FloatingActionButton.extended(
+    onPressed: isLoading ? null : _confirmTrade,
+    icon: const Icon(Icons.check_circle),
+    label: const Text('Confirm Trade'),
+  );
+}
+```
+
+**Principles**: Null safety first, early returns, clear conditions, disable during loading
+
+**Tags**: #Flutter #ConditionalUI #UserExperience #FAB
+
+---
+
+## Smart User Detection for Reviews
+
+**Use Case**: Determine which user to review after trade completion
+
+**Pattern**:
+```dart
+Future<void> _navigateToReview() async {
+  final isUserA = swapData?['user_a_id'] == currentUserId;
+  final reviewedUserId = isUserA 
+      ? swapData?['user_b_id']  // User A reviews User B
+      : swapData?['user_a_id']; // User B reviews User A
+  
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => SubmitReviewPage(
+        swapId: swapId,
+        reviewedUserId: reviewedUserId,
+        reviewedUserName: otherUserName,
+      ),
+    ),
+  );
+}
+```
+
+**Why**: Prevents self-reviews, ensures correct user receives rating
+
+**Tags**: #Flutter #Navigation #UserLogic #Reviews
+
+---
+
 ## Google OAuth Backend Verification
 
 **Context**: Verify Google idToken without using google/apiclient package (avoids dependency conflicts).

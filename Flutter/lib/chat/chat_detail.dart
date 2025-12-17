@@ -8,6 +8,7 @@ import 'package:trade_match/services/constants.dart';
 import 'package:trade_match/services/supabase_service.dart';
 import 'package:trade_match/widgets/trade_complete_dialog.dart';
 import 'package:trade_match/screens/submit_review_page.dart';
+import 'package:trade_match/models/barter_item.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ChatDetailPage extends StatefulWidget {
@@ -51,7 +52,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     try {
       final swapId = int.tryParse(widget.matchId);
       if (swapId == null) return;
-      
+
       final data = await _supabaseService.getSwap(swapId);
       if (mounted) {
         setState(() {
@@ -66,22 +67,23 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   Future<void> _confirmTrade() async {
     try {
       setState(() => isLoading = true);
-      
+
       final swapId = int.tryParse(widget.matchId);
       if (swapId == null) throw Exception('Invalid swap ID');
 
       final response = await _supabaseService.confirmTrade(swapId);
-      
+
       // Reload swap data to get updated confirmation status
       await _loadSwapData();
-      
+
       if (mounted) {
         setState(() => isLoading = false);
-        
+
         // Check if both users have confirmed
-        final bothConfirmed = swapData?['item_a_owner_confirmed'] == true &&
-                              swapData?['item_b_owner_confirmed'] == true;
-        
+        final bothConfirmed =
+            swapData?['item_a_owner_confirmed'] == true &&
+            swapData?['item_b_owner_confirmed'] == true;
+
         if (bothConfirmed) {
           // Show trade complete dialog
           showDialog(
@@ -90,19 +92,17 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
             builder: (context) => TradeCompleteDialog(
               onLeaveReview: () {
                 Navigator.of(context).pop();
-                // Navigate to review page
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => SubmitReviewPage(
-                      swapId: swapId,
-                      reviewedUserId: swapData?['user_a_id'] == currentUserId
-                          ? swapData?['user_b_id']
-                          : swapData?['user_a_id'],
-                      reviewedUserName: widget.otherUserName,
+                // Navigate to review page with BarterMatch object
+                if (swapData != null) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => SubmitReviewPage(
+                        swap: BarterMatch.fromJson(swapData!),
+                      ),
                     ),
-                  ),
-                );
+                  );
+                }
               },
               onClose: () => Navigator.of(context).pop(),
             ),
@@ -154,7 +154,9 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                 setState(() {
                   // Check if message already exists to avoid duplicates
                   final newMessage = payload.newRecord;
-                  final exists = messages.any((m) => m['id'] == newMessage['id']);
+                  final exists = messages.any(
+                    (m) => m['id'] == newMessage['id'],
+                  );
                   if (!exists) {
                     messages.add(newMessage);
                     _scrollToBottom();
@@ -178,9 +180,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     try {
       final response = await http.get(
         Uri.parse('$API_BASE/api/swaps/${widget.matchId}/messages'),
-        headers: {
-          'Authorization': 'Bearer $AUTH_TOKEN',
-        },
+        headers: {'Authorization': 'Bearer $AUTH_TOKEN'},
       );
 
       if (response.statusCode == 200 && mounted) {
@@ -216,10 +216,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     if (content.isEmpty) return;
 
     try {
-      final Map<String, dynamic> body = {
-        'content': content,
-        'type': type,
-      };
+      final Map<String, dynamic> body = {'content': content, 'type': type};
 
       if (locationData != null) {
         body.addAll(locationData);
@@ -239,9 +236,9 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
         await _loadMessages();
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error sending message: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error sending message: $e')));
     }
   }
 
@@ -281,9 +278,9 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
         await _loadMessages();
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error agreeing to location: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error agreeing to location: $e')));
     }
   }
 
@@ -306,21 +303,18 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
               ? () => _agreeToLocation(message['id'].toString())
               : null,
         );
-      
+
       case 'location_agreement':
         return Container(
           alignment: Alignment.center,
           padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
           child: Text(
             message['content'],
-            style: TextStyle(
-              color: Colors.green,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
             textAlign: TextAlign.center,
           ),
         );
-      
+
       default:
         return Container(
           margin: EdgeInsets.symmetric(vertical: 4, horizontal: 8),
@@ -349,20 +343,26 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
         iconTheme: const IconThemeData(color: Colors.black87),
         title: Row(
           children: [
-            if (widget.otherUserImage != null && widget.otherUserImage!.isNotEmpty)
+            if (widget.otherUserImage != null &&
+                widget.otherUserImage!.isNotEmpty)
               CircleAvatar(
                 radius: 18,
                 backgroundColor: Colors.grey[200],
                 backgroundImage: widget.otherUserImage!.startsWith('http')
                     ? NetworkImage(widget.otherUserImage!)
-                    : AssetImage('assets/images/${widget.otherUserImage}') as ImageProvider,
+                    : AssetImage('assets/images/${widget.otherUserImage}')
+                          as ImageProvider,
               )
             else
               CircleAvatar(
                 radius: 18,
-                backgroundColor: Theme.of(context).primaryColor.withOpacity(0.2),
+                backgroundColor: Theme.of(
+                  context,
+                ).primaryColor.withOpacity(0.2),
                 child: Text(
-                  widget.otherUserName.isNotEmpty ? widget.otherUserName[0].toUpperCase() : '?',
+                  widget.otherUserName.isNotEmpty
+                      ? widget.otherUserName[0].toUpperCase()
+                      : '?',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: Theme.of(context).primaryColor,
@@ -379,10 +379,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                 ),
                 Text(
                   'Tap for trade details',
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 12,
-                  ),
+                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
                 ),
               ],
             ),
@@ -409,9 +406,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                 padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  border: Border(
-                    top: BorderSide(color: Colors.grey[200]!),
-                  ),
+                  border: Border(top: BorderSide(color: Colors.grey[200]!)),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black12,
@@ -480,14 +475,14 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
 
   Widget? _buildConfirmTradeFAB() {
     if (swapData == null) return null;
-    
+
     final status = swapData?['status'];
     final userAId = swapData?['user_a_id'];
     final isUserA = userAId == currentUserId;
     final userConfirmed = isUserA
-        ? swapData?['item_a_owner_confirmed'] == true
-        : swapData?['item_b_owner_confirmed'] == true;
-    
+        ? (swapData?['item_a_owner_confirmed'] == true)
+        : (swapData?['item_b_owner_confirmed'] == true);
+
     // Only show if:
     // 1. Status is active or location_agreed
     // 2. User hasn't confirmed yet
@@ -495,11 +490,11 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     if (status == 'trade_complete' || userConfirmed) {
       return null;
     }
-    
+
     if (!['active', 'location_agreed'].contains(status)) {
       return null;
     }
-    
+
     return FloatingActionButton.extended(
       onPressed: isLoading ? null : _confirmTrade,
       icon: const Icon(Icons.check_circle),
