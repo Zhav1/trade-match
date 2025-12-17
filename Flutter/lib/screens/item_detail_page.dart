@@ -4,7 +4,6 @@ import 'package:shimmer/shimmer.dart';
 import 'package:trade_match/models/barter_item.dart';
 import 'package:trade_match/models/item.dart';
 import 'package:trade_match/profile/profile.dart';
-import 'package:trade_match/screens/trade_offer_page.dart';
 import 'package:trade_match/services/supabase_service.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:cached_network_image/cached_network_image.dart'; // Phase 3: Performance
@@ -194,10 +193,11 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
                   // Owner info
                   InkWell(
                     onTap: () {
-                      // TODO: Navigate to specific user profile
-                      Navigator.push(
+                      // Navigate to owner's reviews
+                      Navigator.pushNamed(
                         context,
-                        MaterialPageRoute(builder: (_) => const ProfilePage()),
+                        '/reviews',
+                        arguments: widget.item.user.id,
                       );
                     },
                     child: Row(
@@ -353,54 +353,38 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
             ),
           ],
         ),
-        child: Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: _isLiking ? null : _handleLike,
-                icon: _isLiking
-                    ? const SizedBox(
-                        width: 16,
-                        height: 14,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.favorite_border),
-                label: Text(_isLiking ? 'Liking...' : 'Like'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Theme.of(context).colorScheme.primary,
-                  side: BorderSide(
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.button),
-                  ),
+        child: SafeArea(
+          child: SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _isLiking ? null : _handleLike,
+              icon: _isLiking
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.favorite, color: Colors.white),
+              label: Text(
+                _isLiking ? 'Matching...' : 'I Want This!',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.button),
                 ),
               ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.pushNamed(
-                    context,
-                    '/trade_offer',
-                    arguments: widget.item,
-                  );
-                },
-                icon: const Icon(Icons.swap_horiz, color: Colors.white),
-                label: const Text('Offer Trade'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.button),
-                  ),
-                ).copyWith(elevation: WidgetStateProperty.all(0)),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

@@ -3,7 +3,6 @@ import 'package:trade_match/chat/chat_detail.dart';
 import 'package:trade_match/models/barter_item.dart';
 import 'package:trade_match/models/user.dart';
 import 'package:trade_match/services/supabase_service.dart';
-import 'package:trade_match/services/constants.dart';
 import 'package:trade_match/theme.dart';
 
 class ChatListScreen extends StatefulWidget {
@@ -17,11 +16,28 @@ class _ChatListScreenState extends State<ChatListScreen> {
   List<BarterMatch> _swaps = [];
   bool _isLoading = true;
   String? _error;
+  Map<int, int> _unreadCounts = {}; // swapId -> unread count
 
   @override
   void initState() {
     super.initState();
     _loadSwaps();
+  }
+
+  Future<void> _loadUnreadCounts() async {
+    final supabaseService = SupabaseService();
+    for (final swap in _swaps) {
+      try {
+        final count = await supabaseService.getUnreadMessageCount(swap.id);
+        if (mounted) {
+          setState(() {
+            _unreadCounts[swap.id] = count;
+          });
+        }
+      } catch (e) {
+        print('Error loading unread count for swap ${swap.id}: $e');
+      }
+    }
   }
 
   Future<void> _loadSwaps() async {
@@ -40,6 +56,8 @@ class _ChatListScreenState extends State<ChatListScreen> {
           _swaps = swaps;
           _isLoading = false;
         });
+        // Load unread counts after swaps are loaded
+        _loadUnreadCounts();
       }
     } catch (e, stackTrace) {
       print('Error loading swaps: $e');
@@ -56,7 +74,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
   /// Determine the "other user" in a swap based on current user
   User _getOtherUser(BarterMatch swap) {
     // Compare current user ID with item owners (UUID strings)
-    final currentUserId = AUTH_USER_ID; // UUID string
+    final currentUserId = SupabaseService().userId; // UUID string
     if (swap.itemA.user.id == currentUserId) {
       return swap.itemB.user;
     }
@@ -65,7 +83,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
   /// Get other user's item for display
   BarterItem _getOtherItem(BarterMatch swap) {
-    final currentUserId = AUTH_USER_ID; // UUID string
+    final currentUserId = SupabaseService().userId; // UUID string
     if (swap.itemA.user.id == currentUserId) {
       return swap.itemB;
     }
@@ -277,6 +295,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
             otherItem.title,
             _getMessagePreview(swap),
             _formatTimeAgo(swap.updatedAt),
+            _unreadCounts[swap.id] ?? 0, // Pass unread count
           );
         },
       ),
@@ -291,35 +310,67 @@ class _ChatListScreenState extends State<ChatListScreen> {
     String itemTitle,
     String preview,
     String time,
+    int unreadCount,
   ) {
+    final bool hasUnread = unreadCount > 0;
+    
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(vertical: 8.0),
-      leading: CircleAvatar(
-        radius: 26,
-        backgroundColor: Colors.grey[200],
-        backgroundImage: imageUrl != null && imageUrl.isNotEmpty
-            ? NetworkImage(imageUrl)
-            : null,
-        child: imageUrl == null || imageUrl.isEmpty
-            ? Text(
-                name.isNotEmpty ? name[0].toUpperCase() : '?',
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+      leading: Stack(
+        children: [
+          CircleAvatar(
+            radius: 26,
+            backgroundColor: Colors.grey[200],
+            backgroundImage: imageUrl != null && imageUrl.isNotEmpty
+                ? NetworkImage(imageUrl)
+                : null,
+            child: imageUrl == null || imageUrl.isEmpty
+                ? Text(
+                    name.isNotEmpty ? name[0].toUpperCase() : '?',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  )
+                : null,
+          ),
+          // Unread badge on avatar
+          if (hasUnread)
+            Positioned(
+              right: 0,
+              top: 0,
+              child: Container(
+                padding: EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Colors.red,
+                  shape: BoxShape.circle,
                 ),
-              )
-            : null,
+                constraints: BoxConstraints(minWidth: 18, minHeight: 18),
+                child: Text(
+                  unreadCount > 9 ? '9+' : unreadCount.toString(),
+                  style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+        ],
       ),
       title: Row(
         children: [
           Expanded(
             child: Text(
               name,
-              style: AppTextStyles.labelBold,
+              style: hasUnread 
+                  ? AppTextStyles.labelBold.copyWith(fontWeight: FontWeight.w900)
+                  : AppTextStyles.labelBold,
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          Text(time, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+          Text(time, style: TextStyle(
+            color: hasUnread ? Colors.blue : Colors.grey, 
+            fontSize: 12,
+            fontWeight: hasUnread ? FontWeight.bold : FontWeight.normal,
+          )),
         ],
       ),
       subtitle: Column(
@@ -340,14 +391,19 @@ class _ChatListScreenState extends State<ChatListScreen> {
             preview,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: AppTextStyles.bodyMedium.copyWith(
-              color: AppColors.textSecondary,
-            ),
+            style: hasUnread 
+                ? AppTextStyles.bodyMedium.copyWith(
+                    color: AppColors.textPrimary, 
+                    fontWeight: FontWeight.w600,
+                  )
+                : AppTextStyles.bodyMedium.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
           ),
         ],
       ),
-      onTap: () {
-        Navigator.of(context).push(
+      onTap: () async {
+        await Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) => ChatDetailPage(
               matchId: swapId,
@@ -356,6 +412,8 @@ class _ChatListScreenState extends State<ChatListScreen> {
             ),
           ),
         );
+        // Reload unread counts after returning from chat
+        _loadUnreadCounts();
       },
     );
   }

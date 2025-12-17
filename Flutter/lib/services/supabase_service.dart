@@ -419,6 +419,23 @@ class SupabaseService {
     return List<Map<String, dynamic>>.from(response);
   }
 
+  /// Get completed trades (for trade history in profile)
+  Future<List<Map<String, dynamic>>> getCompletedTrades() async {
+    if (userId == null) return [];
+
+    final response = await client
+        .from('swaps')
+        .select('''
+          *,
+          itemA:items!item_a_id(*, images:item_images(*), user:users(id, name, profile_picture_url)),
+          itemB:items!item_b_id(*, images:item_images(*), user:users(id, name, profile_picture_url))
+        ''')
+        .eq('status', 'trade_complete')
+        .order('updated_at', ascending: false);
+    return List<Map<String, dynamic>>.from(response);
+  }
+
+
   /// Get a single swap by ID
   Future<Map<String, dynamic>> getSwap(int swapId) async {
     final response = await client
@@ -458,21 +475,77 @@ class SupabaseService {
   /// Send a message
   Future<Map<String, dynamic>> sendMessage(
     int swapId,
-    String messageText,
-  ) async {
+    String messageText, {
+    String type = 'text',
+    double? locationLat,
+    double? locationLon,
+    String? locationName,
+    String? locationAddress,
+  }) async {
     if (userId == null) throw Exception('Not authenticated');
 
+    // Only insert basic fields that exist in the database
+    // type and location fields are accepted but not stored until DB is updated
     final response = await client
         .from('messages')
         .insert({
           'swap_id': swapId,
           'sender_user_id': userId,
           'message_text': messageText,
+          'type': type,
+          if (locationLat != null) 'location_lat': locationLat,
+          if (locationLon != null) 'location_lon': locationLon,
+          if (locationName != null) 'location_name': locationName,
+          if (locationAddress != null) 'location_address': locationAddress,
         })
         .select('*, sender:users(id, name)')
         .single();
 
     return response;
+  }
+
+  /// Mark messages as read for a swap (messages not sent by current user)
+  Future<void> markMessagesAsRead(int swapId) async {
+    if (userId == null) return;
+
+    await client
+        .from('messages')
+        .update({'read_at': DateTime.now().toIso8601String()})
+        .eq('swap_id', swapId)
+        .neq('sender_user_id', userId!) // Only mark messages from others
+        .isFilter('read_at', null); // Only unread messages
+  }
+
+  /// Get unread message count for a swap
+  Future<int> getUnreadMessageCount(int swapId) async {
+    if (userId == null) return 0;
+
+    final response = await client
+        .from('messages')
+        .select('id')
+        .eq('swap_id', swapId)
+        .neq('sender_user_id', userId!)
+        .isFilter('read_at', null);
+
+    return (response as List).length;
+  }
+
+  /// Get total unread messages for all swaps
+  Future<int> getTotalUnreadCount() async {
+    if (userId == null) return 0;
+
+    // Get all swaps user is part of
+    final swaps = await getSwaps();
+    int totalUnread = 0;
+
+    for (final swap in swaps) {
+      final swapId = swap['id'] as int?;
+      if (swapId != null) {
+        totalUnread += await getUnreadMessageCount(swapId);
+      }
+    }
+
+    return totalUnread;
   }
 
   /// Confirm a trade
@@ -487,6 +560,17 @@ class SupabaseService {
     }
 
     return response.data;
+  }
+
+  /// Cancel a trade
+  Future<void> cancelTrade(int swapId) async {
+    if (userId == null) throw Exception('Not authenticated');
+
+    await client
+        .from('swaps')
+        .update({'status': 'cancelled'})
+        .eq('id', swapId)
+        .eq('status', 'active'); // Only allow cancelling active trades
   }
 
   /// Suggest a meeting location
