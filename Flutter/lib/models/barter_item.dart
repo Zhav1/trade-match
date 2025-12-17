@@ -102,6 +102,19 @@ class BarterMatch {
   });
 
   factory BarterMatch.fromJson(Map<String, dynamic> json) {
+    // Handle both camelCase (from Supabase alias) and snake_case keys
+    final itemAData = json['itemA'] ?? json['item_a'];
+    final itemBData = json['itemB'] ?? json['item_b'];
+    final latestMsgData = json['latestMessage'] ?? json['latest_message'];
+    
+    // latestMessage could be a list (from Supabase) or single object
+    dynamic latestMessageJson;
+    if (latestMsgData is List && latestMsgData.isNotEmpty) {
+      latestMessageJson = latestMsgData.first;
+    } else if (latestMsgData is Map) {
+      latestMessageJson = latestMsgData;
+    }
+    
     return BarterMatch(
       id: json['id'],
       itemAId: json['item_a_id'],
@@ -113,10 +126,10 @@ class BarterMatch {
       itemBOwnerConfirmed:
           json['item_b_owner_confirmed'] == 1 ||
           json['item_b_owner_confirmed'] == true,
-      itemA: BarterItem.fromJson(json['item_a']),
-      itemB: BarterItem.fromJson(json['item_b']),
-      latestMessage: json['latest_message'] != null
-          ? ChatMessage.fromJson(json['latest_message'])
+      itemA: BarterItem.fromJson(itemAData ?? {'id': 0, 'title': 'Unknown'}),
+      itemB: BarterItem.fromJson(itemBData ?? {'id': 0, 'title': 'Unknown'}),
+      latestMessage: latestMessageJson != null
+          ? ChatMessage.fromJson(latestMessageJson)
           : null,
       updatedAt: DateTime.parse(json['updated_at']),
     );

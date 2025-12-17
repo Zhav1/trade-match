@@ -130,7 +130,7 @@ class SupabaseService {
   Future<String> uploadProfilePicture(File file) async {
     if (userId == null) throw Exception('Not authenticated');
 
-    final fileName = '$userId/${DateTime.now().millisecondsSinceEpoch}.jpg';
+    final fileName = '$userId/profile_${DateTime.now().millisecondsSinceEpoch}.jpg';
     await client.storage.from('profile-pictures').upload(fileName, file);
 
     final url = client.storage.from('profile-pictures').getPublicUrl(fileName);
@@ -138,6 +138,23 @@ class SupabaseService {
     await client
         .from('users')
         .update({'profile_picture_url': url})
+        .eq('id', userId!);
+
+    return url;
+  }
+
+  /// Upload background picture
+  Future<String> uploadBackgroundPicture(File file) async {
+    if (userId == null) throw Exception('Not authenticated');
+
+    final fileName = '$userId/background_${DateTime.now().millisecondsSinceEpoch}.jpg';
+    await client.storage.from('profile-pictures').upload(fileName, file);
+
+    final url = client.storage.from('profile-pictures').getPublicUrl(fileName);
+
+    await client
+        .from('users')
+        .update({'background_picture_url': url})
         .eq('id', userId!);
 
     return url;
