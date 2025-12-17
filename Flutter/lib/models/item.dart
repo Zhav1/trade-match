@@ -4,7 +4,7 @@ import 'package:trade_match/models/item_want.dart';
 
 class Item {
   final int id;
-  final int userId;
+  final String userId; // Changed from int to String for Supabase UUID
   final int categoryId;
   final String title;
   final String description;
@@ -46,18 +46,18 @@ class Item {
   factory Item.fromJson(Map<String, dynamic> json) {
     return Item(
       id: int.parse(json['id'].toString()),
-      userId: int.parse(json['user_id'].toString()),
+      userId: json['user_id'].toString(), // Now accepts UUID string
       categoryId: int.parse(json['category_id'].toString()),
       title: json['title'],
       description: json['description'],
       condition: json['condition'],
       estimatedValue: json['estimated_value'] != null ? double.parse(json['estimated_value'].toString()) : null,
-      currency: json['currency'],
-      locationCity: json['location_city'],
-      locationLat: double.parse(json['location_lat'].toString()),
-      locationLon: double.parse(json['location_lon'].toString()),
+      currency: json['currency'] ?? 'USD',
+      locationCity: json['location_city'] ?? '',
+      locationLat: double.parse((json['location_lat'] ?? 0).toString()),
+      locationLon: double.parse((json['location_lon'] ?? 0).toString()),
       wantsDescription: json['wants_description'],
-      status: json['status'],
+      status: json['status'] ?? 'active',
       createdAt: DateTime.parse(json['created_at']),
       updatedAt: DateTime.parse(json['updated_at']),
       category: json['category'] != null
@@ -76,3 +76,4 @@ class Item {
     );
   }
 }
+

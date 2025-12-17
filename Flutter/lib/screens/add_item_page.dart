@@ -215,6 +215,7 @@ class _AddItemPageState extends State<AddItemPage> {
             locationLon: _locationLon,
             wantsDescription: _wantsDescription,
             wantedCategoryIds: _wantedCategoryIds,
+            imageUrls: _imageUrls,
           );
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -499,21 +500,20 @@ class _AddItemPageState extends State<AddItemPage> {
         Wrap(
           spacing: 8,
           children: _categories
-              .map(
-                (category) => FilterChip(
-                  label: Text(category.name),
-                  selected: _wantedCategoryIds.contains(category.id),
-                  onSelected: (selected) {
-                    setState(() {
-                      if (selected) {
-                        _wantedCategoryIds.add(category.id);
-                      } else {
-                        _wantedCategoryIds.remove(category.id);
-                      }
-                    });
-                  },
-                ),
-              )
+              .map((category) => FilterChip(
+                    label: Text(category.name),
+                    selected: _wantedCategoryIds.contains(category.id),
+                    onSelected: (selected) {
+                      setState(() {
+                        if (selected) {
+                          _wantedCategoryIds.add(category.id);
+                        }
+                        else {
+                          _wantedCategoryIds.remove(category.id);
+                        }
+                      });
+                    },
+                  ))
               .toList(),
         ),
       ],

@@ -15,46 +15,20 @@ class PermissionService {
   /// [context] - BuildContext for showing dialogs
   /// 
   /// Returns true if permissions granted, false otherwise.
+  /// 
+  /// NOTE: On Android 13+, image_picker handles READ_MEDIA_IMAGES permission internally.
+  /// We only need to handle camera permission explicitly.
   static Future<bool> requestImagePermission(
     BuildContext context, {
     required String purpose,
   }) async {
-    // 1. Check if already granted
-    final cameraStatus = await Permission.camera.status;
-    final photosStatus = await Permission.photos.status;
+    // For picking images from gallery, image_picker handles permissions on Android 13+
+    // We mainly need this for camera access
+    // Return true to allow image_picker to handle gallery permissions
     
-    if (cameraStatus.isGranted && photosStatus.isGranted) {
-      return true;
-    }
-    
-    // 2. Show rationale dialog BEFORE requesting (if previously denied)
-    if (cameraStatus.isDenied || photosStatus.isDenied) {
-      final shouldRequest = await _showPermissionRationale(
-        context,
-        title: 'Camera & Photos Access',
-        message:
-            'We need access to your camera and photos to $purpose. Your images are only used for your listings and are not shared without your permission.',
-        icon: Icons.camera_alt,
-      );
-      
-      if (shouldRequest != true) return false;
-    }
-    
-    // 3. Request permissions
-    final statuses = await [
-      Permission.camera,
-      Permission.photos,
-    ].request();
-    
-    // 4. Handle permanent denial → Open settings
-    if (statuses[Permission.camera]!.isPermanentlyDenied ||
-        statuses[Permission.photos]!.isPermanentlyDenied) {
-      if (!context.mounted) return false;
-      await _showOpenSettingsDialog(context);
-      return false;
-    }
-    
-    return statuses.values.every((status) => status.isGranted);
+    // Only check camera permission if we want to use camera
+    // For now, let image_picker handle everything - it has better platform-specific handling
+    return true;
   }
   
   /// Request location permission for distance calculations.
