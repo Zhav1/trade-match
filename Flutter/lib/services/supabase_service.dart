@@ -451,7 +451,7 @@ class SupabaseService {
         .from('messages')
         .select('*, sender:users(id, name, profile_picture_url)')
         .eq('swap_id', swapId)
-        .order('created_at');
+        .order('created_at', ascending: true); // Oldest first, newest last
     return List<Map<String, dynamic>>.from(response);
   }
 
