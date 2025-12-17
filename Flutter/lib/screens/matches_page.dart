@@ -69,37 +69,74 @@ class _MatchesPageState extends State<MatchesPage>
         } else if (snapshot.hasError) {
           return Center(child: Text('Error: ${snapshot.error}'));
         } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const Center(child: Text('No matches yet'));
+          return RefreshIndicator(
+            onRefresh: () async {
+              setState(() {
+                _swapsFuture = _supabaseService.getSwaps().then((swapsData) {
+                  return swapsData
+                      .map((data) => BarterMatch.fromJson(data))
+                      .toList();
+                });
+              });
+              await _swapsFuture;
+            },
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
+                    ),
+                    child: const Center(child: Text('No matches yet')),
+                  ),
+                );
+              },
+            ),
+          );
         }
 
         final swaps = snapshot.data!;
-        return ListView.builder(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          itemCount: swaps.length,
-          itemBuilder: (context, index) {
-            final swap = swaps[index];
-            // Determine which item is the "other" item (not the current user's)
-            // For simplicity in this demo, we'll assume itemB is the other item
-            // In a real app, check current user ID against itemA/itemB owner
-            final otherItem = swap.itemB;
-
-            return AnimatedScale(
-              scale: 1.0,
-              duration: const Duration(milliseconds: 100),
-              child: _buildMatchCard(
-                isMatch: true,
-                name: otherItem.user.name,
-                item: otherItem.title,
-                matchDate:
-                    swap.itemA.updatedAt ??
-                    swap
-                        .itemA
-                        .createdAt, // Fallback to createdAt if updatedAt is null
-                barterItem: otherItem,
-                matchId: swap.id.toString(),
-              ),
-            );
+        return RefreshIndicator(
+          onRefresh: () async {
+            setState(() {
+              _swapsFuture = _supabaseService.getSwaps().then((swapsData) {
+                return swapsData
+                    .map((data) => BarterMatch.fromJson(data))
+                    .toList();
+              });
+            });
+            await _swapsFuture;
           },
+          child: ListView.builder(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            physics: const AlwaysScrollableScrollPhysics(),
+            itemCount: swaps.length,
+            itemBuilder: (context, index) {
+              final swap = swaps[index];
+              // Determine which item is the "other" item (not the current user's)
+              // For simplicity in this demo, we'll assume itemB is the other item
+              // In a real app, check current user ID against itemA/itemB owner
+              final otherItem = swap.itemB;
+
+              return AnimatedScale(
+                scale: 1.0,
+                duration: const Duration(milliseconds: 100),
+                child: _buildMatchCard(
+                  isMatch: true,
+                  name: otherItem.user.name,
+                  item: otherItem.title,
+                  matchDate:
+                      swap.itemA.updatedAt ??
+                      swap
+                          .itemA
+                          .createdAt, // Fallback to createdAt if updatedAt is null
+                  barterItem: otherItem,
+                  matchId: swap.id.toString(),
+                ),
+              );
+            },
+          ),
         );
       },
     );

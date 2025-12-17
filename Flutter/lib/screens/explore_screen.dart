@@ -10,6 +10,8 @@ import 'package:appinio_swiper/appinio_swiper.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:cached_network_image/cached_network_image.dart'; // Phase 3: Performance
 import 'package:trade_match/theme.dart';
+import 'package:trade_match/widgets/match_success_dialog.dart';
+import 'package:trade_match/chat/chat_detail.dart';
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
@@ -394,6 +396,48 @@ class _ExploreScreenState extends State<ExploreScreen>
                                   'like',
                                 );
                                 print('✅ Swipe successful: $result');
+
+                                // Check if match occurred
+                                if (mounted && result['matched'] == true) {
+                                  // Get current user's item title
+                                  final myItem = _userItems.firstWhere(
+                                    (i) => i.id == _currentUserItemId,
+                                    orElse: () => _userItems.first,
+                                  );
+
+                                  // Show match success dialog
+                                  showDialog(
+                                    context: context,
+                                    barrierDismissible: false,
+                                    builder: (context) => MatchSuccessDialog(
+                                      otherUserName: item.user.name,
+                                      otherUserImage:
+                                          item.user.profilePictureUrl,
+                                      myItemTitle: myItem.title,
+                                      theirItemTitle: item.title,
+                                      swapId: result['swap']['id'].toString(),
+                                      onKeepSwiping: () {
+                                        Navigator.of(context).pop();
+                                      },
+                                      onStartChat:
+                                          (swapId, otherName, otherImage) {
+                                            Navigator.of(context).pop();
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) =>
+                                                    ChatDetailPage(
+                                                      matchId: swapId,
+                                                      otherUserName: otherName,
+                                                      otherUserImage:
+                                                          otherImage,
+                                                    ),
+                                              ),
+                                            );
+                                          },
+                                    ),
+                                  );
+                                }
                               } catch (e) {
                                 print('❌ Swipe error: $e');
                                 if (mounted) {
