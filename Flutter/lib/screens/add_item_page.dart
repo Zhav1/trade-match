@@ -110,33 +110,67 @@ class _AddItemPageState extends State<AddItemPage> {
 
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      return Future.error('Location services are disabled.');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Location services are disabled. Please enable GPS.')),
+        );
+      }
+      return;
     }
 
     permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
-        return Future.error('Location permissions are denied');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Location permission denied')),
+          );
+        }
+        return;
       }
     }
 
     if (permission == LocationPermission.deniedForever) {
-      return Future.error(
-        'Location permissions are permanently denied, we cannot request permissions.',
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Location permission permanently denied. Please enable in settings.')),
+        );
+      }
+      return;
     }
 
-    Position position = await Geolocator.getCurrentPosition();
-    List<Placemark> placemarks = await placemarkFromCoordinates(
-      position.latitude,
-      position.longitude,
-    );
-    setState(() {
-      _locationLat = position.latitude;
-      _locationLon = position.longitude;
-      _locationCity = placemarks.first.locality ?? '';
-    });
+    try {
+      // Use HIGH accuracy for better location precision
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 15),
+      );
+      
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+        position.latitude,
+        position.longitude,
+      );
+      
+      setState(() {
+        _locationLat = position.latitude;
+        _locationLon = position.longitude;
+        // Try multiple fields for better city name
+        _locationCity = placemarks.first.locality ?? 
+                        placemarks.first.subAdministrativeArea ?? 
+                        placemarks.first.administrativeArea ?? 
+                        'Unknown';
+      });
+      
+      print('📍 Location: $_locationCity ($_locationLat, $_locationLon)');
+    } catch (e) {
+      print('❌ Location error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to get location: $e')),
+        );
+      }
+    }
   }
 
   Future<void> _pickImages() async {
