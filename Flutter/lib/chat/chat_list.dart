@@ -40,7 +40,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
           _isLoading = false;
         });
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('Error loading swaps: $e');
+      print('Stack trace: $stackTrace');
       if (mounted) {
         setState(() {
           _error = e.toString();

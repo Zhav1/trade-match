@@ -202,13 +202,15 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   }
 
   void _scrollToBottom() {
-    if (_scrollController.hasClients) {
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   Future<void> _sendMessage({
@@ -408,12 +410,31 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                   controller: _scrollController,
                   padding: EdgeInsets.all(16),
                   itemCount: messages.length,
-                  itemBuilder: (context, index) => AnimatedSwitcher(
-                    duration: Duration(milliseconds: 300),
-                    child: _buildMessage(messages[index]),
-                  ),
+                  itemBuilder: (context, index) {
+                    // Display messages in natural order (oldest first, newest last at bottom)
+                    return AnimatedSwitcher(
+                      duration: Duration(milliseconds: 300),
+                      child: _buildMessage(messages[index]),
+                    );
+                  },
                 ),
               ),
+              // Confirm Trade button above input (not floating)
+              if (_shouldShowConfirmTrade())
+                Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  color: Colors.green.shade50,
+                  child: ElevatedButton.icon(
+                    onPressed: isLoading ? null : _confirmTrade,
+                    icon: const Icon(Icons.check_circle, color: Colors.white),
+                    label: const Text('Confirm Trade', style: TextStyle(color: Colors.white)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 decoration: BoxDecoration(
@@ -481,13 +502,13 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
           ),
         ),
       ),
-      floatingActionButton: _buildConfirmTradeFAB(),
     );
   }
 
-  Widget? _buildConfirmTradeFAB() {
-    if (swapData == null) return null;
-
+  /// Check if Confirm Trade button should be shown
+  bool _shouldShowConfirmTrade() {
+    if (swapData == null) return false;
+    
     final status = swapData?['status'];
     final userAId = swapData?['user_a_id'];
     final isUserA = userAId == currentUserId;
@@ -500,19 +521,14 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     // 2. User hasn't confirmed yet
     // 3. Trade not complete
     if (status == 'trade_complete' || userConfirmed) {
-      return null;
+      return false;
     }
 
     if (!['active', 'location_agreed'].contains(status)) {
-      return null;
+      return false;
     }
-
-    return FloatingActionButton.extended(
-      onPressed: isLoading ? null : _confirmTrade,
-      icon: const Icon(Icons.check_circle),
-      label: const Text('Confirm Trade'),
-      backgroundColor: Theme.of(context).primaryColor,
-    );
+    
+    return true;
   }
 
   @override
