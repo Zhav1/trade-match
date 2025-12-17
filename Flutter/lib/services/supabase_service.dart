@@ -268,9 +268,58 @@ class SupabaseService {
     await client.from('items').update(updates).eq('id', itemId);
   }
 
-  /// Delete an item (soft delete by changing status)
+  /// Delete an item (hard delete from database)
   Future<void> deleteItem(int itemId) async {
-    await client.from('items').update({'status': 'removed'}).eq('id', itemId);
+    if (userId == null) throw Exception('Not authenticated');
+    
+    try {
+      print('🗑️ Attempting to delete item $itemId for user $userId');
+      
+      // Check if item is in any active swap
+      final activeSwaps = await client
+          .from('swaps')
+          .select('id, status')
+          .or('item_a_id.eq.$itemId,item_b_id.eq.$itemId')
+          .inFilter('status', ['active', 'location_suggested', 'location_agreed']);
+      
+      if ((activeSwaps as List).isNotEmpty) {
+        throw Exception('Cannot delete item that is in an active trade');
+      }
+      
+      // Delete related swipes where this item was the swiper or swiped on
+      await client
+          .from('swipes')
+          .delete()
+          .eq('swiper_item_id', itemId);
+      
+      await client
+          .from('swipes')
+          .delete()
+          .eq('swiped_on_item_id', itemId);
+      
+      // Delete related records (images, wants)
+      await client
+          .from('item_images')
+          .delete()
+          .eq('item_id', itemId);
+      
+      await client
+          .from('item_wants')
+          .delete()
+          .eq('item_id', itemId);
+      
+      // Then delete the item itself
+      await client
+          .from('items')
+          .delete()
+          .eq('id', itemId)
+          .eq('user_id', userId!);
+      
+      print('✅ Item $itemId deleted successfully from database');
+    } catch (e) {
+      print('❌ Error deleting item $itemId: $e');
+      rethrow;
+    }
   }
 
   /// Upload item image
@@ -508,26 +557,39 @@ class SupabaseService {
   Future<void> markMessagesAsRead(int swapId) async {
     if (userId == null) return;
 
-    await client
-        .from('messages')
-        .update({'read_at': DateTime.now().toIso8601String()})
-        .eq('swap_id', swapId)
-        .neq('sender_user_id', userId!) // Only mark messages from others
-        .isFilter('read_at', null); // Only unread messages
+    try {
+      print('📖 Marking messages as read for swap $swapId');
+      await client
+          .from('messages')
+          .update({'read_at': DateTime.now().toIso8601String()})
+          .eq('swap_id', swapId)
+          .neq('sender_user_id', userId!);
+      print('✅ Messages marked as read for swap $swapId');
+    } catch (e) {
+      print('❌ Error marking messages as read: $e');
+      // Don't rethrow - this is not critical functionality
+    }
   }
 
   /// Get unread message count for a swap
   Future<int> getUnreadMessageCount(int swapId) async {
     if (userId == null) return 0;
 
-    final response = await client
-        .from('messages')
-        .select('id')
-        .eq('swap_id', swapId)
-        .neq('sender_user_id', userId!)
-        .isFilter('read_at', null);
+    try {
+      final response = await client
+          .from('messages')
+          .select('id, read_at')
+          .eq('swap_id', swapId)
+          .neq('sender_user_id', userId!);
 
-    return (response as List).length;
+      // Filter messages where read_at is null (unread)
+      final unreadMessages = (response as List).where((msg) => msg['read_at'] == null).toList();
+      print('📬 Swap $swapId: ${unreadMessages.length} unread messages');
+      return unreadMessages.length;
+    } catch (e) {
+      print('❌ Error getting unread count for swap $swapId: $e');
+      return 0;
+    }
   }
 
   /// Get total unread messages for all swaps

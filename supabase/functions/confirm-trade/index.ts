@@ -110,8 +110,22 @@ serve(async (req) => {
         const bothConfirmed = (isUserA && swap.item_b_owner_confirmed) ||
             (isUserB && swap.item_a_owner_confirmed)
 
-        // If trade is now complete, create notifications
+        // If trade is now complete, update status and create notifications
         if (bothConfirmed) {
+            // Update swap status to complete
+            await supabase
+                .from('swaps')
+                .update({ status: 'trade_complete' })
+                .eq('id', swap_id)
+
+            // Mark both items as traded (remove from explore)
+            await supabase
+                .from('items')
+                .update({ status: 'traded' })
+                .in('id', [swap.item_a_id, swap.item_b_id])
+
+            console.log(`Trade ${swap_id} completed! Items ${swap.item_a_id} and ${swap.item_b_id} marked as traded.`)
+
             const otherUserId = isUserA ? swap.user_b_id : swap.user_a_id
 
             await supabase.from('notifications').insert([

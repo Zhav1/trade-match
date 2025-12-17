@@ -312,64 +312,36 @@ class _ChatListScreenState extends State<ChatListScreen> {
     String time,
     int unreadCount,
   ) {
-    final bool hasUnread = unreadCount > 0;
-    
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(vertical: 8.0),
-      leading: Stack(
-        children: [
-          CircleAvatar(
-            radius: 26,
-            backgroundColor: Colors.grey[200],
-            backgroundImage: imageUrl != null && imageUrl.isNotEmpty
-                ? NetworkImage(imageUrl)
-                : null,
-            child: imageUrl == null || imageUrl.isEmpty
-                ? Text(
-                    name.isNotEmpty ? name[0].toUpperCase() : '?',
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  )
-                : null,
-          ),
-          // Unread badge on avatar
-          if (hasUnread)
-            Positioned(
-              right: 0,
-              top: 0,
-              child: Container(
-                padding: EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: Colors.red,
-                  shape: BoxShape.circle,
+      leading: CircleAvatar(
+        radius: 26,
+        backgroundColor: Colors.grey[200],
+        backgroundImage: imageUrl != null && imageUrl.isNotEmpty
+            ? NetworkImage(imageUrl)
+            : null,
+        child: imageUrl == null || imageUrl.isEmpty
+            ? Text(
+                name.isNotEmpty ? name[0].toUpperCase() : '?',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
                 ),
-                constraints: BoxConstraints(minWidth: 18, minHeight: 18),
-                child: Text(
-                  unreadCount > 9 ? '9+' : unreadCount.toString(),
-                  style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ),
-        ],
+              )
+            : null,
       ),
       title: Row(
         children: [
           Expanded(
             child: Text(
               name,
-              style: hasUnread 
-                  ? AppTextStyles.labelBold.copyWith(fontWeight: FontWeight.w900)
-                  : AppTextStyles.labelBold,
+              style: AppTextStyles.labelBold,
               overflow: TextOverflow.ellipsis,
             ),
           ),
           Text(time, style: TextStyle(
-            color: hasUnread ? Colors.blue : Colors.grey, 
+            color: Colors.grey, 
             fontSize: 12,
-            fontWeight: hasUnread ? FontWeight.bold : FontWeight.normal,
           )),
         ],
       ),
@@ -391,14 +363,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
             preview,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: hasUnread 
-                ? AppTextStyles.bodyMedium.copyWith(
-                    color: AppColors.textPrimary, 
-                    fontWeight: FontWeight.w600,
-                  )
-                : AppTextStyles.bodyMedium.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
+            style: AppTextStyles.bodyMedium.copyWith(
+              color: AppColors.textSecondary,
+            ),
           ),
         ],
       ),
@@ -412,8 +379,6 @@ class _ChatListScreenState extends State<ChatListScreen> {
             ),
           ),
         );
-        // Reload unread counts after returning from chat
-        _loadUnreadCounts();
       },
     );
   }

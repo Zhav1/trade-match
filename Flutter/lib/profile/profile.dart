@@ -205,16 +205,6 @@ class _ProfilePageState extends State<ProfilePage> {
                   ],
                 ),
               ),
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Profile editing coming soon')),
-            );
-          },
-          icon: const Icon(Icons.edit),
-          label: const Text('Edit Profile'),
-          backgroundColor: primary,
-        ),
       ),
     );
   }

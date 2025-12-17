@@ -185,6 +185,9 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       }
 
       final messagesData = await _supabaseService.getMessages(swapId);
+      
+      // Mark messages as read when viewing the chat
+      await _supabaseService.markMessagesAsRead(swapId);
 
       if (mounted) {
         setState(() {

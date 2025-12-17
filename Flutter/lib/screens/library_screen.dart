@@ -231,14 +231,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.pushNamed(context, '/add-item').then((_) => _loadItems());
-        },
-        backgroundColor: primary,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('Add Item', style: TextStyle(color: Colors.white)),
-      ),
     );
   }
 
