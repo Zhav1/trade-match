@@ -190,14 +190,16 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Owner info
+                    // Owner info
                   InkWell(
                     onTap: () {
-                      // TODO: Navigate to specific user profile
-                      Navigator.push(
+                      // Navigate to owner's reviews
+                      Navigator.pushNamed(
                         context,
-                        MaterialPageRoute(builder: (_) => const ProfilePage()),
+                        '/reviews',
+                        arguments: widget.item.user.id,
                       );
+                    },
                     },
                     child: Row(
                       children: [
