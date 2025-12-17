@@ -4,13 +4,16 @@ import 'package:shimmer/shimmer.dart';
 import 'package:trade_match/models/barter_item.dart';
 import 'package:trade_match/models/item.dart';
 import 'package:trade_match/profile/profile.dart';
-import 'package:trade_match/screens/trade_offer_page.dart';
 import 'package:trade_match/services/supabase_service.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:cached_network_image/cached_network_image.dart'; // Phase 3: Performance
 import 'package:trade_match/theme.dart';
 
-final currencyFormatter = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+final currencyFormatter = NumberFormat.currency(
+  locale: 'id_ID',
+  symbol: 'Rp ',
+  decimalDigits: 0,
+);
 
 class ItemDetailPage extends StatefulWidget {
   final BarterItem item;
@@ -40,13 +43,17 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
     try {
       // Get current user's items to find an item to use for swiping
       final userItemsData = await _supabaseService.getUserItems();
-      final userItems = userItemsData.map((data) => Item.fromJson(data)).toList();
-      
+      final userItems = userItemsData
+          .map((data) => Item.fromJson(data))
+          .toList();
+
       if (userItems.isEmpty) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('You need to create an item first before liking others'),
+            content: Text(
+              'You need to create an item first before liking others',
+            ),
             backgroundColor: Colors.orange,
           ),
         );
@@ -110,7 +117,9 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
             ],
             flexibleSpace: FlexibleSpaceBar(
               background: PageView.builder(
-                itemCount: widget.item.images.isNotEmpty ? widget.item.images.length : 1,
+                itemCount: widget.item.images.isNotEmpty
+                    ? widget.item.images.length
+                    : 1,
                 itemBuilder: (context, index) {
                   if (widget.item.images.isEmpty) {
                     return const Center(child: Icon(Icons.image_not_supported));
@@ -124,15 +133,14 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
                       highlightColor: Colors.grey[100]!,
                       child: Container(color: Colors.white),
                     ),
-                    errorWidget: (context, url, error) => const Center(
-                      child: Icon(Icons.broken_image, size: 50),
-                    ),
+                    errorWidget: (context, url, error) =>
+                        const Center(child: Icon(Icons.broken_image, size: 50)),
                   );
                 },
               ),
             ),
           ),
-          
+
           // Item details
           SliverToBoxAdapter(
             child: Padding(
@@ -160,11 +168,17 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
                               vertical: 6,
                             ),
                             decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(AppRadius.chip),
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.primary.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(
+                                AppRadius.chip,
+                              ),
                             ),
                             child: Text(
-                              currencyFormatter.format(widget.item.estimatedValue),
+                              currencyFormatter.format(
+                                widget.item.estimatedValue,
+                              ),
                               style: TextStyle(
                                 color: Theme.of(context).colorScheme.primary,
                                 fontWeight: FontWeight.w700,
@@ -180,15 +194,21 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
                   InkWell(
                     onTap: () {
                       // TODO: Navigate to specific user profile
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfilePage()));
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const ProfilePage()),
+                      );
                     },
                     child: Row(
                       children: [
                         CircleAvatar(
                           radius: 20,
                           backgroundColor: Colors.grey[200],
-                          backgroundImage: widget.item.user.profilePictureUrl != null
-                              ? NetworkImage(widget.item.user.profilePictureUrl!)
+                          backgroundImage:
+                              widget.item.user.profilePictureUrl != null
+                              ? NetworkImage(
+                                  widget.item.user.profilePictureUrl!,
+                                )
                               : null,
                           child: widget.item.user.profilePictureUrl == null
                               ? const Icon(Icons.person)
@@ -219,7 +239,9 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
                             ),
                             decoration: BoxDecoration(
                               color: Colors.green.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(AppRadius.button),
+                              borderRadius: BorderRadius.circular(
+                                AppRadius.button,
+                              ),
                             ),
                             child: Row(
                               children: [
@@ -245,10 +267,7 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
                   const SizedBox(height: 24),
 
                   // Description
-                  const Text(
-                    'Description',
-                    style: AppTextStyles.heading3,
-                  ),
+                  const Text('Description', style: AppTextStyles.heading3),
                   const SizedBox(height: 8),
                   Text(
                     widget.item.description,
@@ -269,30 +288,35 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children: widget.item.wants.map((want) => Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[200],
-                          borderRadius: BorderRadius.circular(AppRadius.chip),
-                        ),
-                        child: Text(want.category?.name ?? 'Unknown'),
-                      )).toList(),
+                      children: widget.item.wants
+                          .map(
+                            (want) => Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[200],
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.chip,
+                                ),
+                              ),
+                              child: Text(want.category?.name ?? 'Unknown'),
+                            ),
+                          )
+                          .toList(),
                     )
                   else
                     Text(
                       'Open to offers',
-                      style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                   const SizedBox(height: 24),
 
                   // Location
-                  const Text(
-                    'Location',
-                    style: AppTextStyles.heading3,
-                  ),
+                  const Text('Location', style: AppTextStyles.heading3),
                   const SizedBox(height: 8),
                   Row(
                     children: [
@@ -328,46 +352,38 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
             ),
           ],
         ),
-        child: Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: _isLiking ? null : _handleLike,
-                icon: _isLiking
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.favorite_border),
-                label: Text(_isLiking ? 'Liking...' : 'Like'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Theme.of(context).colorScheme.primary,
-                  side: BorderSide(color: Theme.of(context).colorScheme.primary),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.button)),
+        child: SafeArea(
+          child: SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _isLiking ? null : _handleLike,
+              icon: _isLiking
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.favorite, color: Colors.white),
+              label: Text(
+                _isLiking ? 'Matching...' : 'I Want This!',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.button),
                 ),
               ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.pushNamed(context, '/trade_offer', arguments: widget.item);
-                },
-                icon: const Icon(Icons.swap_horiz, color: Colors.white),
-                label: const Text('Offer Trade'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.button)),
-                ).copyWith(
-                  elevation: WidgetStateProperty.all(0),
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:trade_match/models/barter_item.dart';
 import 'package:trade_match/services/supabase_service.dart';
-import 'package:trade_match/services/constants.dart';
 import 'package:cached_network_image/cached_network_image.dart'; // Phase 3: Performance
 import 'package:trade_match/screens/submit_review_page.dart';
 import 'package:trade_match/theme/app_colors.dart';
@@ -118,7 +117,7 @@ class _TradeHistoryPageState extends State<TradeHistoryPage> {
 
   Widget _buildTradeCard(BuildContext context, {required BarterMatch swap}) {
     // Determine which item belongs to current user and which is the other
-    final currentUserId = AUTH_USER_ID; // UUID string from Supabase
+    final currentUserId = _supabaseService.userId; // Get from Supabase service
     final isUserItemA = swap.itemA.user.id == currentUserId;
     final myItem = isUserItemA ? swap.itemA : swap.itemB;
     final theirItem = isUserItemA ? swap.itemB : swap.itemA;
@@ -303,13 +302,20 @@ class _TradeHistoryPageState extends State<TradeHistoryPage> {
     );
 
     if (confirmed == true) {
-      // TODO: Call API to cancel swap (update status to 'cancelled')
-      // For now, just refresh the list
-      setState(() {});
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Trade cancelled')));
+      try {
+        await _supabaseService.cancelTrade(swapId);
+        setState(() {});
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Trade cancelled successfully')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Error cancelling trade: $e')));
+        }
       }
     }
   }

@@ -3,7 +3,6 @@ import 'package:trade_match/chat/chat_detail.dart';
 import 'package:trade_match/models/barter_item.dart';
 import 'package:trade_match/models/user.dart';
 import 'package:trade_match/services/supabase_service.dart';
-import 'package:trade_match/services/constants.dart';
 import 'package:trade_match/theme.dart';
 
 class ChatListScreen extends StatefulWidget {
@@ -54,7 +53,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
   /// Determine the "other user" in a swap based on current user
   User _getOtherUser(BarterMatch swap) {
     // Compare current user ID with item owners (UUID strings)
-    final currentUserId = AUTH_USER_ID; // UUID string
+    final currentUserId = SupabaseService().userId; // UUID string
     if (swap.itemA.user.id == currentUserId) {
       return swap.itemB.user;
     }
@@ -63,7 +62,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
   /// Get other user's item for display
   BarterItem _getOtherItem(BarterMatch swap) {
-    final currentUserId = AUTH_USER_ID; // UUID string
+    final currentUserId = SupabaseService().userId; // UUID string
     if (swap.itemA.user.id == currentUserId) {
       return swap.itemB;
     }

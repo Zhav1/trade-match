@@ -13,12 +13,11 @@ import 'package:trade_match/screens/add_item_page.dart';
 import 'package:trade_match/screens/explore_screen.dart';
 import 'package:trade_match/screens/item_detail_page.dart';
 import 'package:trade_match/screens/library_screen.dart';
-import 'package:trade_match/screens/matches_page.dart';
 import 'package:trade_match/screens/notifications_page.dart';
 import 'package:trade_match/screens/reviews_page.dart';
 import 'package:trade_match/screens/search_filter_page.dart';
 import 'package:trade_match/screens/trade_history_page.dart';
-import 'package:trade_match/screens/trade_offer_page.dart';
+// TradeOfferPage removed - swipe/like creates matches directly
 import 'package:trade_match/models/barter_item.dart';
 
 import 'package:trade_match/services/constants.dart';
@@ -82,7 +81,7 @@ class MyApp extends StatelessWidget {
       routes: {
         '/settings': (context) => const SettingsPage(),
         '/add_item': (context) => const AddItemPage(),
-        '/matches': (context) => const MatchesPage(),
+        // MatchesPage removed - Chat tab shows active matches
         '/notifications': (context) => const NotificationsPage(),
         '/search': (context) => const SearchFilterPage(),
         '/trade_history': (context) => const TradeHistoryPage(),
@@ -99,16 +98,9 @@ class MyApp extends StatelessWidget {
             );
           }
         }
-        if (settings.name == '/trade_offer') {
-          final item = settings.arguments as BarterItem?;
-          if (item != null) {
-            return MaterialPageRoute(
-              builder: (_) => TradeOfferPage(theirItem: item),
-            );
-          }
-        }
+        // TradeOfferPage route removed - non-functional feature
         if (settings.name == '/reviews') {
-          final userId = settings.arguments as int?;
+          final userId = settings.arguments as String?;
           if (userId != null) {
             return MaterialPageRoute(
               builder: (_) => ReviewsPage(userId: userId),

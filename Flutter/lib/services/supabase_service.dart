@@ -455,20 +455,37 @@ class SupabaseService {
     return List<Map<String, dynamic>>.from(response);
   }
 
-  /// Send a message
+  /// Send a message (supports text and location types)
   Future<Map<String, dynamic>> sendMessage(
     int swapId,
-    String messageText,
-  ) async {
+    String messageText, {
+    String type = 'text',
+    double? locationLat,
+    double? locationLon,
+    String? locationName,
+    String? locationAddress,
+  }) async {
     if (userId == null) throw Exception('Not authenticated');
+
+    final messageData = {
+      'swap_id': swapId,
+      'sender_user_id': userId,
+      'message_text': messageText,
+      'type': type,
+    };
+
+    // Add location fields if this is a location message
+    if (type == 'location') {
+      if (locationLat != null) messageData['location_lat'] = locationLat;
+      if (locationLon != null) messageData['location_lon'] = locationLon;
+      if (locationName != null) messageData['location_name'] = locationName;
+      if (locationAddress != null)
+        messageData['location_address'] = locationAddress;
+    }
 
     final response = await client
         .from('messages')
-        .insert({
-          'swap_id': swapId,
-          'sender_user_id': userId,
-          'message_text': messageText,
-        })
+        .insert(messageData)
         .select('*, sender:users(id, name)')
         .single();
 
@@ -487,6 +504,17 @@ class SupabaseService {
     }
 
     return response.data;
+  }
+
+  /// Cancel a trade
+  Future<void> cancelTrade(int swapId) async {
+    if (userId == null) throw Exception('Not authenticated');
+
+    await client
+        .from('swaps')
+        .update({'status': 'cancelled'})
+        .eq('id', swapId)
+        .eq('status', 'active'); // Only allow cancelling active trades
   }
 
   /// Suggest a meeting location
