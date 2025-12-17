@@ -90,15 +90,16 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
             builder: (context) => TradeCompleteDialog(
               onLeaveReview: () {
                 Navigator.of(context).pop();
-                // Navigate to review page
+                // Navigate to review page - determine other user
+                final String? userAId = swapData?['user_a_id']?.toString();
+                final String? userBId = swapData?['user_b_id']?.toString();
+                final String? otherUserId = (userAId == currentUserId) ? userBId : userAId;
                 Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) => SubmitReviewPage(
                       swapId: swapId,
-                      reviewedUserId: swapData?['user_a_id'] == currentUserId
-                          ? swapData?['user_b_id']
-                          : swapData?['user_a_id'],
+                      reviewedUserId: otherUserId,
                       reviewedUserName: widget.otherUserName,
                     ),
                   ),
@@ -484,9 +485,9 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     final status = swapData?['status'];
     final userAId = swapData?['user_a_id'];
     final isUserA = userAId == currentUserId;
-    final userConfirmed = isUserA
-        ? swapData?['item_a_owner_confirmed'] == true
-        : swapData?['item_b_owner_confirmed'] == true;
+    final bool userConfirmed = isUserA
+        ? (swapData?['item_a_owner_confirmed'] == true)
+        : (swapData?['item_b_owner_confirmed'] == true);
     
     // Only show if:
     // 1. Status is active or location_agreed
