@@ -5,11 +5,13 @@ import 'package:trade_match/models/barter_item.dart';
 import 'package:trade_match/models/item.dart';
 import 'package:trade_match/profile/profile.dart';
 import 'package:trade_match/services/supabase_service.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:cached_network_image/cached_network_image.dart'; // Phase 3: Performance
 import 'package:trade_match/theme.dart';
 import 'package:trade_match/widgets/match_success_dialog.dart';
 import 'package:trade_match/chat/chat_detail.dart';
+import 'package:trade_match/widgets/modern_card.dart';
+import 'package:trade_match/widgets/glass_effects.dart';
+import 'package:trade_match/widgets/modern_button.dart';
 
 final currencyFormatter = NumberFormat.currency(
   locale: 'id_ID',
@@ -29,11 +31,6 @@ class ItemDetailPage extends StatefulWidget {
 class _ItemDetailPageState extends State<ItemDetailPage> {
   final SupabaseService _supabaseService = SupabaseService();
   bool _isLiking = false;
-
-  void _handleShare() {
-    final shareText = 'Check out this item on BarterSwap: ${widget.item.title}';
-    Share.share(shareText, subject: widget.item.title);
-  }
 
   Future<void> _handleLike() async {
     if (_isLiking) return;
@@ -142,37 +139,68 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: 300,
+            expandedHeight: 400,
             pinned: true,
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.share),
-                onPressed: _handleShare,
-                tooltip: 'Share',
+            backgroundColor: AppColors.surface,
+            leading: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: GlassContainer(
+                borderRadius: 30.0,
+                padding: EdgeInsets.zero,
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  onPressed: () => Navigator.pop(context),
+                ),
               ),
-            ],
+            ),
+            actions: [],
             flexibleSpace: FlexibleSpaceBar(
-              background: PageView.builder(
-                itemCount: widget.item.images.isNotEmpty
-                    ? widget.item.images.length
-                    : 1,
-                itemBuilder: (context, index) {
-                  if (widget.item.images.isEmpty) {
-                    return const Center(child: Icon(Icons.image_not_supported));
-                  }
-                  return CachedNetworkImage(
-                    imageUrl: widget.item.images[index].imageUrl,
-                    fit: BoxFit.cover,
-                    memCacheWidth: 1200, // Full-size detail images
-                    placeholder: (context, url) => Shimmer.fromColors(
-                      baseColor: Colors.grey[300]!,
-                      highlightColor: Colors.grey[100]!,
-                      child: Container(color: Colors.white),
+              collapseMode: CollapseMode.parallax,
+              background: Stack(
+                fit: StackFit.expand,
+                children: [
+                  PageView.builder(
+                    itemCount: widget.item.images.isNotEmpty
+                        ? widget.item.images.length
+                        : 1,
+                    itemBuilder: (context, index) {
+                      if (widget.item.images.isEmpty) {
+                        return const Center(
+                          child: Icon(Icons.image_not_supported),
+                        );
+                      }
+                      return CachedNetworkImage(
+                        imageUrl: widget.item.images[index].imageUrl,
+                        fit: BoxFit.cover,
+                        memCacheWidth: 1200, // Full-size detail images
+                        placeholder: (context, url) => Shimmer.fromColors(
+                          baseColor: Colors.grey[300]!,
+                          highlightColor: Colors.grey[100]!,
+                          child: Container(color: Colors.white),
+                        ),
+                        errorWidget: (context, url, error) => const Center(
+                          child: Icon(Icons.broken_image, size: 50),
+                        ),
+                      );
+                    },
+                  ),
+                  // Gradient Overlay for text readability (optional, but good for parallax)
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.black.withOpacity(0.3),
+                          Colors.transparent,
+                          Colors.transparent,
+                          Colors.black.withOpacity(0.5),
+                        ],
+                        stops: const [0.0, 0.2, 0.7, 1.0],
+                      ),
                     ),
-                    errorWidget: (context, url, error) =>
-                        const Center(child: Icon(Icons.broken_image, size: 50)),
-                  );
-                },
+                  ),
+                ],
               ),
             ),
           ),
@@ -180,195 +208,275 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
           // Item details
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.md),
+              padding: const EdgeInsets.fromLTRB(
+                16,
+                24,
+                16,
+                120,
+              ), // Extra bottom padding for floating bar
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Title and Value
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          widget.item.title,
-                          style: AppTextStyles.heading2,
+                  // Title and Price Card
+                  ModernCard(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                widget.item.title,
+                                style: AppTextStyles.heading2,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                      if (widget.item.estimatedValue != null)
-                        Flexible(
-                          child: Container(
+                        const SizedBox(height: 16),
+                        if (widget.item.estimatedValue != null)
+                          Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
+                              horizontal: 16,
+                              vertical: 10,
                             ),
                             decoration: BoxDecoration(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.primary.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(
-                                AppRadius.chip,
+                              gradient: LinearGradient(
+                                colors: [
+                                  Theme.of(context).primaryColor,
+                                  Theme.of(context).primaryColor.withBlue(200),
+                                ],
                               ),
+                              borderRadius: BorderRadius.circular(
+                                AppRadius.pill,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Theme.of(
+                                    context,
+                                  ).primaryColor.withOpacity(0.3),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
                             ),
                             child: Text(
                               currencyFormatter.format(
                                 widget.item.estimatedValue,
                               ),
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.primary,
-                                fontWeight: FontWeight.w700,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
                               ),
                             ),
                           ),
-                        ),
-                    ],
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 16),
 
-                  // Owner info
+                  // Owner info Card
                   InkWell(
                     onTap: () {
-                      // Navigate to owner's reviews
                       Navigator.pushNamed(
                         context,
                         '/reviews',
                         arguments: widget.item.user.id,
                       );
                     },
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 20,
-                          backgroundColor: Colors.grey[200],
-                          backgroundImage:
-                              widget.item.user.profilePictureUrl != null
-                              ? NetworkImage(
-                                  widget.item.user.profilePictureUrl!,
-                                )
-                              : null,
-                          child: widget.item.user.profilePictureUrl == null
-                              ? const Icon(Icons.person)
-                              : null,
-                        ),
-                        const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              widget.item.user.name,
-                              style: AppTextStyles.labelBold,
-                            ),
-                            Text(
-                              widget.item.user.createdAt != null
-                                  ? 'Joined ${DateFormat.yMMMd().format(widget.item.user.createdAt!)}'
-                                  : 'Member',
-                              style: AppTextStyles.caption,
-                            ),
-                          ],
-                        ),
-                        const Spacer(),
-                        if (widget.item.user.rating != null)
+                    child: ModernCard(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      child: Row(
+                        children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
                             decoration: BoxDecoration(
-                              color: Colors.green.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(
-                                AppRadius.button,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: AppColors.primary.withOpacity(0.2),
+                                width: 2,
                               ),
                             ),
-                            child: Row(
+                            child: CircleAvatar(
+                              radius: 24,
+                              backgroundColor: Colors.grey[200],
+                              backgroundImage:
+                                  widget.item.user.profilePictureUrl != null
+                                  ? NetworkImage(
+                                      widget.item.user.profilePictureUrl!,
+                                    )
+                                  : null,
+                              child: widget.item.user.profilePictureUrl == null
+                                  ? const Icon(Icons.person, color: Colors.grey)
+                                  : null,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Icon(
-                                  Icons.star,
-                                  size: 16,
-                                  color: Colors.green,
-                                ),
-                                const SizedBox(width: 4),
                                 Text(
-                                  widget.item.user.rating!.toStringAsFixed(1),
-                                  style: const TextStyle(
-                                    color: Colors.green,
-                                    fontWeight: FontWeight.bold,
+                                  widget.item.user.name,
+                                  style: AppTextStyles.labelBold,
+                                ),
+                                Text(
+                                  widget.item.user.createdAt != null
+                                      ? 'Joined ${DateFormat.yMMMd().format(widget.item.user.createdAt!)}'
+                                      : 'Member',
+                                  style: AppTextStyles.caption.copyWith(
+                                    color: AppColors.textSecondary,
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                      ],
+                          if (widget.item.user.rating != null)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.amber.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.chip,
+                                ),
+                                border: Border.all(
+                                  color: Colors.amber.withOpacity(0.3),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.star_rounded,
+                                    size: 18,
+                                    color: Colors.amber,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    widget.item.user.rating!.toStringAsFixed(1),
+                                    style: const TextStyle(
+                                      color: Colors.amber,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 24),
 
                   // Description
-                  const Text('Description', style: AppTextStyles.heading3),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: Text('Description', style: AppTextStyles.heading3),
+                  ),
                   const SizedBox(height: 8),
-                  Text(
-                    widget.item.description,
-                    style: AppTextStyles.bodyMedium.copyWith(
-                      color: AppColors.textSecondary,
-                      height: 1.5,
+                  ModernCard(
+                    child: Text(
+                      widget.item.description,
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.textSecondary,
+                        height: 1.6,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 24),
 
                   // Looking for
-                  const Text(
-                    'Looking to Trade For',
-                    style: AppTextStyles.heading3,
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: Text(
+                      'Looking to Trade For',
+                      style: AppTextStyles.heading3,
+                    ),
                   ),
                   const SizedBox(height: 8),
-                  if (widget.item.wants.isNotEmpty)
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: widget.item.wants
-                          .map(
-                            (want) => Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
+                  ModernCard(
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: widget.item.wants.isNotEmpty
+                          ? Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: widget.item.wants
+                                  .map(
+                                    (want) => Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 8,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.primary.withOpacity(
+                                          0.05,
+                                        ),
+                                        borderRadius: BorderRadius.circular(
+                                          AppRadius.chip,
+                                        ),
+                                        border: Border.all(
+                                          color: AppColors.primary.withOpacity(
+                                            0.2,
+                                          ),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        want.category?.name ?? 'Unknown',
+                                        style: TextStyle(
+                                          color: AppColors.primary,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                            )
+                          : Text(
+                              'Open to offers',
+                              style: AppTextStyles.bodyMedium.copyWith(
+                                color: AppColors.textSecondary,
                               ),
-                              decoration: BoxDecoration(
-                                color: Colors.grey[200],
-                                borderRadius: BorderRadius.circular(
-                                  AppRadius.chip,
-                                ),
-                              ),
-                              child: Text(want.category?.name ?? 'Unknown'),
                             ),
-                          )
-                          .toList(),
-                    )
-                  else
-                    Text(
-                      'Open to offers',
-                      style: AppTextStyles.bodyMedium.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
                     ),
+                  ),
                   const SizedBox(height: 24),
 
                   // Location
-                  const Text('Location', style: AppTextStyles.heading3),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: Text('Location', style: AppTextStyles.heading3),
+                  ),
                   const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.location_on_outlined,
-                        color: Colors.grey,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        widget.item.locationCity,
-                        style: AppTextStyles.bodyMedium.copyWith(
-                          color: AppColors.textSecondary,
+                  ModernCard(
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.red.withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.location_on_outlined,
+                            color: Colors.red,
+                          ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 16),
+                        Text(
+                          widget.item.locationCity,
+                          style: AppTextStyles.bodyMedium,
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 32),
                 ],
@@ -377,49 +485,24 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
           ),
         ],
       ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.all(16).copyWith(top: 8),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -5),
-            ),
-          ],
-        ),
-        child: SafeArea(
-          child: SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: _isLiking ? null : _handleLike,
-              icon: _isLiking
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Icon(Icons.favorite, color: Colors.white),
-              label: Text(
-                _isLiking ? 'Matching...' : 'I Want This!',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.button),
-                ),
-              ),
-            ),
+      extendBody: true, // Allow body to scroll behind floating UI
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        child: GlassContainer(
+          borderRadius: AppRadius.button,
+          blurSigma: 15,
+          color: Colors.white.withOpacity(
+            0.8,
+          ), // Translucent white for glass effect
+          padding: const EdgeInsets.all(8),
+          child: ModernButton(
+            text: _isLiking ? 'Matching...' : 'I Want This!',
+            icon: _isLiking ? null : Icons.favorite,
+            isLoading: _isLiking,
+            style: ModernButtonStyle
+                .primary, // This uses the gradient/shadow logic inside ModernButton or similar
+            height: 56,
+            onPressed: _isLiking ? null : _handleLike,
           ),
         ),
       ),

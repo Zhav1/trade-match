@@ -7,6 +7,9 @@ import 'package:trade_match/models/item.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'settings_page.dart';
 import 'package:trade_match/theme.dart';
+import 'package:trade_match/widgets/modern_card.dart';
+import 'package:trade_match/widgets/glass_effects.dart';
+import 'package:trade_match/widgets/modern_button.dart'; // Future use for Edit Profile
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -124,88 +127,97 @@ class _ProfilePageState extends State<ProfilePage> {
                     pinned: true,
                     elevation: 0,
                     backgroundColor: AppColors.surface,
-                    leading: IconButton(
-                      icon: Icon(
-                        Icons.arrow_back_ios_new,
-                        color: AppColors.textPrimary,
-                      ),
-                      onPressed: () => Navigator.of(context).maybePop(),
-                    ),
+                    automaticallyImplyLeading: false,
                     actions: [
-                      IconButton(
-                        icon: Icon(
-                          Icons.settings,
-                          color: AppColors.textPrimary,
-                        ),
-                        onPressed: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const SettingsPage(),
+                      Padding(
+                        padding: const EdgeInsets.only(right: 16.0),
+                        child: GlassContainer(
+                          borderRadius: 30.0,
+                          padding: const EdgeInsets.all(4),
+                          child: IconButton(
+                            icon: const Icon(
+                              Icons.settings,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                            onPressed: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const SettingsPage(),
+                              ),
+                            ),
                           ),
                         ),
                       ),
                     ],
-                    expandedHeight: 300,
+                    expandedHeight: 340,
                     flexibleSpace: FlexibleSpaceBar(
+                      collapseMode: CollapseMode.parallax,
                       background: Stack(
                         fit: StackFit.expand,
                         children: [
+                          // 1. Background Image
                           (_userData?['background_picture_url'] != null)
                               ? CachedNetworkImage(
                                   imageUrl:
                                       _userData!['background_picture_url'],
                                   fit: BoxFit.cover,
-                                  color: Colors.black.withOpacity(0.12),
-                                  colorBlendMode: BlendMode.darken,
-                                  placeholder: (context, url) => Container(
-                                    color: Colors.grey[300],
-                                    child: const Center(
-                                      child: CircularProgressIndicator(),
-                                    ),
-                                  ),
+                                  placeholder: (context, url) =>
+                                      Container(color: Colors.grey[900]),
                                   errorWidget: (context, url, error) =>
-                                      Image.asset(
-                                        'assets/images/profile.jpg',
-                                        fit: BoxFit.cover,
-                                        color: Colors.black.withOpacity(0.12),
-                                        colorBlendMode: BlendMode.darken,
-                                      ),
+                                      Container(color: Colors.grey[800]),
                                 )
-                              : Image.asset(
-                                  'assets/images/profile.jpg',
-                                  fit: BoxFit.cover,
-                                  color: Colors.black.withOpacity(0.12),
-                                  colorBlendMode: BlendMode.darken,
-                                ),
+                              : Container(
+                                  color: Colors.grey[850],
+                                ), // Dark fallback
+                          // 2. Gradient Overlay (Darkens bottom for avatar contrast)
                           Container(
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
                                 colors: [
+                                  Colors.black.withOpacity(0.3),
                                   Colors.transparent,
-                                  Colors.white.withOpacity(0.95),
+                                  AppColors.surface.withOpacity(0.8),
+                                  AppColors.surface,
                                 ],
+                                stops: const [0.0, 0.4, 0.85, 1.0],
                                 begin: Alignment.topCenter,
                                 end: Alignment.bottomCenter,
                               ),
                             ),
                           ),
+
+                          // 3. Avatar
                           Align(
                             alignment: Alignment.bottomCenter,
                             child: Padding(
-                              padding: const EdgeInsets.only(bottom: 20.0),
+                              padding: const EdgeInsets.only(bottom: 30.0),
                               child: Container(
-                                decoration: const BoxDecoration(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  color: Colors.white,
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      Colors.white.withOpacity(0.2),
+                                      Colors.white.withOpacity(0.1),
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  border: Border.all(
+                                    color: Colors.white.withOpacity(0.2),
+                                    width: 1,
+                                  ),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black12,
-                                      blurRadius: 8,
-                                      offset: Offset(0, 4),
+                                      color: Colors.black.withOpacity(0.2),
+                                      blurRadius: 20,
+                                      spreadRadius: 5,
                                     ),
                                   ],
                                 ),
                                 child: CircleAvatar(
-                                  radius: 56,
+                                  radius: 60,
+                                  backgroundColor: Colors.grey[800],
                                   backgroundImage:
                                       _userData?['profile_picture_url'] != null
                                       ? NetworkImage(
@@ -223,13 +235,22 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                     ),
                     bottom: PreferredSize(
-                      preferredSize: const Size.fromHeight(72),
-                      child: Padding(
-                        padding: const EdgeInsets.only(bottom: 8.0),
+                      preferredSize: const Size.fromHeight(60),
+                      child: Container(
+                        height: 60,
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(30),
+                          ),
+                        ),
                         child: TabBar(
-                          labelColor: AppColors.textPrimary,
+                          labelColor: Theme.of(context).primaryColor,
                           unselectedLabelColor: AppColors.textSecondary,
-                          indicatorColor: Theme.of(context).colorScheme.primary,
+                          indicatorColor: Theme.of(context).primaryColor,
+                          indicatorSize: TabBarIndicatorSize.label,
+                          indicatorWeight: 3,
+                          dividerColor: Colors.transparent,
                           tabs: const [
                             Tab(text: 'Ditawarkan'),
                             Tab(text: 'History'),
@@ -278,6 +299,7 @@ class _ProfileInfo extends StatelessWidget {
   final int tradesCount;
 
   const _ProfileInfo({
+    super.key,
     this.userData,
     required this.itemCount,
     this.tradesCount = 0,
@@ -297,59 +319,95 @@ class _ProfileInfo extends StatelessWidget {
 
     return Column(
       children: [
-        Text(name, style: AppTextStyles.heading3),
-        const SizedBox(height: AppSpacing.xs),
-        Text(
-          location,
-          style: AppTextStyles.bodyMedium.copyWith(
-            color: AppColors.textSecondary,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.md),
+        Text(name, style: AppTextStyles.heading2),
+        const SizedBox(height: 4),
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _StatItem(value: offersCount, title: 'Offers'),
-            GestureDetector(
-              onTap: () => Navigator.pushNamed(context, '/trade_history'),
-              child: _StatItem(value: displayTradesCount, title: 'Trades'),
+            Icon(Icons.location_on, size: 14, color: AppColors.textSecondary),
+            const SizedBox(width: 4),
+            Text(
+              location,
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: AppColors.textSecondary,
+              ),
             ),
           ],
         ),
-        const SizedBox(height: AppSpacing.sm),
+        const SizedBox(height: 24),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              Expanded(
+                child: _StatCard(
+                  value: offersCount,
+                  title: 'Offers',
+                  icon: Icons.inventory_2_outlined,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => Navigator.pushNamed(context, '/trade_history'),
+                  child: _StatCard(
+                    value: displayTradesCount,
+                    title: 'Trades',
+                    icon: Icons.history,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
       ],
     );
   }
 }
 
-class _StatItem extends StatelessWidget {
+class _StatCard extends StatelessWidget {
   final String value;
   final String title;
-  const _StatItem({required this.value, required this.title});
+  final IconData icon;
+
+  const _StatCard({
+    required this.value,
+    required this.title,
+    required this.icon,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(value, style: AppTextStyles.heading3),
-        const SizedBox(height: AppSpacing.xs),
-        Text(
-          title,
-          style: AppTextStyles.bodySmall.copyWith(
-            color: AppColors.textSecondary,
+    return ModernCard(
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+      backgroundColor:
+          AppColors.surface, // Or strictly white/dark depending on theme
+      elevation: 2,
+      child: Column(
+        children: [
+          Icon(icon, color: Theme.of(context).primaryColor, size: 24),
+          const SizedBox(height: 8),
+          Text(value, style: AppTextStyles.heading3),
+          Text(
+            title,
+            style: AppTextStyles.caption.copyWith(
+              color: AppColors.textSecondary,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
+
+// _StatItem removed as it is incorporated into _ProfileInfo with ModernCard logic
 
 class _ItemList extends StatelessWidget {
   final bool isOffer;
   final List<Item> items;
 
-  const _ItemList({required this.isOffer, required this.items});
+  const _ItemList({super.key, required this.isOffer, required this.items});
 
   @override
   Widget build(BuildContext context) {
@@ -361,57 +419,83 @@ class _ItemList extends StatelessWidget {
             Icon(
               isOffer ? Icons.inventory_2_outlined : Icons.search_outlined,
               size: 48,
-              color: Colors.grey[300],
+              color: AppColors.textSecondary.withOpacity(0.5),
             ),
             const SizedBox(height: 16),
             Text(
               isOffer ? 'No items offered yet' : 'No requests yet',
-              style: TextStyle(color: Colors.grey[500]),
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: AppColors.textSecondary,
+              ),
             ),
           ],
         ),
       );
     }
 
-    return ListView.separated(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+    return GridView.builder(
+      padding: const EdgeInsets.all(16.0),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 0.75, // Taller for image + text
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+      ),
       itemCount: items.length,
-      separatorBuilder: (context, index) => Divider(color: AppColors.divider),
       itemBuilder: (context, index) {
         final item = items[index];
-        return ListTile(
-          leading: Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: Colors.grey[200],
-              borderRadius: BorderRadius.circular(AppRadius.sm),
-              image: (item.images != null && item.images!.isNotEmpty)
-                  ? DecorationImage(
-                      image: NetworkImage(item.images!.first.imageUrl),
-                      fit: BoxFit.cover,
-                    )
-                  : null,
-            ),
-            child: (item.images == null || item.images!.isEmpty)
-                ? const Icon(Icons.inventory_2_outlined, color: Colors.black54)
-                : null,
-          ),
-          title: Text(item.title, style: AppTextStyles.labelBold),
-          subtitle: Text(
-            item.condition,
-            style: AppTextStyles.bodySmall.copyWith(
-              color: AppColors.textSecondary,
-            ),
-          ),
-          trailing: const Icon(
-            Icons.arrow_forward_ios,
-            size: 16,
-            color: Colors.grey,
-          ),
+        return ModernCard(
+          padding: EdgeInsets.zero,
           onTap: () {
             // TODO: Navigate to item detail
           },
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                flex: 3,
+                child: (item.images != null && item.images!.isNotEmpty)
+                    ? CachedNetworkImage(
+                        imageUrl: item.images!.first.imageUrl,
+                        fit: BoxFit.cover,
+                        placeholder: (_, __) =>
+                            Container(color: Colors.grey[200]),
+                        errorWidget: (_, __, ___) => Container(
+                          color: Colors.grey[200],
+                          child: const Icon(Icons.error),
+                        ),
+                      )
+                    : Container(
+                        color: Colors.grey[200],
+                        child: const Icon(Icons.image_not_supported),
+                      ),
+              ),
+              Expanded(
+                flex: 2,
+                child: Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        item.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTextStyles.labelBold,
+                      ),
+                      Text(
+                        item.condition,
+                        style: AppTextStyles.caption.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         );
       },
     );
@@ -423,7 +507,11 @@ class _TradeHistoryList extends StatelessWidget {
   final List<Map<String, dynamic>> trades;
   final String? currentUserId;
 
-  const _TradeHistoryList({required this.trades, this.currentUserId});
+  const _TradeHistoryList({
+    super.key,
+    required this.trades,
+    this.currentUserId,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -432,16 +520,24 @@ class _TradeHistoryList extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.history, size: 48, color: Colors.grey[300]),
+            Icon(
+              Icons.history,
+              size: 48,
+              color: AppColors.textSecondary.withOpacity(0.5),
+            ),
             const SizedBox(height: 16),
             Text(
               'No completed trades yet',
-              style: TextStyle(color: Colors.grey[500]),
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: AppColors.textSecondary,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
               'Your traded items will appear here',
-              style: TextStyle(color: Colors.grey[400], fontSize: 12),
+              style: AppTextStyles.caption.copyWith(
+                color: AppColors.textSecondary,
+              ),
             ),
           ],
         ),
@@ -451,7 +547,8 @@ class _TradeHistoryList extends StatelessWidget {
     return ListView.separated(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
       itemCount: trades.length,
-      separatorBuilder: (context, index) => Divider(color: AppColors.divider),
+      separatorBuilder: (context, index) =>
+          const SizedBox(height: 12), // Spacing instead of divider
       itemBuilder: (context, index) {
         final trade = trades[index];
         // Use snapshots if available (for deleted items), otherwise use relational data
@@ -472,140 +569,124 @@ class _TradeHistoryList extends StatelessWidget {
             ? '${updatedAt.day}/${updatedAt.month}/${updatedAt.year}'
             : '';
 
-        return Card(
-          margin: const EdgeInsets.symmetric(vertical: 4),
-          child: Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Date and status
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Trade #${trade['id']}',
-                      style: AppTextStyles.caption.copyWith(
-                        color: Colors.grey[600],
+        return ModernCard(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Date and status
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.calendar_today,
+                        size: 12,
+                        color: AppColors.textSecondary,
                       ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Text(
-                        'Completed',
-                        style: TextStyle(
-                          color: Colors.green,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
+                      const SizedBox(width: 4),
+                      Text(
+                        formattedDate,
+                        style: AppTextStyles.caption.copyWith(
+                          color: AppColors.textSecondary,
                         ),
                       ),
+                    ],
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
                     ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                // Trade items
-                Row(
-                  children: [
-                    // My item
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: 60,
-                            height: 60,
-                            decoration: BoxDecoration(
-                              color: Colors.grey[200],
-                              borderRadius: BorderRadius.circular(8),
-                              image: myItemImages.isNotEmpty
-                                  ? DecorationImage(
-                                      image: NetworkImage(
-                                        myItemImages.first['image_url'] ?? '',
-                                      ),
-                                      fit: BoxFit.cover,
-                                    )
-                                  : null,
-                            ),
-                            child: myItemImages.isEmpty
-                                ? const Icon(
-                                    Icons.inventory_2_outlined,
-                                    color: Colors.grey,
-                                  )
-                                : null,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            myItem?['title'] ?? 'Your Item',
-                            style: AppTextStyles.caption,
-                            textAlign: TextAlign.center,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
+                    decoration: BoxDecoration(
+                      color: AppColors.success.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(AppRadius.chip),
+                    ),
+                    child: Text(
+                      'Completed',
+                      style: AppTextStyles.caption.copyWith(
+                        color: AppColors.success,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    // Swap icon
-                    Icon(
-                      Icons.swap_horiz,
-                      color: Theme.of(context).colorScheme.primary,
-                      size: 30,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              // Trade items
+              Row(
+                children: [
+                  // My item
+                  Expanded(
+                    child: Column(
+                      children: [
+                        ModernCard(
+                          padding: EdgeInsets.zero,
+                          height: 70,
+                          width: 70,
+                          child: (myItemImages.isNotEmpty)
+                              ? CachedNetworkImage(
+                                  imageUrl:
+                                      myItemImages.first['image_url'] ?? '',
+                                  fit: BoxFit.cover,
+                                )
+                              : const Center(
+                                  child: Icon(Icons.image_not_supported),
+                                ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          myItem?['title'] ?? 'Your Item',
+                          style: AppTextStyles.caption,
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                     ),
-                    // Their item
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: 60,
-                            height: 60,
-                            decoration: BoxDecoration(
-                              color: Colors.grey[200],
-                              borderRadius: BorderRadius.circular(8),
-                              image: theirItemImages.isNotEmpty
-                                  ? DecorationImage(
-                                      image: NetworkImage(
-                                        theirItemImages.first['image_url'] ??
-                                            '',
-                                      ),
-                                      fit: BoxFit.cover,
-                                    )
-                                  : null,
-                            ),
-                            child: theirItemImages.isEmpty
-                                ? const Icon(
-                                    Icons.inventory_2_outlined,
-                                    color: Colors.grey,
-                                  )
-                                : null,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            theirItem?['title'] ?? 'Their Item',
-                            style: AppTextStyles.caption,
-                            textAlign: TextAlign.center,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
+                  ),
+                  // Swap icon
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: Icon(
+                      Icons.swap_horiz_rounded,
+                      color: Theme.of(context).primaryColor,
+                      size: 32,
                     ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                // Date
-                Text(
-                  formattedDate,
-                  style: TextStyle(color: Colors.grey[500], fontSize: 11),
-                ),
-              ],
-            ),
+                  ),
+                  // Their item
+                  Expanded(
+                    child: Column(
+                      children: [
+                        ModernCard(
+                          padding: EdgeInsets.zero,
+                          height: 70,
+                          width: 70,
+                          child: (theirItemImages.isNotEmpty)
+                              ? CachedNetworkImage(
+                                  imageUrl:
+                                      theirItemImages.first['image_url'] ?? '',
+                                  fit: BoxFit.cover,
+                                )
+                              : const Center(
+                                  child: Icon(Icons.image_not_supported),
+                                ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          theirItem?['title'] ?? 'Their Item',
+                          style: AppTextStyles.caption,
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         );
       },
