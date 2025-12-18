@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:trade_match/theme/app_colors.dart';
 
 // Export all design system classes for easy access
 export 'theme/app_colors.dart';
@@ -12,33 +13,19 @@ export 'utils/responsive_utils.dart';
 export 'utils/animation_utils.dart';
 export 'widgets/glass_effects.dart';
 export 'widgets/gradient_widgets.dart';
+export 'widgets/modern_button.dart';
+export 'widgets/modern_card.dart';
 
-/// Legacy AppColors class - kept for backward compatibility
-/// New code should import and use theme/app_colors.dart directly
-class AppColors {
-  // Central primary color used across the app. Change this one value to affect UI.
-  static const Color primary = Color(0xFFFD7E14);
-
-  static Color? get background => null;
-
-  static Color? get textSecondary => null;
-
-  static Color? get surface => null;
-
-  static Color? get error => null;
-
-  static Color? get textPrimary => null;
-
-  static Color? get textTertiary => null;
-
-  static Color? get divider => null;
-}
+// AppColors class removed to avoid conflict with 'theme/app_colors.dart'
 
 class AppTheme {
   static ThemeData lightTheme() {
     // Start from a generated color scheme but enforce the exact primary color
     final generated = ColorScheme.fromSeed(seedColor: AppColors.primary);
-    final colorScheme = generated.copyWith(primary: AppColors.primary, onPrimary: Colors.white);
+    final colorScheme = generated.copyWith(
+      primary: AppColors.primary,
+      onPrimary: Colors.white,
+    );
 
     return ThemeData(
       colorScheme: colorScheme,
@@ -53,9 +40,12 @@ class AppTheme {
           backgroundColor: WidgetStateProperty.all(AppColors.primary),
           foregroundColor: WidgetStateProperty.all(Colors.white),
           overlayColor: WidgetStateProperty.resolveWith((states) {
-            if (states.contains(WidgetState.pressed)) return AppColors.primary.withOpacity(0.12);
-            if (states.contains(WidgetState.hovered)) return AppColors.primary.withOpacity(0.08);
-            if (states.contains(WidgetState.focused)) return AppColors.primary.withOpacity(0.06);
+            if (states.contains(WidgetState.pressed))
+              return AppColors.primary.withOpacity(0.12);
+            if (states.contains(WidgetState.hovered))
+              return AppColors.primary.withOpacity(0.08);
+            if (states.contains(WidgetState.focused))
+              return AppColors.primary.withOpacity(0.06);
             return null;
           }),
           splashFactory: InkRipple.splashFactory,
@@ -65,9 +55,12 @@ class AppTheme {
         style: ButtonStyle(
           foregroundColor: WidgetStateProperty.all(AppColors.primary),
           overlayColor: WidgetStateProperty.resolveWith((states) {
-            if (states.contains(WidgetState.pressed)) return AppColors.primary.withOpacity(0.12);
-            if (states.contains(WidgetState.hovered)) return AppColors.primary.withOpacity(0.08);
-            if (states.contains(WidgetState.focused)) return AppColors.primary.withOpacity(0.06);
+            if (states.contains(WidgetState.pressed))
+              return AppColors.primary.withOpacity(0.12);
+            if (states.contains(WidgetState.hovered))
+              return AppColors.primary.withOpacity(0.08);
+            if (states.contains(WidgetState.focused))
+              return AppColors.primary.withOpacity(0.06);
             return null;
           }),
           splashFactory: InkRipple.splashFactory,
@@ -78,9 +71,12 @@ class AppTheme {
           foregroundColor: WidgetStateProperty.all(AppColors.primary),
           side: WidgetStateProperty.all(BorderSide(color: AppColors.primary)),
           overlayColor: WidgetStateProperty.resolveWith((states) {
-            if (states.contains(WidgetState.pressed)) return AppColors.primary.withOpacity(0.12);
-            if (states.contains(WidgetState.hovered)) return AppColors.primary.withOpacity(0.08);
-            if (states.contains(WidgetState.focused)) return AppColors.primary.withOpacity(0.06);
+            if (states.contains(WidgetState.pressed))
+              return AppColors.primary.withOpacity(0.12);
+            if (states.contains(WidgetState.hovered))
+              return AppColors.primary.withOpacity(0.08);
+            if (states.contains(WidgetState.focused))
+              return AppColors.primary.withOpacity(0.06);
             return null;
           }),
           splashFactory: InkRipple.splashFactory,

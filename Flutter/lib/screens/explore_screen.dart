@@ -448,94 +448,88 @@ class _ExploreScreenState extends State<ExploreScreen>
 
         final items = snapshot.data!;
 
-        // Wrapped in Padding to replace deprecated 'padding' param
-        return Padding(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          child: Stack(
-            children: [
-              Listener(
-                onPointerMove: (event) {
-                  setState(() {
-                    _swipeOffset =
-                        event.localPosition.dx -
-                        (MediaQuery.of(context).size.width / 2);
-                    if (_swipeOffset > 20) {
-                      _swipeDirection = AxisDirection.right;
-                    } else if (_swipeOffset < -20) {
-                      _swipeDirection = AxisDirection.left;
-                    } else {
-                      _swipeDirection = null;
-                    }
-                    _swipeOffset = _swipeOffset.abs();
-                  });
+        // Immersive Stack - No specific padding here, card handles margins
+        return Stack(
+          children: [
+            Listener(
+              onPointerMove: (event) {
+                setState(() {
+                  _swipeOffset =
+                      event.localPosition.dx -
+                      (MediaQuery.of(context).size.width / 2);
+                  if (_swipeOffset > 20) {
+                    _swipeDirection = AxisDirection.right;
+                  } else if (_swipeOffset < -20) {
+                    _swipeDirection = AxisDirection.left;
+                  } else {
+                    _swipeDirection = null;
+                  }
+                  _swipeOffset = _swipeOffset.abs();
+                });
+              },
+              onPointerUp: (_) {
+                // The offset will be reset in _onSwipeEnd
+              },
+              child: AppinioSwiper(
+                controller: _swiperController,
+                cardCount: items.length,
+                loop: true,
+                threshold: 150,
+                onSwipeEnd: _onSwipeEnd,
+                swipeOptions: const SwipeOptions.only(left: true, right: true),
+                cardBuilder: (context, index) {
+                  return GestureDetector(
+                    onDoubleTap: _handleDoubleTap,
+                    child: _buildCard(items[index]),
+                  );
                 },
-                onPointerUp: (_) {
-                  // The offset will be reset in _onSwipeEnd
-                },
-                child: AppinioSwiper(
-                  controller: _swiperController,
-                  cardCount: items.length,
-                  loop: true,
-                  threshold: 150,
-                  onSwipeEnd: _onSwipeEnd,
-                  swipeOptions: const SwipeOptions.only(
-                    left: true,
-                    right: true,
+              ),
+            ),
+            // Swipe direction overlay - Like indicator (right swipe)
+            if (_swipeDirection == AxisDirection.right)
+              Positioned(
+                top: 40,
+                right: 30,
+                child: Opacity(
+                  opacity: (_swipeOffset / 150).clamp(0.0, 1.0),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withOpacity(0.9),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white, width: 3),
+                    ),
+                    child: const Icon(
+                      Icons.favorite,
+                      color: Colors.white,
+                      size: 40,
+                    ),
                   ),
-                  cardBuilder: (context, index) {
-                    return GestureDetector(
-                      onDoubleTap: _handleDoubleTap,
-                      child: _buildCard(items[index]),
-                    );
-                  },
                 ),
               ),
-              // Swipe direction overlay - Like indicator (right swipe)
-              if (_swipeDirection == AxisDirection.right)
-                Positioned(
-                  top: 40,
-                  right: 30,
-                  child: Opacity(
-                    opacity: (_swipeOffset / 150).clamp(0.0, 1.0),
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.9),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.white, width: 3),
-                      ),
-                      child: const Icon(
-                        Icons.favorite,
-                        color: Colors.white,
-                        size: 40,
-                      ),
+            // Swipe direction overlay - Dislike indicator (left swipe)
+            if (_swipeDirection == AxisDirection.left)
+              Positioned(
+                top: 40,
+                left: 30,
+                child: Opacity(
+                  opacity: (_swipeOffset / 150).clamp(0.0, 1.0),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withOpacity(0.9),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white, width: 3),
+                    ),
+                    child: const Icon(
+                      Icons.close,
+                      color: Colors.white,
+                      size: 40,
                     ),
                   ),
                 ),
-              // Swipe direction overlay - Dislike indicator (left swipe)
-              if (_swipeDirection == AxisDirection.left)
-                Positioned(
-                  top: 40,
-                  left: 30,
-                  child: Opacity(
-                    opacity: (_swipeOffset / 150).clamp(0.0, 1.0),
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.red.withOpacity(0.9),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.white, width: 3),
-                      ),
-                      child: const Icon(
-                        Icons.close,
-                        color: Colors.white,
-                        size: 40,
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
+              ),
+          ],
         );
       },
     );
@@ -596,215 +590,193 @@ class _ExploreScreenState extends State<ExploreScreen>
           MaterialPageRoute(builder: (context) => ItemDetailPage(item: item)),
         );
       },
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(AppRadius.card),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.12),
-              blurRadius: 16,
-              offset: const Offset(0, 8),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return Container(
+            margin: const EdgeInsets.fromLTRB(
+              12,
+              12,
+              12,
+              60,
+            ), // Reduced margins for bigger card
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppRadius.card),
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(AppRadius.card),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              // Image
-              if (item.images.isNotEmpty)
-                CachedNetworkImage(
-                  imageUrl: item.images.first.imageUrl,
-                  fit: BoxFit.cover,
-                  placeholder: (context, url) =>
-                      Container(color: Colors.grey[200]),
-                  errorWidget: (context, url, error) => Container(
-                    color: Colors.grey[300],
-                    child: const Icon(Icons.error),
+            clipBehavior: Clip.hardEdge,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // 1. Main Image
+                Expanded(
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      if (item.images.isNotEmpty)
+                        CachedNetworkImage(
+                          imageUrl: item.images.first.imageUrl,
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) =>
+                              Container(color: Colors.grey[200]),
+                          errorWidget: (context, url, err) => const Center(
+                            child: Icon(Icons.error, color: Colors.grey),
+                          ),
+                        )
+                      else
+                        Container(color: Colors.grey[200]),
+
+                      // Wants / Match Highlight (floating on image)
+                      if (item.wantsDescription.isNotEmpty)
+                        Positioned(
+                          top: 12,
+                          right: 12,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withOpacity(0.9),
+                              borderRadius: BorderRadius.circular(
+                                AppRadius.chip,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.flash_on,
+                                  size: 14,
+                                  color: Colors.white,
+                                ),
+                                const SizedBox(width: 4),
+                                ConstrainedBox(
+                                  constraints: const BoxConstraints(
+                                    maxWidth: 150,
+                                  ),
+                                  child: Text(
+                                    "WANT: ${item.wantsDescription}",
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
-                )
-              else
-                Container(
-                  color: Colors.grey[200],
-                  child: const Icon(Icons.image, size: 50, color: Colors.grey),
                 ),
 
-              // Glassmorphism Gradient Content
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.transparent,
-                        Colors.black.withOpacity(0.6),
-                        Colors.black.withOpacity(0.9),
-                      ],
-                      stops: const [0.0, 0.4, 1.0],
-                    ),
-                  ),
+                // 2. Info Content (White Area)
+                Container(
+                  padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Title & Badges
+                      // Title & Price
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Expanded(
                             child: Text(
                               item.title,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 26,
+                              style: AppTextStyles.heading3.copyWith(
+                                // Smaller than heading1
+                                fontSize: 22,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (item.estimatedValue != null)
+                            Text(
+                              currencyFormatter.format(item.estimatedValue),
+                              style: TextStyle(
+                                color: Theme.of(context).primaryColor,
                                 fontWeight: FontWeight.bold,
-                                height: 1.2,
+                                fontSize: 18,
                               ),
                             ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: Colors.white.withOpacity(0.1),
-                              ),
-                            ),
-                            child: BackdropFilter(
-                              filter: ImageFilter.blur(
-                                sigmaX: 5.0,
-                                sigmaY: 5.0,
-                              ),
-                              child: Text(
-                                item.condition,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ),
                         ],
                       ),
                       const SizedBox(height: 8),
 
-                      // User Info
+                      // Location & User
                       Row(
                         children: [
+                          Icon(
+                            Icons.location_on,
+                            size: 16,
+                            color: AppColors.textSecondary,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            item.locationCity,
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          const Spacer(),
                           CircleAvatar(
-                            radius: 14,
+                            radius: 10,
                             backgroundImage: item.user.profilePictureUrl != null
                                 ? NetworkImage(item.user.profilePictureUrl!)
-                                : const AssetImage('assets/images/pp-1.png')
-                                      as ImageProvider,
+                                : null,
+                            child: item.user.profilePictureUrl == null
+                                ? const Icon(Icons.person, size: 12)
+                                : null,
                           ),
-                          const SizedBox(width: 8),
-                          Text(
-                            item.user.name,
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              fontSize: 16,
-                            ),
-                          ),
+                          const SizedBox(width: 6),
+                          Text(item.user.name, style: AppTextStyles.labelBold),
                         ],
                       ),
-                      const SizedBox(height: 16),
-
-                      // Match Highlight ("Wants" Section)
-                      if (item.wantsDescription.isNotEmpty)
-                        Container(
-                          margin: const EdgeInsets.only(top: 8),
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Theme.of(
-                              context,
-                            ).primaryColor.withOpacity(0.35), // Highlight color
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: Theme.of(
-                                context,
-                              ).primaryColor.withOpacity(0.5),
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: const [
-                                  Icon(
-                                    Icons.auto_awesome,
-                                    color: Colors.white,
-                                    size: 16,
-                                  ),
-                                  SizedBox(width: 4),
-                                  Text(
-                                    "LOOKING FOR",
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 1.0,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                item.wantsDescription,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                        ),
                     ],
                   ),
                 ),
-              ),
-            ],
-          ),
-        ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
 
   Widget _buildActionButtons(Color primary) {
     return Padding(
-      padding: const EdgeInsets.only(
-        top: 16,
-        bottom: 44,
-      ), // Adjusted padding to avoid FAB interference
+      padding: const EdgeInsets.only(top: 20, bottom: 34),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _buildCircleButton(
+          // Skip Button
+          _buildGlassActionButton(
             icon: Icons.close,
-            color: Colors.red.shade400,
-            size: 64,
+            color: const Color(0xFFFF5252), // Vibrant red
+            size: 60, // Slightly smaller glass button
             onTap: () {
               HapticFeedback.lightImpact();
               _swiperController.swipeLeft();
             },
           ),
-          const SizedBox(width: 48), // Spacing between buttons
-          _buildCircleButton(
+          const SizedBox(width: 32),
+          // Like Button
+          _buildGlassActionButton(
             icon: Icons.favorite,
-            color: primary,
-            size: 72,
+            color: const Color(0xFF00E676), // Vibrant green for like
+            size: 70, // Prominent
             onTap: () {
               HapticFeedback.mediumImpact();
               setState(() => _showLike = true);
@@ -817,36 +789,33 @@ class _ExploreScreenState extends State<ExploreScreen>
     );
   }
 
-  Widget _buildCircleButton({
+  Widget _buildGlassActionButton({
     required IconData icon,
     required Color color,
     required double size,
     required VoidCallback onTap,
   }) {
-    return Container(
+    return GlassContainer(
+      borderRadius: size / 2, // Circle
+      blurSigma: 15,
       width: size,
       height: size,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+      color: Colors.black.withOpacity(0.3),
+      border: Border.all(color: Colors.white.withOpacity(0.2), width: 1.5),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          customBorder: const CircleBorder(),
-          child: Icon(icon, color: color, size: size * 0.5),
+          borderRadius: BorderRadius.circular(size / 2),
+          child: Center(
+            child: Icon(icon, color: color, size: size * 0.45),
+          ),
         ),
       ),
     );
   }
+
+  // _buildCircleButton removed as it is replaced by _buildGlassActionButton
 
   Widget _buildLikeOverlay(Color primary) {
     return Positioned.fill(

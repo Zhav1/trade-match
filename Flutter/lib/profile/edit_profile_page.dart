@@ -8,7 +8,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 
 class EditProfilePage extends StatefulWidget {
   final Map<String, dynamic>? userData;
-  
+
   const EditProfilePage({super.key, this.userData});
 
   @override
@@ -18,15 +18,15 @@ class EditProfilePage extends StatefulWidget {
 class _EditProfilePageState extends State<EditProfilePage> {
   final SupabaseService _supabaseService = SupabaseService();
   final ImagePicker _picker = ImagePicker();
-  
+
   // Current photos from database
   String? _profilePictureUrl;
   String? _backgroundPictureUrl;
-  
+
   // New photos selected by user (not yet uploaded)
   File? _newProfilePicture;
   File? _newBackgroundPicture;
-  
+
   bool _isLoading = false;
   bool _hasChanges = false;
 
@@ -42,7 +42,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       context,
       purpose: 'change your profile picture',
     );
-    
+
     if (!hasPermission) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -51,14 +51,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
       }
       return;
     }
-    
+
     final XFile? image = await _picker.pickImage(
       source: ImageSource.gallery,
       maxWidth: 512,
       maxHeight: 512,
       imageQuality: 85,
     );
-    
+
     if (image != null) {
       setState(() {
         _newProfilePicture = File(image.path);
@@ -72,7 +72,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       context,
       purpose: 'change your background photo',
     );
-    
+
     if (!hasPermission) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -81,14 +81,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
       }
       return;
     }
-    
+
     final XFile? image = await _picker.pickImage(
       source: ImageSource.gallery,
       maxWidth: 1920,
       maxHeight: 1080,
       imageQuality: 85,
     );
-    
+
     if (image != null) {
       setState(() {
         _newBackgroundPicture = File(image.path);
@@ -102,20 +102,20 @@ class _EditProfilePageState extends State<EditProfilePage> {
       Navigator.pop(context);
       return;
     }
-    
+
     setState(() => _isLoading = true);
-    
+
     try {
       // Upload profile picture if changed
       if (_newProfilePicture != null) {
         await _supabaseService.uploadProfilePicture(_newProfilePicture!);
       }
-      
+
       // Upload background picture if changed
       if (_newBackgroundPicture != null) {
         await _supabaseService.uploadBackgroundPicture(_newBackgroundPicture!);
       }
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -123,7 +123,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.pop(context, true); // Return true to indicate changes were made
+        Navigator.pop(
+          context,
+          true,
+        ); // Return true to indicate changes were made
       }
     } catch (e) {
       if (mounted) {
@@ -160,7 +163,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 : Text(
                     'Save',
                     style: TextStyle(
-                      color: _hasChanges ? Theme.of(context).colorScheme.primary : Colors.grey,
+                      color: _hasChanges
+                          ? Theme.of(context).colorScheme.primary
+                          : Colors.grey,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -173,25 +178,31 @@ class _EditProfilePageState extends State<EditProfilePage> {
           children: [
             // Background Photo Section
             _buildBackgroundPhotoSection(),
-            
+
             const SizedBox(height: AppSpacing.lg),
-            
+
             // Profile Picture Section
             _buildProfilePictureSection(),
-            
+
             const SizedBox(height: AppSpacing.xl),
-            
+
             // Instructions
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
               child: Column(
                 children: [
-                  Icon(Icons.info_outline, color: AppColors.textSecondary, size: 24),
+                  Icon(
+                    Icons.info_outline,
+                    color: AppColors.textSecondary,
+                    size: 24,
+                  ),
                   const SizedBox(height: AppSpacing.sm),
                   Text(
                     'Tap on the photos above to change them.\nYour photos will be visible to other users.',
                     textAlign: TextAlign.center,
-                    style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ],
               ),
@@ -219,7 +230,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
             decoration: BoxDecoration(
               color: Colors.grey[200],
               borderRadius: BorderRadius.circular(AppRadius.card),
-              border: Border.all(color: AppColors.divider ?? Colors.grey[300]!),
+              border: Border.all(color: AppColors.divider),
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(AppRadius.card),
@@ -229,7 +240,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   // Show new image if selected, else existing URL, else placeholder
                   if (_newBackgroundPicture != null)
                     Image.file(_newBackgroundPicture!, fit: BoxFit.cover)
-                  else if (_backgroundPictureUrl != null && _backgroundPictureUrl!.isNotEmpty)
+                  else if (_backgroundPictureUrl != null &&
+                      _backgroundPictureUrl!.isNotEmpty)
                     CachedNetworkImage(
                       imageUrl: _backgroundPictureUrl!,
                       fit: BoxFit.cover,
@@ -237,11 +249,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         color: Colors.grey[300],
                         child: const Center(child: CircularProgressIndicator()),
                       ),
-                      errorWidget: (context, url, error) => _buildPlaceholder(Icons.panorama),
+                      errorWidget: (context, url, error) =>
+                          _buildPlaceholder(Icons.panorama),
                     )
                   else
                     _buildPlaceholder(Icons.panorama),
-                  
+
                   // Edit overlay
                   Container(
                     decoration: BoxDecoration(
@@ -255,7 +268,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
                           SizedBox(height: 8),
                           Text(
                             'Tap to change',
-                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ],
                       ),
@@ -286,7 +302,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: Colors.grey[200],
-                  border: Border.all(color: AppColors.divider ?? Colors.grey[300]!, width: 3),
+                  border: Border.all(color: AppColors.divider, width: 3),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.1),
@@ -297,20 +313,29 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 ),
                 child: ClipOval(
                   child: _newProfilePicture != null
-                      ? Image.file(_newProfilePicture!, fit: BoxFit.cover, width: 140, height: 140)
-                      : (_profilePictureUrl != null && _profilePictureUrl!.isNotEmpty)
-                          ? CachedNetworkImage(
-                              imageUrl: _profilePictureUrl!,
-                              fit: BoxFit.cover,
-                              width: 140,
-                              height: 140,
-                              placeholder: (context, url) => Container(
-                                color: Colors.grey[300],
-                                child: const Center(child: CircularProgressIndicator()),
-                              ),
-                              errorWidget: (context, url, error) => _buildCirclePlaceholder(),
-                            )
-                          : _buildCirclePlaceholder(),
+                      ? Image.file(
+                          _newProfilePicture!,
+                          fit: BoxFit.cover,
+                          width: 140,
+                          height: 140,
+                        )
+                      : (_profilePictureUrl != null &&
+                            _profilePictureUrl!.isNotEmpty)
+                      ? CachedNetworkImage(
+                          imageUrl: _profilePictureUrl!,
+                          fit: BoxFit.cover,
+                          width: 140,
+                          height: 140,
+                          placeholder: (context, url) => Container(
+                            color: Colors.grey[300],
+                            child: const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                          ),
+                          errorWidget: (context, url, error) =>
+                              _buildCirclePlaceholder(),
+                        )
+                      : _buildCirclePlaceholder(),
                 ),
               ),
               // Camera icon overlay
@@ -324,7 +349,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     shape: BoxShape.circle,
                     border: Border.all(color: Colors.white, width: 2),
                   ),
-                  child: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
+                  child: const Icon(
+                    Icons.camera_alt,
+                    color: Colors.white,
+                    size: 20,
+                  ),
                 ),
               ),
             ],
@@ -337,9 +366,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   Widget _buildPlaceholder(IconData icon) {
     return Container(
       color: Colors.grey[200],
-      child: Center(
-        child: Icon(icon, size: 48, color: Colors.grey[400]),
-      ),
+      child: Center(child: Icon(icon, size: 48, color: Colors.grey[400])),
     );
   }
 
