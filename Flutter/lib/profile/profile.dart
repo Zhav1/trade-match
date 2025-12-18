@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:trade_match/services/permission_service.dart';
 import 'package:trade_match/models/item.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'settings_page.dart';
 import 'package:trade_match/theme.dart';
 
@@ -148,12 +149,33 @@ class _ProfilePageState extends State<ProfilePage> {
                       background: Stack(
                         fit: StackFit.expand,
                         children: [
-                          Image.asset(
-                            'assets/images/profile.jpg',
-                            fit: BoxFit.cover,
-                            color: Colors.black.withOpacity(0.12),
-                            colorBlendMode: BlendMode.darken,
-                          ),
+                          (_userData?['background_picture_url'] != null)
+                              ? CachedNetworkImage(
+                                  imageUrl:
+                                      _userData!['background_picture_url'],
+                                  fit: BoxFit.cover,
+                                  color: Colors.black.withOpacity(0.12),
+                                  colorBlendMode: BlendMode.darken,
+                                  placeholder: (context, url) => Container(
+                                    color: Colors.grey[300],
+                                    child: const Center(
+                                      child: CircularProgressIndicator(),
+                                    ),
+                                  ),
+                                  errorWidget: (context, url, error) =>
+                                      Image.asset(
+                                        'assets/images/profile.jpg',
+                                        fit: BoxFit.cover,
+                                        color: Colors.black.withOpacity(0.12),
+                                        colorBlendMode: BlendMode.darken,
+                                      ),
+                                )
+                              : Image.asset(
+                                  'assets/images/profile.jpg',
+                                  fit: BoxFit.cover,
+                                  color: Colors.black.withOpacity(0.12),
+                                  colorBlendMode: BlendMode.darken,
+                                ),
                           Container(
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
@@ -269,7 +291,6 @@ class _ProfileInfo extends StatelessWidget {
     final offersCount = itemCount > 0
         ? itemCount.toString()
         : (userData?['offers_count']?.toString() ?? '0');
-    final requestsCount = userData?['requests_count']?.toString() ?? '0';
     final displayTradesCount = tradesCount > 0
         ? tradesCount.toString()
         : (userData?['trades_count']?.toString() ?? '0');
@@ -289,7 +310,6 @@ class _ProfileInfo extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             _StatItem(value: offersCount, title: 'Offers'),
-            _StatItem(value: requestsCount, title: 'Requests'),
             GestureDetector(
               onTap: () => Navigator.pushNamed(context, '/trade_history'),
               child: _StatItem(value: displayTradesCount, title: 'Trades'),
