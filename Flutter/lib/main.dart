@@ -301,7 +301,7 @@ class _MainPageState extends State<MainPage> {
             _buildNavItem(Icons.swap_horiz, 'Explore', 0),
             // Chat with notification badge
             StreamBuilder<int>(
-              stream: _supabaseService.getUnreadNotificationsCount(),
+              stream: _supabaseService.getUnreadMessagesCount(),
               builder: (context, snapshot) {
                 final unreadCount = snapshot.data ?? 0;
                 return _buildNavItem(

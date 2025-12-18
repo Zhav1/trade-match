@@ -35,6 +35,10 @@ class _ExploreScreenState extends State<ExploreScreen>
   bool _showLike = false;
   late Future<List<BarterItem>> _itemsFuture;
 
+  // Swipe direction tracking for overlay animation
+  double _swipeOffset = 0.0;
+  AxisDirection? _swipeDirection;
+
   // Dynamic user data
   List<Item> _userItems = [];
   int? _currentUserItemId;
@@ -190,6 +194,12 @@ class _ExploreScreenState extends State<ExploreScreen>
 
     // Haptic Feedback for physical interaction
     HapticFeedback.lightImpact();
+
+    // Reset swipe overlay state
+    setState(() {
+      _swipeOffset = 0.0;
+      _swipeDirection = null;
+    });
 
     final direction = activity.direction;
     final items = await _itemsFuture;
@@ -441,19 +451,90 @@ class _ExploreScreenState extends State<ExploreScreen>
         // Wrapped in Padding to replace deprecated 'padding' param
         return Padding(
           padding: const EdgeInsets.all(AppSpacing.md),
-          child: AppinioSwiper(
-            controller: _swiperController,
-            cardCount: items.length,
-            loop: true,
-            threshold: 150,
-            // backgroundCardsCount removed (unsupported in this version/default used)
-            onSwipeEnd: _onSwipeEnd, // Renamed from onSwipe
-            cardBuilder: (context, index) {
-              return GestureDetector(
-                onDoubleTap: _handleDoubleTap,
-                child: _buildCard(items[index]),
-              );
-            },
+          child: Stack(
+            children: [
+              Listener(
+                onPointerMove: (event) {
+                  setState(() {
+                    _swipeOffset =
+                        event.localPosition.dx -
+                        (MediaQuery.of(context).size.width / 2);
+                    if (_swipeOffset > 20) {
+                      _swipeDirection = AxisDirection.right;
+                    } else if (_swipeOffset < -20) {
+                      _swipeDirection = AxisDirection.left;
+                    } else {
+                      _swipeDirection = null;
+                    }
+                    _swipeOffset = _swipeOffset.abs();
+                  });
+                },
+                onPointerUp: (_) {
+                  // The offset will be reset in _onSwipeEnd
+                },
+                child: AppinioSwiper(
+                  controller: _swiperController,
+                  cardCount: items.length,
+                  loop: true,
+                  threshold: 150,
+                  onSwipeEnd: _onSwipeEnd,
+                  swipeOptions: const SwipeOptions.only(
+                    left: true,
+                    right: true,
+                  ),
+                  cardBuilder: (context, index) {
+                    return GestureDetector(
+                      onDoubleTap: _handleDoubleTap,
+                      child: _buildCard(items[index]),
+                    );
+                  },
+                ),
+              ),
+              // Swipe direction overlay - Like indicator (right swipe)
+              if (_swipeDirection == AxisDirection.right)
+                Positioned(
+                  top: 40,
+                  right: 30,
+                  child: Opacity(
+                    opacity: (_swipeOffset / 150).clamp(0.0, 1.0),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withOpacity(0.9),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.white, width: 3),
+                      ),
+                      child: const Icon(
+                        Icons.favorite,
+                        color: Colors.white,
+                        size: 40,
+                      ),
+                    ),
+                  ),
+                ),
+              // Swipe direction overlay - Dislike indicator (left swipe)
+              if (_swipeDirection == AxisDirection.left)
+                Positioned(
+                  top: 40,
+                  left: 30,
+                  child: Opacity(
+                    opacity: (_swipeOffset / 150).clamp(0.0, 1.0),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withOpacity(0.9),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.white, width: 3),
+                      ),
+                      child: const Icon(
+                        Icons.close,
+                        color: Colors.white,
+                        size: 40,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
         );
       },
@@ -703,19 +784,23 @@ class _ExploreScreenState extends State<ExploreScreen>
 
   Widget _buildActionButtons(Color primary) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 24),
+      padding: const EdgeInsets.only(
+        top: 16,
+        bottom: 44,
+      ), // Adjusted padding to avoid FAB interference
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           _buildCircleButton(
             icon: Icons.close,
             color: Colors.red.shade400,
-            size: 56,
+            size: 64,
             onTap: () {
               HapticFeedback.lightImpact();
               _swiperController.swipeLeft();
             },
           ),
+          const SizedBox(width: 48), // Spacing between buttons
           _buildCircleButton(
             icon: Icons.favorite,
             color: primary,
@@ -725,16 +810,6 @@ class _ExploreScreenState extends State<ExploreScreen>
               setState(() => _showLike = true);
               _likeController.forward(from: 0);
               _swiperController.swipeRight();
-            },
-          ),
-          _buildCircleButton(
-            icon: Icons.star,
-            color: Colors.amber,
-            size: 56,
-            onTap: () {
-              // Keep Star for Super Like / Future feature
-              HapticFeedback.lightImpact();
-              _swiperController.swipeUp();
             },
           ),
         ],
