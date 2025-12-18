@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:ui'; // For ImageFilter
+import 'package:trade_match/theme.dart';
 import 'package:trade_match/chat/location_picker_modal.dart';
 import 'package:trade_match/chat/location_message_bubble.dart';
 
@@ -331,6 +333,238 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     }
   }
 
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      extendBodyBehindAppBar: true,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(kToolbarHeight),
+        child: ClipRRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: AppBar(
+              backgroundColor: Colors.white.withOpacity(
+                0.7,
+              ), // Semi-transparent
+              elevation: 0,
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.black87),
+                onPressed: () => Navigator.pop(context),
+              ),
+              title: Row(
+                children: [
+                  if (widget.otherUserImage != null &&
+                      widget.otherUserImage!.isNotEmpty)
+                    CircleAvatar(
+                      radius: 18,
+                      backgroundColor: Colors.grey[200],
+                      backgroundImage: widget.otherUserImage!.startsWith('http')
+                          ? NetworkImage(widget.otherUserImage!)
+                          : AssetImage('assets/images/${widget.otherUserImage}')
+                                as ImageProvider,
+                    )
+                  else
+                    CircleAvatar(
+                      radius: 18,
+                      backgroundColor: Theme.of(
+                        context,
+                      ).primaryColor.withOpacity(0.1),
+                      child: Text(
+                        widget.otherUserName.isNotEmpty
+                            ? widget.otherUserName[0].toUpperCase()
+                            : '?',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).primaryColor,
+                        ),
+                      ),
+                    ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.otherUserName,
+                          style: AppTextStyles.labelBold.copyWith(
+                            color: const Color(0xFF441606),
+                          ),
+                        ),
+                        // Online status placeholder or brief text
+                        Text(
+                          'Tap for details',
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.info_outline, color: Colors.black54),
+                  onPressed: () {
+                    // TODO: Navigate to trade details/profile
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      body: Container(
+        decoration: const BoxDecoration(
+          color: AppColors.background, // Ensure consistent background
+        ),
+        child: LoadingOverlay(
+          isLoading: isLoading,
+          child: Column(
+            children: [
+              // Header spacer
+              const SizedBox(height: kToolbarHeight + 20),
+
+              // Confirm Trade Banner
+              if (_shouldShowConfirmTrade())
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  child: ModernCard(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    backgroundColor: Colors.green.shade50,
+                    border: Border.all(color: Colors.green.withOpacity(0.3)),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.verified_user_outlined,
+                          color: Colors.green,
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Text(
+                            "Ready to trade?",
+                            style: TextStyle(
+                              color: Colors.green,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        ElevatedButton(
+                          onPressed: isLoading ? null : _confirmTrade,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                          ),
+                          child: const Text("Confirm"),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+              // Chat Messages
+              Expanded(
+                child: ListView.builder(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
+                  itemCount: messages.length,
+                  itemBuilder: (context, index) {
+                    return AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: _buildMessage(messages[index]),
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+              // Input Area
+              _buildInputArea(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInputArea() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+      child: GlassContainer(
+        borderRadius: 30,
+        blurSigma: 10,
+        color: Colors.white.withOpacity(0.9),
+        border: Border.all(color: Colors.white.withOpacity(0.5)),
+        padding: const EdgeInsets.only(left: 16, right: 8, top: 4, bottom: 4),
+        child: Row(
+          children: [
+            IconButton(
+              onPressed: _showLocationPicker,
+              icon: Icon(
+                Icons.location_on_outlined,
+                color: Theme.of(context).primaryColor,
+              ),
+              tooltip: 'Share Location',
+            ),
+            Expanded(
+              child: TextField(
+                controller: _messageController,
+                decoration: const InputDecoration(
+                  hintText: 'Type a message...',
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(horizontal: 8),
+                ),
+                maxLines: null,
+                textCapitalization: TextCapitalization.sentences,
+              ),
+            ),
+            Container(
+              margin: const EdgeInsets.only(left: 8),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Theme.of(context).primaryColor,
+                    const Color(0xFF8B4513),
+                  ], // Brand gradient
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                shape: BoxShape.circle,
+              ),
+              child: IconButton(
+                icon: const Icon(
+                  Icons.send_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+                onPressed: () {
+                  if (_messageController.text.trim().isNotEmpty) {
+                    _sendMessage(content: _messageController.text.trim());
+                  }
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildMessage(dynamic message) {
     // Supabase uses 'sender_user_id', old API used 'user_id'
     final senderId =
@@ -342,7 +576,6 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
 
     switch (messageType) {
       case 'location':
-        // Use swap-level status for agreement tracking
         final isLocationAgreed = swapData?['status'] == 'location_agreed';
         final isLocationSuggested = swapData?['status'] == 'location_suggested';
         return LocationMessageBubble(
@@ -359,193 +592,83 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
         );
 
       case 'location_agreement':
-        return Container(
-          alignment: Alignment.center,
-          padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-          child: Text(
-            messageContent,
-            style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center,
+        return Center(
+          child: Container(
+            margin: const EdgeInsets.symmetric(vertical: 12),
+            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+            decoration: BoxDecoration(
+              color: Colors.green.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.green.withOpacity(0.2)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.check_circle, size: 16, color: Colors.green),
+                const SizedBox(width: 8),
+                Text(
+                  messageContent,
+                  style: const TextStyle(
+                    color: Colors.green,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
           ),
         );
 
       default:
-        return Container(
-          margin: EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+        // Modern Chat Bubble
+        return Align(
           alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
           child: Container(
             constraints: BoxConstraints(
-              maxWidth: MediaQuery.of(context).size.width * 0.7,
+              maxWidth: MediaQuery.of(context).size.width * 0.75,
             ),
-            padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
             decoration: BoxDecoration(
-              color: isMe ? Colors.blue[100] : Colors.grey[200],
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(messageContent),
-          ),
-        );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black87),
-        title: Row(
-          children: [
-            if (widget.otherUserImage != null &&
-                widget.otherUserImage!.isNotEmpty)
-              CircleAvatar(
-                radius: 18,
-                backgroundColor: Colors.grey[200],
-                backgroundImage: widget.otherUserImage!.startsWith('http')
-                    ? NetworkImage(widget.otherUserImage!)
-                    : AssetImage('assets/images/${widget.otherUserImage}')
-                          as ImageProvider,
-              )
-            else
-              CircleAvatar(
-                radius: 18,
-                backgroundColor: Theme.of(
-                  context,
-                ).primaryColor.withOpacity(0.2),
-                child: Text(
-                  widget.otherUserName.isNotEmpty
-                      ? widget.otherUserName[0].toUpperCase()
-                      : '?',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).primaryColor,
-                  ),
-                ),
+              gradient: isMe
+                  ? LinearGradient(
+                      colors: [
+                        Theme.of(context).primaryColor,
+                        const Color(0xFF8B4513),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    )
+                  : null,
+              color: isMe ? null : Colors.white,
+              borderRadius: BorderRadius.only(
+                topLeft: const Radius.circular(20),
+                topRight: const Radius.circular(20),
+                bottomLeft: isMe
+                    ? const Radius.circular(20)
+                    : const Radius.circular(4),
+                bottomRight: isMe
+                    ? const Radius.circular(4)
+                    : const Radius.circular(20),
               ),
-            const SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.otherUserName,
-                  style: const TextStyle(color: Colors.black87),
-                ),
-                Text(
-                  'Tap for trade details',
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(isMe ? 0.2 : 0.05),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
                 ),
               ],
             ),
-          ],
-        ),
-      ),
-      body: LoadingOverlay(
-        isLoading: isLoading,
-        child: SafeArea(
-          child: Column(
-            children: [
-              Expanded(
-                child: ListView.builder(
-                  controller: _scrollController,
-                  padding: EdgeInsets.all(16),
-                  itemCount: messages.length,
-                  itemBuilder: (context, index) {
-                    // Display messages in natural order (oldest first, newest last at bottom)
-                    return AnimatedSwitcher(
-                      duration: Duration(milliseconds: 300),
-                      child: _buildMessage(messages[index]),
-                    );
-                  },
-                ),
+            child: Text(
+              messageContent,
+              style: TextStyle(
+                color: isMe ? Colors.white : Colors.black87,
+                fontSize: 15,
+                height: 1.3,
               ),
-              // Confirm Trade button above input (not floating)
-              if (_shouldShowConfirmTrade())
-                Container(
-                  width: double.infinity,
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  color: Colors.green.shade50,
-                  child: ElevatedButton.icon(
-                    onPressed: isLoading ? null : _confirmTrade,
-                    icon: const Icon(Icons.check_circle, color: Colors.white),
-                    label: const Text(
-                      'Confirm Trade',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      padding: EdgeInsets.symmetric(vertical: 12),
-                    ),
-                  ),
-                ),
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border(top: BorderSide(color: Colors.grey[200]!)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 4,
-                      offset: Offset(0, -2),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    GestureDetector(
-                      onTapDown: (_) => setState(() {}),
-                      onTapUp: (_) => setState(() {}),
-                      onTap: _showLocationPicker,
-                      child: AnimatedScale(
-                        scale: 1.0,
-                        duration: Duration(milliseconds: 100),
-                        child: Icon(
-                          Icons.location_on,
-                          color: Theme.of(context).primaryColor,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: TextField(
-                        controller: _messageController,
-                        decoration: InputDecoration(
-                          hintText: 'Type a message...',
-                          border: InputBorder.none,
-                        ),
-                        maxLines: null,
-                        textCapitalization: TextCapitalization.sentences,
-                      ),
-                    ),
-                    GestureDetector(
-                      onTapDown: (_) => setState(() {}),
-                      onTapUp: (_) => setState(() {}),
-                      onTap: () {
-                        if (_messageController.text.trim().isNotEmpty) {
-                          _sendMessage(content: _messageController.text.trim());
-                        }
-                      },
-                      child: AnimatedScale(
-                        scale: 1.0,
-                        duration: Duration(milliseconds: 100),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).primaryColor,
-                            shape: BoxShape.circle,
-                          ),
-                          padding: EdgeInsets.all(8),
-                          child: Icon(Icons.send, color: Colors.white),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
-    );
+        );
+    }
   }
 
   /// Check if Confirm Trade button should be shown

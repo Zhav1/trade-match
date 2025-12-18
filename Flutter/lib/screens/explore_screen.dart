@@ -592,190 +592,156 @@ class _ExploreScreenState extends State<ExploreScreen>
       },
       child: LayoutBuilder(
         builder: (context, constraints) {
-          // Calculate card size to be slightly smaller than screen for "stack" feel
-          // but swiper already handles some of this. We'll add margin.
           return Container(
             margin: const EdgeInsets.fromLTRB(
               12,
-              48,
               12,
-              140,
-            ), // Room for top bar and bottom buttons
+              12,
+              60,
+            ), // Reduced margins for bigger card
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(AppRadius.card),
-              color: Colors.grey[900], // Fallback
+              color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.3),
+                  color: Colors.black.withOpacity(0.1),
                   blurRadius: 20,
                   offset: const Offset(0, 10),
                 ),
               ],
             ),
             clipBehavior: Clip.hardEdge,
-            child: Stack(
-              fit: StackFit.expand,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // 1. Main Image
-                if (item.images.isNotEmpty)
-                  CachedNetworkImage(
-                    imageUrl: item.images.first.imageUrl,
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) => Shimmer.fromColors(
-                      baseColor: Colors.grey[800]!,
-                      highlightColor: Colors.grey[700]!,
-                      child: Container(color: Colors.black),
-                    ),
-                    errorWidget: (context, url, err) =>
-                        const Center(child: Icon(Icons.error)),
-                  )
-                else
-                  Container(color: Colors.grey[800]),
+                Expanded(
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      if (item.images.isNotEmpty)
+                        CachedNetworkImage(
+                          imageUrl: item.images.first.imageUrl,
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) =>
+                              Container(color: Colors.grey[200]),
+                          errorWidget: (context, url, err) => const Center(
+                            child: Icon(Icons.error, color: Colors.grey),
+                          ),
+                        )
+                      else
+                        Container(color: Colors.grey[200]),
 
-                // 2. Gradient Overlay for Text Readability
-                const Positioned.fill(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.transparent,
-                          Colors.transparent,
-                          Colors.black54,
-                          Colors.black87,
-                        ],
-                        stops: [0.0, 0.5, 0.8, 1.0],
-                      ),
-                    ),
+                      // Wants / Match Highlight (floating on image)
+                      if (item.wantsDescription.isNotEmpty)
+                        Positioned(
+                          top: 12,
+                          right: 12,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withOpacity(0.9),
+                              borderRadius: BorderRadius.circular(
+                                AppRadius.chip,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.flash_on,
+                                  size: 14,
+                                  color: Colors.white,
+                                ),
+                                const SizedBox(width: 4),
+                                ConstrainedBox(
+                                  constraints: const BoxConstraints(
+                                    maxWidth: 150,
+                                  ),
+                                  child: Text(
+                                    "WANT: ${item.wantsDescription}",
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
 
-                // 3. Info Content Overlay
-                Positioned(
-                  left: 16,
-                  right: 16,
-                  bottom: 24,
+                // 2. Info Content (White Area)
+                Container(
+                  padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Wants / Match Highlight
-                      if (item.wantsDescription.isNotEmpty)
-                        Container(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withOpacity(0.8),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.flash_on,
-                                size: 14,
-                                color: Colors.white,
-                              ),
-                              const SizedBox(width: 4),
-                              Flexible(
-                                child: Text(
-                                  "WANT: ${item.wantsDescription}",
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
                       // Title & Price
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Expanded(
                             child: Text(
                               item.title,
-                              style: AppTextStyles.heading1.copyWith(
-                                color: Colors.white,
-                                fontSize: 28,
+                              style: AppTextStyles.heading3.copyWith(
+                                // Smaller than heading1
+                                fontSize: 22,
                               ),
-                              maxLines: 2,
+                              maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           if (item.estimatedValue != null)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: Colors.white30),
-                              ),
-                              child: Text(
-                                currencyFormatter.format(item.estimatedValue),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                            Text(
+                              currencyFormatter.format(item.estimatedValue),
+                              style: TextStyle(
+                                color: Theme.of(context).primaryColor,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
                               ),
                             ),
                         ],
                       ),
                       const SizedBox(height: 8),
 
-                      // Location & Distance
+                      // Location & User
                       Row(
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.location_on,
-                            size: 14,
-                            color: Colors.white70,
+                            size: 16,
+                            color: AppColors.textSecondary,
                           ),
                           const SizedBox(width: 4),
                           Text(
                             item.locationCity,
-                            style: const TextStyle(color: Colors.white70),
-                          ),
-                          const SizedBox(width: 12),
-                          if (item.locationCity.isNotEmpty)
-                            Text(
-                              "• ${item.locationCity}",
-                              style: const TextStyle(color: Colors.white70),
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              color: AppColors.textSecondary,
                             ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      // User Profile
-                      Row(
-                        children: [
+                          ),
+                          const Spacer(),
                           CircleAvatar(
-                            radius: 12,
+                            radius: 10,
                             backgroundImage: item.user.profilePictureUrl != null
                                 ? NetworkImage(item.user.profilePictureUrl!)
-                                : const AssetImage('assets/images/profile.jpg')
-                                      as ImageProvider,
+                                : null,
+                            child: item.user.profilePictureUrl == null
+                                ? const Icon(Icons.person, size: 12)
+                                : null,
                           ),
-                          const SizedBox(width: 8),
-                          Text(
-                            item.user.name,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
+                          const SizedBox(width: 6),
+                          Text(item.user.name, style: AppTextStyles.labelBold),
                         ],
                       ),
                     ],
