@@ -8,9 +8,6 @@ class LocationMessageBubble extends StatelessWidget {
   final double? latitude;
   final double? longitude;
   final bool isMe;
-  final bool isAgreed;
-  final bool isOtherUserAgreed;
-  final VoidCallback? onAgree;
 
   const LocationMessageBubble({
     super.key,
@@ -19,9 +16,6 @@ class LocationMessageBubble extends StatelessWidget {
     this.latitude,
     this.longitude,
     required this.isMe,
-    required this.isAgreed,
-    required this.isOtherUserAgreed,
-    this.onAgree,
   });
 
   Future<void> _launchMaps() async {
@@ -97,37 +91,6 @@ class LocationMessageBubble extends StatelessWidget {
                   ),
                   SizedBox(height: 4),
                   Text(address, style: TextStyle(fontSize: 12)),
-                  SizedBox(height: 8),
-                  if (!isMe && !isAgreed && onAgree != null)
-                    ElevatedButton(
-                      onPressed:
-                          onAgree, // Needs to be separated from InkWell tap
-                      style: ElevatedButton.styleFrom(
-                        minimumSize: Size(double.infinity, 36),
-                      ),
-                      child: Text('Agree to Location'),
-                    ),
-                  // Show agreement status based on user role
-                  if (isMe && isOtherUserAgreed)
-                    Chip(
-                      avatar: Icon(
-                        Icons.check_circle,
-                        color: Colors.green,
-                        size: 18,
-                      ),
-                      label: Text('They Agreed'),
-                      backgroundColor: Colors.green[100],
-                    ),
-                  if (!isMe && isAgreed)
-                    Chip(
-                      avatar: Icon(
-                        Icons.check_circle,
-                        color: Colors.green,
-                        size: 18,
-                      ),
-                      label: Text('Agreed'),
-                      backgroundColor: Colors.green[100],
-                    ),
                 ],
               ),
             ),

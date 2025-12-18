@@ -4,7 +4,6 @@ import 'package:trade_match/chat/location_message_bubble.dart';
 
 import 'package:trade_match/widget_Template/loading_overlay.dart';
 import 'package:trade_match/services/supabase_service.dart';
-import 'package:trade_match/services/notification_service.dart';
 import 'package:trade_match/widgets/trade_complete_dialog.dart';
 import 'package:trade_match/screens/submit_review_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -34,7 +33,6 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   bool isLoading = false;
   Map<String, dynamic>? swapData;
   RealtimeChannel? _messageChannel;
-  RealtimeChannel? _notificationChannel;
 
   @override
   void initState() {
@@ -44,34 +42,6 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     // Use Supabase user ID directly
     currentUserId = _supabaseService.userId;
     _subscribeToMessages();
-    _subscribeToNotifications();
-  }
-
-  void _subscribeToNotifications() {
-    try {
-      _notificationChannel = _supabaseService.subscribeToNotifications((
-        notification,
-      ) {
-        // Check if this is a location_accepted notification for this swap
-        if (notification['type'] == 'location_accepted' && mounted) {
-          final notificationSwapId = notification['data']?['swap_id']
-              ?.toString();
-          if (notificationSwapId == widget.matchId) {
-            // Show local notification to sender
-            NotificationService().showNotification(
-              id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
-              title: 'Location Accepted! 📍',
-              body: '${widget.otherUserName} agreed to your meeting location',
-              payload: widget.matchId,
-            );
-            // Reload swap data to update UI
-            _loadSwapData();
-          }
-        }
-      });
-    } catch (e) {
-      print('Error subscribing to notifications: $e');
-    }
   }
 
   Future<void> _loadSwapData() async {
@@ -307,30 +277,6 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     );
   }
 
-  Future<void> _agreeToLocation(String messageId) async {
-    try {
-      final swapId = int.tryParse(widget.matchId);
-      if (swapId == null) throw Exception('Invalid swap ID');
-
-      // Use Supabase service instead of legacy HTTP
-      await _supabaseService.acceptLocation(swapId);
-      await _loadSwapData(); // Reload to get updated status
-      await _loadMessages();
-
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Location accepted!')));
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error agreeing to location: $e')),
-        );
-      }
-    }
-  }
-
   Widget _buildMessage(dynamic message) {
     // Supabase uses 'sender_user_id', old API used 'user_id'
     final senderId =
@@ -342,20 +288,12 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
 
     switch (messageType) {
       case 'location':
-        // Use swap-level status for agreement tracking
-        final isLocationAgreed = swapData?['status'] == 'location_agreed';
-        final isLocationSuggested = swapData?['status'] == 'location_suggested';
         return LocationMessageBubble(
           locationName: message['location_name'] ?? '',
           address: message['location_address'] ?? '',
           latitude: message['location_lat']?.toDouble(),
           longitude: message['location_lon']?.toDouble(),
           isMe: isMe,
-          isAgreed: isLocationAgreed,
-          isOtherUserAgreed: isLocationAgreed,
-          onAgree: !isMe && isLocationSuggested
-              ? () => _agreeToLocation(message['id'].toString())
-              : null,
         );
 
       case 'location_agreement':
@@ -577,7 +515,6 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   @override
   void dispose() {
     _messageChannel?.unsubscribe();
-    _notificationChannel?.unsubscribe();
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
