@@ -159,11 +159,18 @@ serve(async (req) => {
 
             console.log(`Trade ${swap_id} completed! Items ${swap.item_a_id} and ${swap.item_b_id} deleted from database.`)
 
-            const otherUserId = isUserA ? swap.user_b_id : swap.user_a_id
-
+            // CRITICAL FIX: Send notifications to BOTH users, not just the "other" user
+            // This ensures both parties get the trade complete popup simultaneously
             await supabase.from('notifications').insert([
                 {
-                    user_id: otherUserId,
+                    user_id: swap.user_a_id,
+                    type: 'trade_complete',
+                    title: 'Trade Completed!',
+                    message: 'Both parties have confirmed the trade. You can now leave a review.',
+                    data: { swap_id: swap.id }
+                },
+                {
+                    user_id: swap.user_b_id,
                     type: 'trade_complete',
                     title: 'Trade Completed!',
                     message: 'Both parties have confirmed the trade. You can now leave a review.',

@@ -9,6 +9,7 @@ import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:cached_network_image/cached_network_image.dart'; // Phase 3: Performance
 import 'package:trade_match/theme.dart';
+import 'package:trade_match/utils/form_validators.dart'; // Form validation utility
 
 class AddItemPage extends StatefulWidget {
   final Item? item; // If provided, we are in Edit mode
@@ -209,6 +210,17 @@ class _AddItemPageState extends State<AddItemPage> {
   }
 
   Future<void> _submitForm() async {
+    // Validate wanted categories before form submission
+    final categoriesError = FormValidators.validateWantedCategories(
+      _wantedCategoryIds,
+    );
+    if (categoriesError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(categoriesError), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
       setState(() => _isLoading = true);
@@ -238,7 +250,7 @@ class _AddItemPageState extends State<AddItemPage> {
 
         if (_isEditing) {
           await _supabaseService.updateItem(widget.item!.id, itemData);
-          
+
           // Handle new images separately if any were added
           for (final imageFile in _imageFiles) {
             await _supabaseService.uploadItemImage(
@@ -247,10 +259,13 @@ class _AddItemPageState extends State<AddItemPage> {
               _imageUrls.length,
             );
           }
-          
+
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Item updated successfully'), backgroundColor: Colors.green),
+              const SnackBar(
+                content: Text('Item updated successfully'),
+                backgroundColor: Colors.green,
+              ),
             );
           }
         } else {
@@ -320,34 +335,49 @@ class _AddItemPageState extends State<AddItemPage> {
                         // Title
                         TextFormField(
                           initialValue: _title,
-                          decoration: const InputDecoration(labelText: 'Title'),
-                          validator: (value) =>
-                              value!.isEmpty ? 'Please enter a title' : null,
-                          onSaved: (value) => _title = value!,
+                          decoration: const InputDecoration(
+                            labelText: 'Title *',
+                            hintText: '3-100 characters',
+                            helperText:
+                                'Brief, descriptive title for your item',
+                          ),
+                          maxLength: 100,
+                          validator: FormValidators.validateTitle,
+                          onSaved: (value) => _title = value!.trim(),
                         ),
                         const SizedBox(height: AppSpacing.md),
                         // Description
                         TextFormField(
                           initialValue: _description,
                           decoration: const InputDecoration(
-                            labelText: 'Description',
+                            labelText: 'Description *',
+                            hintText: '10-2000 characters',
+                            helperText: 'Detailed description of your item',
                           ),
-                          maxLines: 3,
-                          validator: (value) => value!.isEmpty
-                              ? 'Please enter a description'
-                              : null,
-                          onSaved: (value) => _description = value!,
+                          maxLines: 5,
+                          maxLength: 2000,
+                          validator: FormValidators.validateDescription,
+                          onSaved: (value) => _description = value!.trim(),
                         ),
                         const SizedBox(height: AppSpacing.md),
                         // Estimated Value
                         TextFormField(
                           initialValue: _estimatedValue?.toString(),
                           decoration: const InputDecoration(
-                            labelText: 'Estimated Value',
+                            labelText: 'Estimated Value (USD)',
+                            hintText: 'Optional - e.g., 50',
+                            helperText: 'Approximate value of your item',
+                            prefixText: '\$ ',
                           ),
-                          keyboardType: TextInputType.number,
-                          onSaved: (value) =>
-                              _estimatedValue = double.tryParse(value!),
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          validator: FormValidators.validateEstimatedValue,
+                          onSaved: (value) {
+                            if (value != null && value.trim().isNotEmpty) {
+                              _estimatedValue = double.tryParse(value.trim());
+                            }
+                          },
                         ),
                         const SizedBox(height: AppSpacing.md),
                         // Condition
@@ -364,9 +394,13 @@ class _AddItemPageState extends State<AddItemPage> {
                           initialValue: _wantsDescription,
                           decoration: const InputDecoration(
                             labelText: 'What I Want (Description)',
+                            hintText:
+                                'Optional - Describe what you\'re looking for',
+                            helperText: 'Be specific about your preferences',
                           ),
                           maxLines: 3,
-                          onSaved: (value) => _wantsDescription = value,
+                          maxLength: 500,
+                          onSaved: (value) => _wantsDescription = value?.trim(),
                         ),
                         const SizedBox(height: AppSpacing.md),
                         // Wanted Categories

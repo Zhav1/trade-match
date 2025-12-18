@@ -9,6 +9,7 @@ import 'package:trade_match/services/supabase_service.dart';
 import 'package:trade_match/widgets/trade_complete_dialog.dart';
 import 'package:trade_match/screens/submit_review_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:trade_match/widgets/pulsing_icon.dart'; // NEW: Pending trade animation
 
 class ChatDetailPage extends StatefulWidget {
   final String matchId;
@@ -35,6 +36,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   bool isLoading = false;
   Map<String, dynamic>? swapData;
   RealtimeChannel? _messageChannel;
+  RealtimeChannel? _swapChannel; // NEW: For listening to swap status changes
 
   @override
   void initState() {
@@ -44,6 +46,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     // Use Supabase user ID directly
     currentUserId = _supabaseService.userId;
     _subscribeToMessages();
+    _subscribeToSwapChanges(); // NEW: Subscribe to swap status updates
   }
 
   Future<void> _loadSwapData() async {
@@ -172,6 +175,84 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       print('✅ Subscribed to messages for swap $swapId');
     } catch (e) {
       print('❌ Error subscribing to messages: $e');
+    }
+  }
+
+  /// NEW: Subscribe to swap status changes for real-time trade completion detection
+  void _subscribeToSwapChanges() {
+    final swapId = int.tryParse(widget.matchId);
+    if (swapId == null) {
+      print('Invalid swap ID for swap realtime subscription');
+      return;
+    }
+
+    try {
+      _swapChannel = Supabase.instance.client
+          .channel('swap_updates:swap_$swapId')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.update,
+            schema: 'public',
+            table: 'swaps',
+            filter: PostgresChangeFilter(
+              type: PostgresChangeFilterType.eq,
+              column: 'id',
+              value: swapId,
+            ),
+            callback: (payload) async {
+              final newRecord = payload.newRecord;
+              final newStatus = newRecord['status'];
+
+              print('✅ Swap $swapId status changed to: $newStatus');
+
+              // If trade is now complete, reload swap data and show dialog
+              if (newStatus == 'trade_complete') {
+                await _loadSwapData();
+
+                if (mounted) {
+                  // Show Trade Complete Dialog for BOTH users
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (context) => TradeCompleteDialog(
+                      onLeaveReview: () {
+                        Navigator.of(context).pop();
+                        // Navigate to review page
+                        final String? userAId = swapData?['user_a_id']
+                            ?.toString();
+                        final String? userBId = swapData?['user_b_id']
+                            ?.toString();
+                        final String? otherUserId = (userAId == currentUserId)
+                            ? userBId
+                            : userAId;
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => SubmitReviewPage(
+                              swapId: swapId,
+                              reviewedUserId: otherUserId,
+                              reviewedUserName: widget.otherUserName,
+                            ),
+                          ),
+                        );
+                      },
+                      onClose: () => Navigator.of(context).pop(),
+                    ),
+                  );
+                }
+              } else {
+                // Update swap data for other status changes (e.g., confirmation flags)
+                if (mounted) {
+                  setState(() {
+                    swapData = newRecord;
+                  });
+                }
+              }
+            },
+          )
+          .subscribe();
+      print('✅ Subscribed to swap updates for swap $swapId');
+    } catch (e) {
+      print('❌ Error subscribing to swap updates: $e');
     }
   }
 
@@ -418,6 +499,63 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                   ),
                 ),
 
+              // NEW: Pending Trade Banner (Waiting for partner to confirm)
+              if (_isWaitingForPartner())
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  child: GlassContainer(
+                    blurSigma: 10,
+                    color: Colors.orange.shade50.withOpacity(0.9),
+                    border: Border.all(
+                      color: Colors.orange.withOpacity(0.4),
+                      width: 1.5,
+                    ),
+                    borderRadius: 12,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                    child: Row(
+                      children: [
+                        // Pulsing icon to grab attention
+                        PulsingIcon(
+                          icon: Icons.hourglass_top,
+                          color: Colors.orange.shade700,
+                          size: 22,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Trade Confirmed!',
+                                style: TextStyle(
+                                  color: Colors.orange.shade900,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Waiting for ${widget.otherUserName} to confirm...',
+                                style: TextStyle(
+                                  color: Colors.orange.shade700,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
               // Chat Messages
               Expanded(
                 child: ListView.builder(
@@ -636,9 +774,40 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     return true;
   }
 
+  /// NEW: Check if user is waiting for partner to confirm trade
+  /// Returns true when current user has confirmed but partner hasn't yet
+  bool _isWaitingForPartner() {
+    if (swapData == null) return false;
+
+    final status = swapData?['status'];
+    // Don't show if trade already complete
+    if (status == 'trade_complete') return false;
+
+    final userAId = swapData?['user_a_id'];
+    final isUserA = userAId == currentUserId;
+
+    // Get confirmation flags for both users
+    final userConfirmed = isUserA
+        ? (swapData?['item_a_owner_confirmed'] == true)
+        : (swapData?['item_b_owner_confirmed'] == true);
+
+    final partnerConfirmed = isUserA
+        ? (swapData?['item_b_owner_confirmed'] == true)
+        : (swapData?['item_a_owner_confirmed'] == true);
+
+    // Show banner only when:
+    // 1. Current user has confirmed
+    // 2. Partner has NOT confirmed yet
+    // 3. Status is still active or location_agreed
+    return userConfirmed &&
+        !partnerConfirmed &&
+        ['active', 'location_agreed'].contains(status);
+  }
+
   @override
   void dispose() {
     _messageChannel?.unsubscribe();
+    _swapChannel?.unsubscribe(); // NEW: Unsubscribe from swap updates
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();

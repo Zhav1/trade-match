@@ -5,6 +5,7 @@ import 'package:trade_match/services/supabase_service.dart';
 import 'package:trade_match/main.dart';
 import 'package:trade_match/auth/forgot_password.dart';
 import 'package:trade_match/services/constants.dart';
+import 'package:trade_match/utils/form_validators.dart'; // Form validation
 
 class AuthPage extends StatefulWidget {
   final int initialTabIndex;
@@ -244,12 +245,7 @@ class _AuthPageState extends State<AuthPage>
             TextFormField(
               controller: _nameController,
               decoration: _inputDecoration('Full Name', Icons.person),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter your name';
-                }
-                return null;
-              },
+              validator: FormValidators.validateName,
             ),
             const SizedBox(height: 16),
             TextFormField(
@@ -280,15 +276,7 @@ class _AuthPageState extends State<AuthPage>
               controller: _passwordController,
               decoration: _inputDecoration('Password', Icons.lock),
               obscureText: true,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter your password';
-                }
-                if (value.length < 6) {
-                  return 'Password must be at least 6 characters';
-                }
-                return null;
-              },
+              validator: FormValidators.validatePassword,
             ),
             const SizedBox(height: 16),
             TextFormField(

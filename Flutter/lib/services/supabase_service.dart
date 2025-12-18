@@ -595,7 +595,6 @@ class SupabaseService {
           .eq('swap_id', swapId)
           .neq('sender_user_id', userId!);
 
-      // Filter messages where read_at is null (unread)
       final unreadMessages = (response as List)
           .where((msg) => msg['read_at'] == null)
           .toList();
