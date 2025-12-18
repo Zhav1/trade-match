@@ -24,6 +24,7 @@ import 'package:trade_match/services/constants.dart';
 import 'package:trade_match/services/storage_service.dart'; // Phase 2
 import 'package:trade_match/services/cache_manager.dart'; // Phase 2
 import 'package:trade_match/services/supabase_service.dart'; // For notification badges
+import 'package:trade_match/services/notification_service.dart';
 
 void main() async {
   print('🚀 [MAIN] Starting app initialization...');
@@ -59,6 +60,10 @@ void main() async {
     // Cleanup expired cache entries on startup
     await CacheManager.cleanupExpiredData();
     print('✅ [MAIN] Cache cleanup complete');
+
+    // Initialize NotificationService
+    await NotificationService().init();
+    print('✅ [MAIN] NotificationService initialized');
   } catch (e, stackTrace) {
     print('❌ [MAIN] Storage initialization FAILED!');
     print('   Error: $e');
@@ -226,6 +231,45 @@ class _MainPageState extends State<MainPage> {
     const LibraryScreen(),
     const ProfilePage(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _subscribeToGlobalMessages();
+  }
+
+  void _subscribeToGlobalMessages() {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) return;
+
+    Supabase.instance.client
+        .channel('public:messages')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'messages',
+          callback: (payload) {
+            final newMessage = payload.newRecord;
+            // Don't notify if I sent it
+            if (newMessage['sender_user_id'] == userId) return;
+
+            // In a real app, you'd check if the user is currently chatting in this room
+            // For now, simple notification for all incoming messages
+            final content = newMessage['message_text'] ?? 'New message';
+
+            NotificationService().showNotification(
+              id:
+                  (newMessage['id'] as int? ??
+                      DateTime.now().millisecondsSinceEpoch) %
+                  100000,
+              title: 'New Message',
+              body: content,
+              payload: newMessage['swap_id'].toString(),
+            );
+          },
+        )
+        .subscribe();
+  }
 
   void _onItemTapped(int index) {
     // Add a check to prevent navigation to a non-existent page
