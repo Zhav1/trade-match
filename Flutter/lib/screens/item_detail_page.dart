@@ -8,6 +8,8 @@ import 'package:trade_match/services/supabase_service.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:cached_network_image/cached_network_image.dart'; // Phase 3: Performance
 import 'package:trade_match/theme.dart';
+import 'package:trade_match/widgets/match_success_dialog.dart';
+import 'package:trade_match/chat/chat_detail.dart';
 
 final currencyFormatter = NumberFormat.currency(
   locale: 'id_ID',
@@ -42,6 +44,8 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
 
     try {
       // Get current user's items to find an item to use for swiping
+      // In ExploreScreen, this is pre-loaded. Here we load on demand (or could pre-load).
+      // Optimization: Could check if we already have items in a provider or previous screen
       final userItemsData = await _supabaseService.getUserItems();
       final userItems = userItemsData
           .map((data) => Item.fromJson(data))
@@ -51,9 +55,7 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text(
-              'You need to create an item first before liking others',
-            ),
+            content: Text('You need to create an item first to start trading'),
             backgroundColor: Colors.orange,
           ),
         );
@@ -63,26 +65,60 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
         return;
       }
 
-      // Use the first available item as the swiper item
-      final swiperItemId = userItems.first.id;
+      // Use the first available active item, or just the first item
+      final activeItems = userItems
+          .where((item) => item.status == 'active')
+          .toList();
+      final myItem = activeItems.isNotEmpty
+          ? activeItems.first
+          : userItems.first;
 
       // Call swipe API with 'like' action
-      await _supabaseService.swipe(swiperItemId, widget.item.id, 'like');
+      final result = await _supabaseService.swipe(
+        myItem.id,
+        widget.item.id,
+        'like',
+      );
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Liked ${widget.item.title}!'),
-          backgroundColor: Colors.green,
-          action: SnackBarAction(
-            label: 'View Matches',
-            textColor: Colors.white,
-            onPressed: () {
-              Navigator.pushNamed(context, '/matches');
+
+      if (result['matched'] == true) {
+        // MATCH! Show success dialog
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => MatchSuccessDialog(
+            otherUserName: widget.item.user.name,
+            otherUserImage: widget.item.user.profilePictureUrl,
+            myItemTitle: myItem.title,
+            theirItemTitle: widget.item.title,
+            swapId: result['swap']['id'].toString(),
+            onKeepSwiping: () => Navigator.of(context).pop(),
+            onStartChat: (swapId, otherName, otherImage) {
+              Navigator.of(context).pop(); // Close dialog
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ChatDetailPage(
+                    matchId: swapId,
+                    otherUserName: otherName,
+                    otherUserImage: otherImage,
+                  ),
+                ),
+              );
             },
           ),
-        ),
-      );
+        );
+      } else {
+        // Just a like, no match yet
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Liked ${widget.item.title}!'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 1),
+          ),
+        );
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:trade_match/services/supabase_service.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:trade_match/services/permission_service.dart';
 import 'package:trade_match/models/item.dart';
 import 'settings_page.dart';
 import 'package:trade_match/theme.dart';
@@ -33,6 +36,43 @@ class _ProfilePageState extends State<ProfilePage> {
       final userItems = userItemsData
           .map((data) => Item.fromJson(data))
           .toList();
+
+      String? locationDisplay = userData?['default_location_city'];
+
+      // If location is missing, try to fetch it
+      if (locationDisplay == null || locationDisplay == 'Location not set') {
+        try {
+          bool hasPermission =
+              await PermissionService.requestLocationPermission(context);
+          if (hasPermission) {
+            Position position = await Geolocator.getCurrentPosition();
+            List<Placemark> placemarks = await placemarkFromCoordinates(
+              position.latitude,
+              position.longitude,
+            );
+            if (placemarks.isNotEmpty) {
+              final place = placemarks[0];
+              locationDisplay =
+                  place.locality ??
+                  place.subAdministrativeArea ??
+                  'Unknown Location';
+
+              // Update local data clone
+              if (userData != null) {
+                userData['default_location_city'] = locationDisplay;
+                // Optional: Sync to backend silently
+                _supabaseService.updateProfile(
+                  defaultLocationCity: locationDisplay,
+                  defaultLat: position.latitude,
+                  defaultLon: position.longitude,
+                );
+              }
+            }
+          }
+        } catch (e) {
+          debugPrint('Failed to auto-fetch location: $e');
+        }
+      }
 
       if (mounted) {
         setState(() {
@@ -215,7 +255,11 @@ class _ProfileInfo extends StatelessWidget {
   final int itemCount;
   final int tradesCount;
 
-  const _ProfileInfo({this.userData, required this.itemCount, this.tradesCount = 0});
+  const _ProfileInfo({
+    this.userData,
+    required this.itemCount,
+    this.tradesCount = 0,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -226,8 +270,8 @@ class _ProfileInfo extends StatelessWidget {
         ? itemCount.toString()
         : (userData?['offers_count']?.toString() ?? '0');
     final requestsCount = userData?['requests_count']?.toString() ?? '0';
-    final displayTradesCount = tradesCount > 0 
-        ? tradesCount.toString() 
+    final displayTradesCount = tradesCount > 0
+        ? tradesCount.toString()
         : (userData?['trades_count']?.toString() ?? '0');
 
     return Column(
@@ -368,11 +412,7 @@ class _TradeHistoryList extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.history,
-              size: 48,
-              color: Colors.grey[300],
-            ),
+            Icon(Icons.history, size: 48, color: Colors.grey[300]),
             const SizedBox(height: 16),
             Text(
               'No completed trades yet',
@@ -397,18 +437,18 @@ class _TradeHistoryList extends StatelessWidget {
         // Use snapshots if available (for deleted items), otherwise use relational data
         final itemA = trade['item_a_snapshot'] ?? trade['itemA'];
         final itemB = trade['item_b_snapshot'] ?? trade['itemB'];
-        
+
         // Determine which item was the user's and which was the partner's
         // Note: For snapshots, user_id is in the top level of the item object
         final isUserItemA = itemA?['user_id'] == currentUserId;
         final myItem = isUserItemA ? itemA : itemB;
         final theirItem = isUserItemA ? itemB : itemA;
-        
+
         final myItemImages = myItem?['images'] as List<dynamic>? ?? [];
         final theirItemImages = theirItem?['images'] as List<dynamic>? ?? [];
-        
+
         final updatedAt = DateTime.tryParse(trade['updated_at'] ?? '');
-        final formattedDate = updatedAt != null 
+        final formattedDate = updatedAt != null
             ? '${updatedAt.day}/${updatedAt.month}/${updatedAt.year}'
             : '';
 
@@ -425,10 +465,15 @@ class _TradeHistoryList extends StatelessWidget {
                   children: [
                     Text(
                       'Trade #${trade['id']}',
-                      style: AppTextStyles.caption.copyWith(color: Colors.grey[600]),
+                      style: AppTextStyles.caption.copyWith(
+                        color: Colors.grey[600],
+                      ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.green.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
@@ -461,13 +506,18 @@ class _TradeHistoryList extends StatelessWidget {
                               borderRadius: BorderRadius.circular(8),
                               image: myItemImages.isNotEmpty
                                   ? DecorationImage(
-                                      image: NetworkImage(myItemImages.first['image_url'] ?? ''),
+                                      image: NetworkImage(
+                                        myItemImages.first['image_url'] ?? '',
+                                      ),
                                       fit: BoxFit.cover,
                                     )
                                   : null,
                             ),
                             child: myItemImages.isEmpty
-                                ? const Icon(Icons.inventory_2_outlined, color: Colors.grey)
+                                ? const Icon(
+                                    Icons.inventory_2_outlined,
+                                    color: Colors.grey,
+                                  )
                                 : null,
                           ),
                           const SizedBox(height: 4),
@@ -500,13 +550,19 @@ class _TradeHistoryList extends StatelessWidget {
                               borderRadius: BorderRadius.circular(8),
                               image: theirItemImages.isNotEmpty
                                   ? DecorationImage(
-                                      image: NetworkImage(theirItemImages.first['image_url'] ?? ''),
+                                      image: NetworkImage(
+                                        theirItemImages.first['image_url'] ??
+                                            '',
+                                      ),
                                       fit: BoxFit.cover,
                                     )
                                   : null,
                             ),
                             child: theirItemImages.isEmpty
-                                ? const Icon(Icons.inventory_2_outlined, color: Colors.grey)
+                                ? const Icon(
+                                    Icons.inventory_2_outlined,
+                                    color: Colors.grey,
+                                  )
                                 : null,
                           ),
                           const SizedBox(height: 4),
@@ -536,4 +592,3 @@ class _TradeHistoryList extends StatelessWidget {
     );
   }
 }
-
